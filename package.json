@@ -11,9 +11,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "prepare": "npm run build",
-    "start": "node dist/index.js",
-    "start:mcp": "node dist/index.js",
-    "start:rest": "node dist/rest-server.js"
+    "start": "npm run build && node dist/index.js",
+    "start:mcp": "npm run build && node dist/index.js",
+    "start:rest": "npm run build && node dist/rest-server.js"
   },
   "keywords": [
     "mcp",
@@ -27,6 +27,7 @@
     "@modelcontextprotocol/sdk": "^1.0.4",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "zod": "^3.24.1"
   },

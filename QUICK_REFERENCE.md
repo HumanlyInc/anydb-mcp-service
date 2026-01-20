@@ -84,7 +84,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "anydb": {
+    "AnyDB": {
       "command": "node",
       "args": ["/path/to/anydb-mcp-service/dist/index.js"],
       "env": {

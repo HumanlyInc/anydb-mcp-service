@@ -81,7 +81,7 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 ```json
 {
   "mcpServers": {
-    "anydb": {
+    "AnyDB": {
       "command": "node",
       "args": ["/Users/anis/Humanly/anydb-mcp-service/dist/index.js"]
     }

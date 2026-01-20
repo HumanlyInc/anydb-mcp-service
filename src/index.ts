@@ -91,20 +91,6 @@ import type { TemplateStructure } from "./types.js";
 // Initialize AnyDB client
 const anydbClient = new AnyDBClient();
 
-// Common authentication parameters for all tools (multi-tenant support)
-const AUTH_PARAMS = {
-  apiKey: {
-    type: "string",
-    description:
-      "Your AnyDB API key for authentication. Required for multi-tenant access to your team's data.",
-  },
-  userEmail: {
-    type: "string",
-    description:
-      "Your email address associated with the API key. Required for user identification.",
-  },
-};
-
 // Define available tools
 const TOOLS: Tool[] = [
   {
@@ -114,7 +100,7 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
         teamid: {
           type: "string",
           description: "The team ID (MongoDB ObjectId)",
@@ -128,7 +114,7 @@ const TOOLS: Tool[] = [
           description: "The record ID (MongoDB ObjectId)",
         },
       },
-      required: ["teamid", "adbid", "adoid", "apiKey", "userEmail"],
+      required: ["teamid", "adbid", "adoid"],
     },
   },
   {
@@ -138,9 +124,9 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
       },
-      required: ["apiKey", "userEmail", "userEmail"],
+      required: [],
     },
   },
   {
@@ -150,13 +136,13 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
         teamid: {
           type: "string",
           description: "The team ID (MongoDB ObjectId). Get from list_teams.",
         },
       },
-      required: ["teamid", "apiKey", "userEmail"],
+      required: ["teamid"],
     },
   },
   {
@@ -166,7 +152,7 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
         teamid: {
           type: "string",
           description: "The team ID (MongoDB ObjectId)",
@@ -181,7 +167,7 @@ const TOOLS: Tool[] = [
             "Optional parent record ID to filter child records (MongoDB ObjectId)",
         },
       },
-      required: ["teamid", "adbid", "apiKey", "userEmail"],
+      required: ["teamid", "adbid"],
     },
   },
   {
@@ -191,7 +177,7 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
         adbid: {
           type: "string",
           description:
@@ -220,7 +206,7 @@ const TOOLS: Tool[] = [
           description: "Optional content data for the record (key-value pairs)",
         },
       },
-      required: ["adbid", "teamid", "name", "apiKey", "userEmail"],
+      required: ["adbid", "teamid", "name"],
     },
   },
   {
@@ -229,7 +215,7 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
         meta: {
           type: "object",
           description:
@@ -295,7 +281,7 @@ const TOOLS: Tool[] = [
           description: "Optional content updates (key-value pairs)",
         },
       },
-      required: ["meta", "apiKey", "userEmail"],
+      required: ["meta"],
     },
   },
   {
@@ -305,7 +291,7 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
         adbid: {
           type: "string",
           description: "The database ID to search in (MongoDB ObjectId)",
@@ -332,7 +318,7 @@ const TOOLS: Tool[] = [
           description: "Optional limit for number of results",
         },
       },
-      required: ["adbid", "teamid", "search", "apiKey", "userEmail"],
+      required: ["adbid", "teamid", "search"],
     },
   },
   {
@@ -342,7 +328,7 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
         teamid: {
           type: "string",
           description: "The team ID (MongoDB ObjectId). Get from list_teams.",
@@ -373,7 +359,7 @@ const TOOLS: Tool[] = [
             "If true, returns a preview URL to display the file inline instead of downloading it.",
         },
       },
-      required: ["teamid", "adbid", "adoid", "cellpos", "apiKey", "userEmail"],
+      required: ["teamid", "adbid", "adoid", "cellpos"],
     },
   },
   {
@@ -383,7 +369,7 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
         filename: {
           type: "string",
           description:
@@ -420,8 +406,6 @@ const TOOLS: Tool[] = [
         "adbid",
         "adoid",
         "filesize",
-        "apiKey",
-        "userEmail",
       ],
     },
   },
@@ -458,7 +442,7 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ...AUTH_PARAMS,
+        
         filesize: {
           type: "string",
           description:
@@ -483,7 +467,7 @@ const TOOLS: Tool[] = [
             "The cell position (optional, must match step 1 if provided)",
         },
       },
-      required: ["filesize", "teamid", "adbid", "apiKey", "userEmail"],
+      required: ["filesize", "teamid", "adbid"],
     },
   },
 ];
@@ -525,14 +509,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!teamid || !adbid || !adoid) {
           throw new Error("teamid, adbid, and adoid are required");
         }
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
         const record = await anydbClient.getRecord(
           teamid,
           adbid,
           adoid,
-          apiKey,
-          userEmail
+          
+          
         );
         return {
           content: [
@@ -545,9 +527,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "list_teams": {
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
-        const teams = await anydbClient.listTeams(apiKey, userEmail);
+        const teams = await anydbClient.listTeams( );
         return {
           content: [
             {
@@ -563,12 +543,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!teamid) {
           throw new Error("teamid is required");
         }
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
         const databases = await anydbClient.listDatabasesForTeam(
           teamid,
-          apiKey,
-          userEmail
+          
+          
         );
         return {
           content: [
@@ -587,14 +565,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("teamid and adbid are required");
         }
         const parentid = args?.parentid as string | undefined;
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
         const records = await anydbClient.listRecords(
           teamid,
           adbid,
           parentid,
-          apiKey,
-          userEmail
+          
+          
         );
         return {
           content: [
@@ -621,12 +597,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           template: args?.template as string | undefined,
           content: args?.content as Record<string, any> | undefined,
         };
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
         const record = await anydbClient.createRecord(
           params,
-          apiKey,
-          userEmail
+          
+          
         );
         return {
           content: [
@@ -647,12 +621,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           meta,
           content: args?.content as Record<string, any> | undefined,
         };
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
         const record = await anydbClient.updateRecord(
           params,
-          apiKey,
-          userEmail
+          
+          
         );
         return {
           content: [
@@ -679,12 +651,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           start: args?.start as string | undefined,
           limit: args?.limit as string | undefined,
         };
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
         const results = await anydbClient.searchRecords(
           params,
-          apiKey,
-          userEmail
+          
+          
         );
         return {
           content: [
@@ -706,12 +676,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
         const redirect = args?.redirect as boolean | undefined;
         const preview = args?.preview as boolean | undefined;
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
         const result = await anydbClient.downloadFile(
           { teamid, adbid, adoid, cellpos, redirect, preview },
-          apiKey,
-          userEmail
+          
+          
         );
         return {
           content: [
@@ -735,12 +703,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           );
         }
         const cellpos = args?.cellpos as string | undefined;
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
         const result = await anydbClient.getUploadUrl(
           { filename, teamid, adbid, adoid, filesize, cellpos },
-          apiKey,
-          userEmail
+          
+          
         );
         return {
           content: [
@@ -793,12 +759,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
         const adoid = args?.adoid as string | undefined;
         const cellpos = args?.cellpos as string | undefined;
-        const apiKey = args?.apiKey as string | undefined;
-        const userEmail = args?.userEmail as string | undefined;
         const result = await anydbClient.completeUpload(
           { filesize, teamid, adbid, adoid, cellpos },
-          apiKey,
-          userEmail
+          
+          
         );
         return {
           content: [

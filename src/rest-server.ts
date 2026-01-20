@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import "dotenv/config";
+
 /**
  * AnyDB REST API Server
  * Provides REST endpoints for ChatGPT Custom GPT integration

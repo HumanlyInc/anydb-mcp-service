@@ -21,10 +21,14 @@ import type {
 
 export class AnyDBClient {
   private baseURL: string;
+  private defaultApiKey?: string;
+  private defaultUserEmail?: string;
 
-  constructor(defaultApiToken?: string) {
+  constructor() {
     this.baseURL = config.anydbApiBaseUrl;
-    // Use provided token or fallback to env variable (for backward compatibility)
+    // Load defaults from config (which reads from .env)
+    this.defaultApiKey = config.defaultApiKey;
+    this.defaultUserEmail = config.defaultUserEmail;
   }
 
   /**
@@ -32,17 +36,19 @@ export class AnyDBClient {
    * Supports multi-tenant authentication by accepting per-request credentials
    */
   private getClient(apiKey?: string, userEmail?: string): AxiosInstance {
-    const token = apiKey;
+    // Use provided credentials or fall back to defaults
+    const token = apiKey || this.defaultApiKey;
+    const email = userEmail || this.defaultUserEmail;
 
     if (!token) {
       throw new Error(
-        "AnyDB API key required. Provide apiKey parameter."
+        "AnyDB API key required. Provide apiKey parameter or set ANYDB_DEFAULT_API_KEY in .env file."
       );
     }
 
-    if (!userEmail) {
+    if (!email) {
       throw new Error(
-        "User email required. Provide userEmail parameter for authentication."
+        "User email required. Provide userEmail parameter or set ANYDB_DEFAULT_USER_EMAIL in .env file."
       );
     }
 
@@ -51,7 +57,7 @@ export class AnyDBClient {
       headers: {
         "Content-Type": "application/json",
         "x-anydb-api-key": token,
-        "x-anydb-email": userEmail,
+        "x-anydb-email": email,
       },
       timeout: 30000,
     });
@@ -68,7 +74,7 @@ export class AnyDBClient {
           }`
         );
         console.error(`[AnyDB Request] API Key: ${maskedKey}`);
-        console.error(`[AnyDB Request] User Email: ${userEmail}`);
+        console.error(`[AnyDB Request] User Email: ${email}`);
         if (config.params && Object.keys(config.params).length > 0) {
           console.error(
             `[AnyDB Request] Params:`,
