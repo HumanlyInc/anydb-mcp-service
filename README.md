@@ -6,20 +6,6 @@ An MCP (Model Context Protocol) server that enables AI agents to create and mana
 
 This MCP service allows AI assistants like Claude to help users build complex AnyDB data interactively.
 
-## 🤖 Agent Configuration
-
-To make Claude follow a structured workflow (asking questions, validating, creating step-by-step), you need to configure it with system instructions:
-
-**📖 See [AGENT_SYSTEM_PROMPT.md](AGENT_SYSTEM_PROMPT.md)** - Complete system prompt for agent behavior  
-**📖 See [AGENT_USAGE_GUIDE.md](AGENT_USAGE_GUIDE.md)** - How to set up and use the agent
-
-**Quick Setup:**
-
-1. Open Claude Desktop → Projects
-2. Create project: "AnyDB Template Builder"
-3. Add Custom Instructions from [AGENT_SYSTEM_PROMPT.md](AGENT_SYSTEM_PROMPT.md)
-4. Start building templates!
-
 ## Installation
 
 ```bash
