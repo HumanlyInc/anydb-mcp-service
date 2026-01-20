@@ -4,33 +4,7 @@ An MCP (Model Context Protocol) server that enables AI agents to create and mana
 
 ## Overview
 
-This MCP service allows AI assistants like Claude to help users build complex AnyDB templates interactively. The agent can:
-
-- 🔍 Explore existing template examples for inspiration
-- 📋 Understand template structures and field types
-- 📐 Access exact JSON schemas from AnyDB source code
-- 🤖 Use AnyDB's proven AI prompts for template generation
-- 💬 Ask clarifying questions to gather requirements
-- ✨ Generate template structures based on user prompts
-- ✅ Validate templates before creation
-- 🔧 Create and update templates using internal AnyDB APIs
-
-## Use Case Example
-
-**User:** "I want a CRM system"
-
-**Agent Flow:**
-
-1. Searches for similar templates (using `search_templates`)
-2. Gets field types available (using `get_field_types`)
-3. Asks clarifying questions:
-   - "What customer information do you want to track?"
-   - "Do you need to track deals/opportunities?"
-   - "Should customers have multiple contacts?"
-4. Builds template structure
-5. Validates it (using `validate_template`)
-6. Creates the template (using `create_template`)
-7. Allows user to refine with updates (using `update_template`)
+This MCP service allows AI assistants like Claude to help users build complex AnyDB data interactively.
 
 ## 🤖 Agent Configuration
 
@@ -66,11 +40,7 @@ cp .env.example .env
 ```env
 ANYDB_API_URL=http://localhost:3000/api
 
-# Optional: For schema access from source code
-ANYDB_SERVER_SOURCE=/Users/anis/Humanly/anydb-server
 ```
-
-**Schema Access (Optional):** Set `ANYDB_SERVER_SOURCE` to enable direct access to AnyDB JSON schemas. This allows the MCP service to read schema definitions from `src/util/schema/` in the AnyDB server repository.
 
 ## Usage
 
@@ -115,206 +85,24 @@ node dist/index.js
 
 ## Available Tools
 
-### 1. `list_template_examples`
+### Record Operations (7 tools)
 
-Get example templates to understand common patterns.
+- `get_record` - Get a specific record with all cell data
+- `list_teams` - List all teams accessible with your credentials
+- `list_databases_for_team` - Get all databases within a team
+- `list_records` - List all records in a database
+- `create_record` - Create a new record in a database
+- `update_record` - Update an existing record
+- `search_records` - Search for records by keyword
 
-```json
-{
-  "category": "CRM" // optional
-}
-```
+### File Operations (4 tools)
 
-### 2. `get_template_structure`
+- `download_file` - Download or get URL for files attached to record cells
+- `get_upload_url` - Step 1: Request pre-signed URL for file upload
+- `upload_file_to_url` - Step 2: Upload file content to cloud storage
+- `complete_upload` - Step 3: Notify AnyDB that file upload is complete
 
-Get detailed structure of a specific template.
-
-```json
-{
-  "templateId": "template-123"
-}
-```
-
-### 3. `search_templates`
-
-Search for templates by keyword.
-
-```json
-{
-  "query": "customer management"
-}
-```
-
-### 4. `get_field_types`
-
-Get available field types and descriptions.
-
-### 5. `get_categories`
-
-Get available template categories.
-
-### 6. `get_available_formulas`
-
-Get available formula functions and operators for creating calculated fields. Essential for understanding what formulas can be used in template fields.
-
-### 7. `get_field_type_formats`
-
-Get detailed information about field/cell types including available formats and configuration options. Use this to understand how to properly format fields (e.g., date formats like MM/DD/YYYY, number formats like currency, chart types like bar/pie).
-
-### 8. `get_template_schemas`
-
-Get AnyDB template record JSON schemas directly from the source code. This provides the exact schema definitions for template records including:
-
-- `adoobject` - Main template/object schema
-- `adometa` - Metadata schema
-- `adocell` - Cell/field schema
-- `adoprop` - Property schema
-
-```json
-{
-  "schemaName": "all" // or "adoobject", "adometa", "adocell", "adoprop"
-}
-```
-
-**Note:** Requires `ANYDB_SERVER_SOURCE` environment variable to be set to the AnyDB server directory.
-
-### 9. `get_template_generation_prompt`
-
-Get AnyDB's built-in AI prompt for generating templates from natural language descriptions. This is the same comprehensive prompt that AnyDB uses internally with LLMs to create templates.
-
-```json
-{
-  "userQuery": "CRM with customers, contacts, and deals"
-}
-```
-
-**Returns:** Complete system prompt with schema definitions, format catalogs, validation rules, and best practices. Use this to generate templates using any LLM (Claude, GPT-4, etc.).
-
-**Note:** Requires `ANYDB_SERVER_SOURCE` environment variable.
-
-### 10. `get_validation_guidelines`
-
-Get guidelines for validating whether a template generation request is appropriate, ethical, and suitable for template creation.
-
-**Returns:** Validation checklist and rules for ensuring prompts are valid business use cases.
-
-**Note:** Requires `ANYDB_SERVER_SOURCE` environment variable.
-
-### 11. `validate_template`
-
-Validate a template structure before creation.
-
-```json
-{
-  "template": {
-    "name": "Customer",
-    "description": "Customer records",
-    "fields": [...]
-  }
-}
-```
-
-### 12. `create_template`
-
-Create a new template.
-
-```json
-{
-  "template": {
-    "name": "Customer",
-    "description": "Customer records",
-    "fields": [
-      {
-        "name": "company_name",
-        "type": "text",
-        "required": true
-      }
-    ]
-  }
-}
-```
-
-### 13. `update_template`
-
-Update an existing template.
-
-```json
-{
-  "templateId": "template-123",
-  "updates": {
-    "fields": [...]
-  }
-}
-```
-
-### 11. `update_template`
-
-## Template Structure
-
-Templates follow this structure:
-
-```typescript
-{
-  name: string;
-  description?: string;
-  fields: [
-    {
-      name: string;
-      type: 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multiselect' | 'relation' | 'formula';
-      required?: boolean;
-      description?: string;
-      options?: string[];  // for select/multiselect
-      formula?: string;    // for formula fields
-      relatedTemplate?: string;  // for relation fields
-    }
-  ];
-  relationships?: [
-    {
-      templateId: string;
-      type: 'one-to-one' | 'one-to-many' | 'many-to-many';
-      fieldName: string;
-    }
-  ];
-  metadata?: {
-    category?: string;
-    tags?: string[];
-  };
-}
-```
-
-## Integration with AnyDB API
-
-The service connects to your internal AnyDB API. You'll need to implement these endpoints in your AnyDB backend:
-
-### Required API Endpoints
-
-- `GET /api/templates/examples` - List example templates
-- `GET /api/templates/:id/structure` - Get template structure
-- `GET /api/templates/search?q=query` - Search templates
-- `GET /api/templates/field-types` - Get available field types
-- `GET /api/templates/categories` - Get categories
-- `POST /api/templates/validate` - Validate template structure
-- `POST /api/templates` - Create template
-- `PATCH /api/templates/:id` - Update template
-
-### Example API Implementation (Express.js)
-
-```typescript
-// In your AnyDB backend
-app.get("/api/templates/examples", async (req, res) => {
-  const { category } = req.query;
-  // Fetch from DynamoDB
-  const templates = await getTemplatesFromDB(category);
-  res.json(templates);
-});
-
-app.post("/api/templates", async (req, res) => {
-  const template = req.body;
-  // Validate and save to DynamoDB
-  const result = await saveTemplateToDB(template);
-  res.json({ id: result.id, message: "Template created successfully" });
-});
-```
+**Total: 11 tools** for AnyDB record and file management
 
 ## Development
 
@@ -330,61 +118,6 @@ npm run dev
 
 # Run
 npm start
-```
-
-## Architecture
-
-```
-┌─────────────────┐
-│   AI Agent      │  (Claude, etc.)
-│   (User Input)  │
-└────────┬────────┘
-         │ MCP Protocol
-         │
-┌────────▼────────┐
-│  MCP Server     │  (This service)
-│  - Tools        │
-│  - Validation   │
-└────────┬────────┘
-         │ HTTP
-         │
-┌────────▼────────┐
-│  AnyDB API      │  (Your existing API)
-│  (Internal)     │
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│   DynamoDB      │
-└─────────────────┘
-```
-
-## Example Conversation Flow
-
-```
-User: I need a CRM system
-
-Agent: I'll help you create a CRM template. Let me search for similar templates first.
-[Uses search_templates with "CRM"]
-
-Agent: I found some CRM examples. To customize it for you, I need to know:
-1. What customer fields do you need? (e.g., company name, contact info)
-2. Do you need deal/opportunity tracking?
-3. Should we track customer interactions?
-
-User: Yes, I need company name, email, phone, and deal tracking
-
-Agent: Great! Let me create the template structure.
-[Uses get_field_types to understand available types]
-[Creates template JSON structure]
-[Uses validate_template]
-
-Agent: The template is valid. Should I create it?
-
-User: Yes
-
-Agent: [Uses create_template]
-Template created successfully with ID: template-123
-You can now use this template in AnyDB to track your customers and deals.
 ```
 
 ## AI Platform Support
@@ -409,12 +142,6 @@ You can now use this template in AnyDB to track your customers and deals.
 - Ensure `ANYDB_API_URL` points to your internal API
 - Check that the API is accessible from the server
 - Verify authentication token if required
-
-### Template Creation Fails
-
-- Use `validate_template` before `create_template`
-- Check field type compatibility
-- Ensure relationship references exist
 
 ## License
 
