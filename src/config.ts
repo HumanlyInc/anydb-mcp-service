@@ -4,8 +4,16 @@
  */
 
 // Debug: Log environment variables
-console.error('[Config] ANYDB_DEFAULT_API_KEY:', process.env.ANYDB_DEFAULT_API_KEY ? `${process.env.ANYDB_DEFAULT_API_KEY.substring(0, 8)}...` : 'NOT SET');
-console.error('[Config] ANYDB_DEFAULT_USER_EMAIL:', process.env.ANYDB_DEFAULT_USER_EMAIL || 'NOT SET');
+console.error(
+  "[Config] ANYDB_DEFAULT_API_KEY:",
+  process.env.ANYDB_DEFAULT_API_KEY
+    ? `${process.env.ANYDB_DEFAULT_API_KEY.substring(0, 8)}...`
+    : "NOT SET"
+);
+console.error(
+  "[Config] ANYDB_DEFAULT_USER_EMAIL:",
+  process.env.ANYDB_DEFAULT_USER_EMAIL || "NOT SET"
+);
 
 export const config = {
   // AnyDB Internal API endpoint (not exposed outside local subnet)
