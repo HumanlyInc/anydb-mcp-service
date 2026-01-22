@@ -167,7 +167,15 @@ app.get(
   authenticate,
   async (req: Request, res: Response) => {
     try {
-      const { teamid, adbid, parentid } = req.query;
+      const {
+        teamid,
+        adbid,
+        parentid,
+        templateid,
+        templatename,
+        pagesize,
+        lastmarker,
+      } = req.query;
       if (!teamid || !adbid) {
         return res.status(400).json({
           success: false,
@@ -178,7 +186,11 @@ app.get(
       const records = await client.listRecords(
         teamid as string,
         adbid as string,
-        parentid as string | undefined
+        parentid as string | undefined,
+        templateid as string | undefined,
+        templatename as string | undefined,
+        pagesize as string | undefined,
+        lastmarker as string | undefined
       );
       res.json({ success: true, data: records });
     } catch (error) {

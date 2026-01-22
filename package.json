@@ -13,7 +13,10 @@
     "prepare": "npm run build",
     "start": "npm run build && node dist/index.js",
     "start:mcp": "npm run build && node dist/index.js",
-    "start:rest": "npm run build && node dist/rest-server.js"
+    "start:rest": "npm run build && node dist/rest-server.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "keywords": [
     "mcp",
@@ -33,9 +36,13 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.10.5",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.7.2"
   }
 }

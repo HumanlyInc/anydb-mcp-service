@@ -148,7 +148,7 @@ const TOOLS: Tool[] = [
   {
     name: "list_records",
     description:
-      "List all ADOs (records) in a database. Optionally filter by parent record ID to get child records.",
+      "List all ADOs (records) in a database. Optionally filter by parent record ID to get child records, by template to get records of a specific type, and use pagination for large result sets.",
     inputSchema: {
       type: "object",
       properties: {
@@ -163,7 +163,27 @@ const TOOLS: Tool[] = [
         parentid: {
           type: "string",
           description:
-            "Optional parent record ID to filter child records (MongoDB ObjectId)",
+            "Optional parent record ID to filter child records (MongoDB ObjectId). If not provided, then the root database records are returned.",
+        },
+        templateid: {
+          type: "string",
+          description:
+            "Optional template ID to filter records by type (MongoDB ObjectId). Only returns records created from this template.",
+        },
+        templatename: {
+          type: "string",
+          description:
+            "Optional template name to filter records by type. Alternative to templateid - provide one or the other, not both.",
+        },
+        pagesize: {
+          type: "string",
+          description:
+            "Optional page size to limit the number of records returned (numeric string, e.g., '50'). Useful for pagination with large result sets.",
+        },
+        lastmarker: {
+          type: "string",
+          description:
+            "Optional pagination marker. Use the marker from the previous response to get the next page of results.",
         },
       },
       required: ["teamid", "adbid"],
@@ -487,7 +507,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("teamid and adbid are required");
         }
         const parentid = args?.parentid as string | undefined;
-        const records = await anydbClient.listRecords(teamid, adbid, parentid);
+        const templateid = args?.templateid as string | undefined;
+        const templatename = args?.templatename as string | undefined;
+        const pagesize = args?.pagesize as string | undefined;
+        const lastmarker = args?.lastmarker as string | undefined;
+        const records = await anydbClient.listRecords(
+          teamid,
+          adbid,
+          parentid,
+          templateid,
+          templatename,
+          pagesize,
+          lastmarker
+        );
         return {
           content: [
             {
