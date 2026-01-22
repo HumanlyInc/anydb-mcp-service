@@ -25,6 +25,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
+    "anydb-api-sdk-ts": "file:../anydb-sdk",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

@@ -81,14 +81,12 @@ node dist/index.js
 - `update_record` - Update an existing record
 - `search_records` - Search for records by keyword
 
-### File Operations (4 tools)
+### File Operations (2 tools)
 
 - `download_file` - Download or get URL for files attached to record cells
-- `get_upload_url` - Step 1: Request pre-signed URL for file upload
-- `upload_file_to_url` - Step 2: Upload file content to cloud storage
-- `complete_upload` - Step 3: Notify AnyDB that file upload is complete
+- `upload_file` - Upload a file to a record (handles complete upload process)
 
-**Total: 11 tools** for AnyDB record and file management
+**Total: 9 tools** for AnyDB record and file management
 
 ## Development
 

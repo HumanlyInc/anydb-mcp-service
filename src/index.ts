@@ -51,27 +51,21 @@
  * Example response: {"url": "https://storage.../file.pdf", "redirect": false}
  *
  * =============================================================================
- * File Upload Workflow (3-Step Process)
+ * File Upload Workflow
  * =============================================================================
  *
- * Uploading files requires 3 sequential steps:
+ * Uploading files is simple with the upload_file tool:
+ * 1. Prepare your file content as a base64-encoded string
+ * 2. Call upload_file with filename, fileContent, teamid, adbid, adoid, and optional cellpos
+ * 3. The tool handles the complete upload process automatically
+ * 4. Returns success response when the file is attached to the record
  *
- * Step 1: get_upload_url
- *   - Request a pre-signed URL to upload the file
- *   - Provide: filename, teamid, adbid, adoid, filesize, optional cellpos
- *   - Returns: {url: "https://storage.../upload", ...}
- *
- * Step 2: upload_file_to_url
- *   - Upload the actual file content to the URL from step 1
- *   - Provide: uploadUrl, fileContent (base64 or text), optional contentType
- *   - This uploads directly to cloud storage (S3, etc.)
- *
- * Step 3: complete_upload
- *   - Notify AnyDB that the upload is complete
- *   - Provide: filesize, teamid, adbid, optional adoid, optional cellpos
- *   - AnyDB processes and attaches the file to the record
- *
- * All 3 steps must complete successfully for the upload to work.
+ * Example: Upload a text file
+ *   - filename: "document.txt"
+ *   - fileContent: Base64-encoded file content
+ *   - teamid, adbid, adoid: IDs from your records
+ *   - cellpos: "A1" (optional, defaults to A1)
+ *   - contentType: "text/plain" (optional, helps with file handling)
  *
  * =============================================================================
  */
@@ -83,13 +77,23 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { AnyDBClient } from "./anydb-client.js";
+import { AnyDBClient } from "anydb-api-sdk-ts";
 import { config } from "./config.js";
 import { schemaReader } from "./schema-reader.js";
 import type { TemplateStructure } from "./types.js";
 
-// Initialize AnyDB client
-const anydbClient = new AnyDBClient();
+// Initialize AnyDB client with credentials from environment
+if (!config.defaultApiKey || !config.defaultUserEmail) {
+  throw new Error(
+    "ANYDB_DEFAULT_API_KEY and ANYDB_DEFAULT_USER_EMAIL must be set in environment variables"
+  );
+}
+
+const anydbClient = new AnyDBClient({
+  apiKey: config.defaultApiKey,
+  userEmail: config.defaultUserEmail,
+  baseURL: config.anydbApiBaseUrl,
+});
 
 // Define available tools
 const TOOLS: Tool[] = [
@@ -100,7 +104,6 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        
         teamid: {
           type: "string",
           description: "The team ID (MongoDB ObjectId)",
@@ -123,9 +126,7 @@ const TOOLS: Tool[] = [
       "List all teams that the provided API key has access to. A team is like an organization or workspace with its own databases and users. Use this first to discover available teamid values for other operations.",
     inputSchema: {
       type: "object",
-      properties: {
-        
-      },
+      properties: {},
       required: [],
     },
   },
@@ -136,7 +137,6 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        
         teamid: {
           type: "string",
           description: "The team ID (MongoDB ObjectId). Get from list_teams.",
@@ -152,7 +152,6 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        
         teamid: {
           type: "string",
           description: "The team ID (MongoDB ObjectId)",
@@ -177,7 +176,6 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        
         adbid: {
           type: "string",
           description:
@@ -215,7 +213,6 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        
         meta: {
           type: "object",
           description:
@@ -291,7 +288,6 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        
         adbid: {
           type: "string",
           description: "The database ID to search in (MongoDB ObjectId)",
@@ -328,7 +324,6 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        
         teamid: {
           type: "string",
           description: "The team ID (MongoDB ObjectId). Get from list_teams.",
@@ -363,17 +358,21 @@ const TOOLS: Tool[] = [
     },
   },
   {
-    name: "get_upload_url",
+    name: "upload_file",
     description:
-      "Step 1 of 3: Request a pre-signed URL from AnyDB to upload a file. This is the first step in the 3-step upload process. Returns JSON with a 'url' field where you'll upload the file in step 2. Must be followed by upload_file_to_url and complete_upload.",
+      "Upload a file to an AnyDB record. Provide the file content directly (NOT a file path). For images and binary files, provide the raw binary data. The file will be attached to the specified record at the given cell position. Use get_record first to see the record structure and available cell positions.",
     inputSchema: {
       type: "object",
       properties: {
-        
         filename: {
           type: "string",
           description:
             "The name of the file to upload (e.g., 'document.pdf', 'image.png')",
+        },
+        fileContent: {
+          type: "string",
+          description:
+            "The file content. Provide the actual file data here, not a file path.",
         },
         teamid: {
           type: "string",
@@ -389,42 +388,10 @@ const TOOLS: Tool[] = [
           description:
             "The record ID (MongoDB ObjectId) where the file will be attached. Get from list_records or create with create_record.",
         },
-        filesize: {
-          type: "string",
-          description:
-            "The size of the file in bytes (as string, e.g., '1024' for 1KB)",
-        },
         cellpos: {
           type: "string",
           description:
-            "Optional cell position where the file will be stored (e.g., 'A1', 'B2'). If omitted, AnyDB assigns a position.",
-        },
-      },
-      required: [
-        "filename",
-        "teamid",
-        "adbid",
-        "adoid",
-        "filesize",
-      ],
-    },
-  },
-  {
-    name: "upload_file_to_url",
-    description:
-      "Step 2 of 3: Upload file content to a pre-signed URL. This is the second step in the 3-step upload process. Use the URL from get_upload_url (step 1). This uploads directly to cloud storage (S3, etc.). After this succeeds, you MUST call complete_upload (step 3) to finalize the upload.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        uploadUrl: {
-          type: "string",
-          description:
-            "The pre-signed URL obtained from get_upload_url (step 1)",
-        },
-        fileContent: {
-          type: "string",
-          description:
-            "The file content as a base64-encoded string (preferred) or plain text for text files",
+            "Optional cell position where the file will be stored (e.g., 'A1', 'B2'). Defaults to 'A1' if omitted.",
         },
         contentType: {
           type: "string",
@@ -432,42 +399,7 @@ const TOOLS: Tool[] = [
             "The MIME type of the file (e.g., 'image/png', 'application/pdf', 'text/plain'). Important for proper file handling.",
         },
       },
-      required: ["uploadUrl", "fileContent"],
-    },
-  },
-  {
-    name: "complete_upload",
-    description:
-      "Step 3 of 3: Notify AnyDB that the file has been uploaded. This is the final step in the 3-step upload process. Call this ONLY after successfully uploading the file with upload_file_to_url (step 2). This tells AnyDB to process and attach the file to the record. Use the same parameters as step 1 (get_upload_url).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        
-        filesize: {
-          type: "string",
-          description:
-            "The size of the uploaded file in bytes (must match step 1)",
-        },
-        teamid: {
-          type: "string",
-          description: "The team ID (must match step 1)",
-        },
-        adbid: {
-          type: "string",
-          description: "The database ID (must match step 1)",
-        },
-        adoid: {
-          type: "string",
-          description:
-            "The record ID (optional, must match step 1 if provided)",
-        },
-        cellpos: {
-          type: "string",
-          description:
-            "The cell position (optional, must match step 1 if provided)",
-        },
-      },
-      required: ["filesize", "teamid", "adbid"],
+      required: ["filename", "fileContent", "teamid", "adbid", "adoid"],
     },
   },
 ];
@@ -509,13 +441,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!teamid || !adbid || !adoid) {
           throw new Error("teamid, adbid, and adoid are required");
         }
-        const record = await anydbClient.getRecord(
-          teamid,
-          adbid,
-          adoid,
-          
-          
-        );
+        const record = await anydbClient.getRecord(teamid, adbid, adoid);
         return {
           content: [
             {
@@ -527,7 +453,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "list_teams": {
-        const teams = await anydbClient.listTeams( );
+        const teams = await anydbClient.listTeams();
         return {
           content: [
             {
@@ -543,11 +469,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!teamid) {
           throw new Error("teamid is required");
         }
-        const databases = await anydbClient.listDatabasesForTeam(
-          teamid,
-          
-          
-        );
+        const databases = await anydbClient.listDatabasesForTeam(teamid);
         return {
           content: [
             {
@@ -565,13 +487,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("teamid and adbid are required");
         }
         const parentid = args?.parentid as string | undefined;
-        const records = await anydbClient.listRecords(
-          teamid,
-          adbid,
-          parentid,
-          
-          
-        );
+        const records = await anydbClient.listRecords(teamid, adbid, parentid);
         return {
           content: [
             {
@@ -597,11 +513,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           template: args?.template as string | undefined,
           content: args?.content as Record<string, any> | undefined,
         };
-        const record = await anydbClient.createRecord(
-          params,
-          
-          
-        );
+        const record = await anydbClient.createRecord(params);
         return {
           content: [
             {
@@ -621,11 +533,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           meta,
           content: args?.content as Record<string, any> | undefined,
         };
-        const record = await anydbClient.updateRecord(
-          params,
-          
-          
-        );
+        const record = await anydbClient.updateRecord(params);
         return {
           content: [
             {
@@ -651,11 +559,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           start: args?.start as string | undefined,
           limit: args?.limit as string | undefined,
         };
-        const results = await anydbClient.searchRecords(
-          params,
-          
-          
-        );
+        const results = await anydbClient.searchRecords(params);
         return {
           content: [
             {
@@ -676,11 +580,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
         const redirect = args?.redirect as boolean | undefined;
         const preview = args?.preview as boolean | undefined;
-        const result = await anydbClient.downloadFile(
-          { teamid, adbid, adoid, cellpos, redirect, preview },
-          
-          
-        );
+        const result = await anydbClient.downloadFile({
+          teamid,
+          adbid,
+          adoid,
+          cellpos,
+          redirect,
+          preview,
+        });
         return {
           content: [
             {
@@ -691,79 +598,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "get_upload_url": {
+      case "upload_file": {
         const filename = args?.filename as string;
+        const fileContent = args?.fileContent as string;
         const teamid = args?.teamid as string;
         const adbid = args?.adbid as string;
         const adoid = args?.adoid as string;
-        const filesize = args?.filesize as string;
-        if (!filename || !teamid || !adbid || !adoid || !filesize) {
+
+        if (!filename || !fileContent || !teamid || !adbid || !adoid) {
           throw new Error(
-            "filename, teamid, adbid, adoid, and filesize are required"
+            "filename, fileContent, teamid, adbid, and adoid are required"
           );
         }
-        const cellpos = args?.cellpos as string | undefined;
-        const result = await anydbClient.getUploadUrl(
-          { filename, teamid, adbid, adoid, filesize, cellpos },
-          
-          
-        );
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
 
-      case "upload_file_to_url": {
-        const uploadUrl = args?.uploadUrl as string;
-        const fileContent = args?.fileContent as string;
-        if (!uploadUrl || !fileContent) {
-          throw new Error("uploadUrl and fileContent are required");
-        }
+        const cellpos = args?.cellpos as string | undefined;
         const contentType = args?.contentType as string | undefined;
 
-        // Convert base64 string to Buffer if needed
-        let content: Buffer | string = fileContent;
-        try {
-          content = Buffer.from(fileContent, "base64");
-        } catch (error) {
-          // If not base64, use as-is (text content)
-          content = fileContent;
-        }
+        // Convert string to Buffer for upload
+        const content = Buffer.from(fileContent);
 
-        await anydbClient.uploadFileToUrl(uploadUrl, content, contentType);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(
-                { success: true, message: "File uploaded successfully" },
-                null,
-                2
-              ),
-            },
-          ],
-        };
-      }
+        const result = await anydbClient.uploadFile({
+          filename,
+          fileContent: content,
+          teamid,
+          adbid,
+          adoid,
+          cellpos,
+          contentType,
+        });
 
-      case "complete_upload": {
-        const filesize = args?.filesize as string;
-        const teamid = args?.teamid as string;
-        const adbid = args?.adbid as string;
-        if (!filesize || !teamid || !adbid) {
-          throw new Error("filesize, teamid, and adbid are required");
-        }
-        const adoid = args?.adoid as string | undefined;
-        const cellpos = args?.cellpos as string | undefined;
-        const result = await anydbClient.completeUpload(
-          { filesize, teamid, adbid, adoid, cellpos },
-          
-          
-        );
         return {
           content: [
             {

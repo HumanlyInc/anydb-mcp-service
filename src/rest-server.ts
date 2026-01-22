@@ -9,10 +9,10 @@ import "dotenv/config";
 
 import express, { Request, Response } from "express";
 import cors from "cors";
-import { AnyDBClient } from "./anydb-client.js";
+import { AnyDBClient } from "anydb-api-sdk-ts";
+import { config } from "./config.js";
 
 const app = express();
-const anydbClient = new AnyDBClient();
 
 // Middleware
 app.use(cors());
@@ -42,6 +42,28 @@ function extractApiKey(req: Request): string | undefined {
  */
 function extractUserEmail(req: Request): string | undefined {
   return req.headers["x-anydb-email"] as string | undefined;
+}
+
+/**
+ * Get an AnyDB client instance with credentials from request headers
+ * Creates a new client for each request to support multi-tenant authentication
+ */
+function getAnyDBClient(req: Request): AnyDBClient {
+  const apiKey = extractApiKey(req);
+  const userEmail = extractUserEmail(req);
+
+  if (!apiKey) {
+    throw new Error("API key required. Provide x-anydb-api-key header.");
+  }
+  if (!userEmail) {
+    throw new Error("User email required. Provide x-anydb-email header.");
+  }
+
+  return new AnyDBClient({
+    apiKey,
+    userEmail,
+    baseURL: config.anydbApiBaseUrl,
+  });
 }
 
 // Optional: API Key authentication for REST API itself (ChatGPT)
@@ -80,14 +102,11 @@ app.get(
           error: "teamid, adbid, and adoid are required",
         });
       }
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const record = await anydbClient.getRecord(
+      const client = getAnyDBClient(req);
+      const record = await client.getRecord(
         teamid as string,
         adbid as string,
-        adoid as string,
-        apiKey,
-        userEmail
+        adoid as string
       );
       res.json({ success: true, data: record });
     } catch (error) {
@@ -105,9 +124,8 @@ app.get(
   authenticate,
   async (req: Request, res: Response) => {
     try {
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const teams = await anydbClient.listTeams(apiKey, userEmail);
+      const client = getAnyDBClient(req);
+      const teams = await client.listTeams();
       res.json({ success: true, data: teams });
     } catch (error) {
       res.status(500).json({
@@ -131,13 +149,8 @@ app.get(
           error: "teamid is required",
         });
       }
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const databases = await anydbClient.listDatabasesForTeam(
-        teamid as string,
-        apiKey,
-        userEmail
-      );
+      const client = getAnyDBClient(req);
+      const databases = await client.listDatabasesForTeam(teamid as string);
       res.json({ success: true, data: databases });
     } catch (error) {
       res.status(500).json({
@@ -161,14 +174,11 @@ app.get(
           error: "teamid and adbid are required",
         });
       }
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const records = await anydbClient.listRecords(
+      const client = getAnyDBClient(req);
+      const records = await client.listRecords(
         teamid as string,
         adbid as string,
-        parentid as string | undefined,
-        apiKey,
-        userEmail
+        parentid as string | undefined
       );
       res.json({ success: true, data: records });
     } catch (error) {
@@ -194,9 +204,8 @@ app.post(
         });
       }
       const params = { adbid, teamid, name, attach, template, content };
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const record = await anydbClient.createRecord(params, apiKey, userEmail);
+      const client = getAnyDBClient(req);
+      const record = await client.createRecord(params);
       res.json({ success: true, data: record });
     } catch (error) {
       res.status(500).json({
@@ -221,9 +230,8 @@ app.put(
         });
       }
       const params = { meta, content };
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const record = await anydbClient.updateRecord(params, apiKey, userEmail);
+      const client = getAnyDBClient(req);
+      const record = await client.updateRecord(params);
       res.json({ success: true, data: record });
     } catch (error) {
       res.status(500).json({
@@ -255,13 +263,8 @@ app.get(
         start: start as string | undefined,
         limit: limit as string | undefined,
       };
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const results = await anydbClient.searchRecords(
-        params,
-        apiKey,
-        userEmail
-      );
+      const client = getAnyDBClient(req);
+      const results = await client.searchRecords(params);
       res.json({ success: true, data: results });
     } catch (error) {
       res.status(500).json({
@@ -293,9 +296,8 @@ app.get(
         redirect: redirect === "true" || redirect === "1",
         preview: preview === "true" || preview === "1",
       };
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const result = await anydbClient.downloadFile(params, apiKey, userEmail);
+      const client = getAnyDBClient(req);
+      const result = await client.downloadFile(params);
       res.json({ success: true, data: result });
     } catch (error) {
       res.status(500).json({
@@ -327,9 +329,8 @@ app.get(
         filesize: filesize as string,
         cellpos: cellpos as string | undefined,
       };
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const result = await anydbClient.getUploadUrl(params, apiKey, userEmail);
+      const client = getAnyDBClient(req);
+      const result = await client.getUploadUrl(params);
       res.json({ success: true, data: result });
     } catch (error) {
       res.status(500).json({
@@ -362,7 +363,8 @@ app.put(
         content = fileContent;
       }
 
-      await anydbClient.uploadFileToUrl(uploadUrl, content, contentType);
+      const client = getAnyDBClient(req);
+      await client.uploadFileToUrl(uploadUrl, content, contentType);
       res.json({ success: true, message: "File uploaded successfully" });
     } catch (error) {
       res.status(500).json({
@@ -393,13 +395,8 @@ app.put(
         adoid: adoid as string | undefined,
         cellpos: cellpos as string | undefined,
       };
-      const apiKey = extractApiKey(req);
-      const userEmail = extractUserEmail(req);
-      const result = await anydbClient.completeUpload(
-        params,
-        apiKey,
-        userEmail
-      );
+      const client = getAnyDBClient(req);
+      const result = await client.completeUpload(params);
       res.json({ success: true, data: result });
     } catch (error) {
       res.status(500).json({
