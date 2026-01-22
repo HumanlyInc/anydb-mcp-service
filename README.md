@@ -24,7 +24,7 @@ cp .env.example .env
 2. Configure your AnyDB API settings:
 
 ```env
-ANYDB_API_URL=http://localhost:3000/api
+ANYDB_API_URL=https://app.anydb.com/api
 
 ```
 
