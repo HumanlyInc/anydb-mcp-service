@@ -16,6 +16,27 @@ This MCP service provides seamless integration between AI assistants (like Claud
 
 Perfect for automating AnyDB operations, building AI-powered data assistants, and integrating AnyDB with AI workflows.
 
+## About AnyDB
+
+[AnyDB](https://www.anydb.com) is an object-based platform for managing custom business operations.
+
+Most software forces work into rigid tables, fixed modules, or predefined workflows. Real operations do not work that way. They are made up of things that belong together and things that relate to each other.
+
+AnyDB lets you model your business the way it actually runs.
+
+### The Problem AnyDB Solves
+
+Operational data is usually fragmented:
+
+- Information spread across spreadsheets, tools, folders, and emails
+- Records split across multiple tables that only make sense when joined
+- Files and notes disconnected from the data they belong to
+- Systems that break when workflows evolve
+
+AnyDB replaces this with complete, connected business records.
+
+Visit [www.anydb.com](https://www.anydb.com) to learn more.
+
 ## Installation
 
 ```bash
@@ -47,9 +68,21 @@ ANYDB_API_BASE_URL=https://app.anydb.com/api
 ```
 
 You can set these in:
+
 - A `.env` file in your project directory
 - Your system environment variables
 - Claude Desktop configuration (for MCP usage)
+
+## Getting Your API Key
+
+Before using the SDK, you'll need to obtain your API key from [AnyDB](https://www.anydb.com):
+
+1. Log in to your AnyDB account at [app.anydb.com](https://app.anydb.com)
+2. Click on the **user icon** in the bottom right corner of the browser UI
+3. In the Profile Dialog that opens, navigate to the **Integration** tab
+4. Copy your API key from the Integration settings
+
+Your API key is unique to your account and should be kept secure. Never commit it to version control or share it publicly.
 
 ## Usage
 
@@ -65,10 +98,7 @@ Add to your Claude Desktop configuration file:
   "mcpServers": {
     "anydb": {
       "command": "npx",
-      "args": [
-        "-y",
-        "anydb-mcp-service"
-      ],
+      "args": ["-y", "anydb-mcp-service"],
       "env": {
         "ANYDB_DEFAULT_API_KEY": "your_api_key_here",
         "ANYDB_DEFAULT_USER_EMAIL": "your_email@example.com",
@@ -82,6 +112,7 @@ Add to your Claude Desktop configuration file:
 Restart Claude Desktop to activate the integration.
 
 ### With ChatGPT (REST API)
+
 The REST API provides HTTP endpoints for all tools, making it compatible with ChatGPT Actions and other HTTP-based integrations.
 
 ### With Other MCP Clients
@@ -94,7 +125,7 @@ anydb-mcp-service
 
 Or if installed locally:
 
-```bash
+````bash
 npx anydb-mcp-serviceRATION.md](CHATGPT_INTEGRATION.md) for detailed setup instructions.
 
 ### With Other MCP Clients
@@ -161,13 +192,15 @@ npmExamples
 
 Once configured, you can interact with AnyDB through natural language:
 
-```
+````
+
 "List all my teams"
 "Show me databases in team XYZ"
 "Create a new record in database ABC with name 'Project Plan'"
 "Search for records containing 'budget' in database ABC"
 "Upload this file to record XYZ"
-```
+
+````
 
 ### Programmatic Usage
 
@@ -190,23 +223,26 @@ const record = await client.createRecord({
   adbid: 'database-id',
   name: 'New Record'
 });
-```
+````
 
 ## Troubleshooting
 
 ### Common Issues
 
 **Connection Issues**
+
 - Verify `ANYDB_API_BASE_URL` is set correctly (default: `https://app.anydb.com/api`)
 - Check that your API key and email are valid
 - Ensure network access to AnyDB API
 
 **Authentication Errors**
+
 - Confirm your API key has not expired
 - Verify the email associated with your API key
 - Check API key permissions in your AnyDB account settings
 
 **File Upload Issues**
+
 - Ensure files are within size limits
 - Check file permissions and access
 - Verify the target record and cell position exist
