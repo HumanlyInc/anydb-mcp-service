@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 
+// Redirect console.log to console.error to prevent breaking MCP JSON-RPC protocol
+// This ensures that any console.log calls (from dependencies like the SDK) don't write to stdout
+const originalLog = console.log;
+console.log = (...args: any[]) => {
+  console.error(...args);
+};
+
 /**
  * AnyDB MCP Server
  * Provides MCP tools for AI agents to create and manage AnyDB templates
@@ -303,6 +310,34 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "delete_record",
+    description:
+      "Delete or unlink an existing AnyDB record. Records can have multiple parents - you can either unlink the record from specific parent(s) by providing their IDs in removefromids, or permanently delete the record by passing '000000000000000000000000' (NULL_OBJECTID). If removefromids is not specified, the record will be permanently deleted by default.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adoid: {
+          type: "string",
+          description: "The record ID to delete or unlink (MongoDB ObjectId)",
+        },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        teamid: {
+          type: "string",
+          description: "The team ID (MongoDB ObjectId)",
+        },
+        removefromids: {
+          type: "string",
+          description:
+            "Comma-separated parent ADOIDs to unlink the record from (e.g., '507f1f77bcf86cd799439011,507f191e810c19729de860ea'), or '000000000000000000000000' (NULL_OBJECTID) to permanently delete the record. Defaults to NULL_OBJECTID for permanent deletion if not specified.",
+        },
+      },
+      required: ["adoid", "adbid", "teamid"],
+    },
+  },
+  {
     name: "search_records",
     description:
       "Search for records in a database using a keyword. Optionally filter by parent record and specify pagination.",
@@ -572,6 +607,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(record, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "delete_record": {
+        const adoid = args?.adoid as string;
+        const adbid = args?.adbid as string;
+        const teamid = args?.teamid as string;
+        if (!adoid || !adbid || !teamid) {
+          throw new Error("adoid, adbid, and teamid are required");
+        }
+        const params = {
+          adoid,
+          adbid,
+          teamid,
+          removefromids:
+            (args?.removefromids as string) || "000000000000000000000000", // NULL_OBJECTID for permanent deletion
+        };
+        const result = await anydbClient.removeRecord(params);
+        return {
+          content: [
+            {
+              type: "text",
+              text: result
+                ? "Record deleted successfully"
+                : "Failed to delete record",
             },
           ],
         };

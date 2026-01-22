@@ -132,7 +132,7 @@ npx anydb-mcp-serviceRATION.md](CHATGPT_INTEGRATION.md) for detailed setup instr
 
 The server uses stdio transport and can be integrated with any MCP-compatible client:
 
-This service provides 9 tools for comprehensive AnyDB integration:
+This service provides 10 tools for comprehensive AnyDB integration:
 
 ### Record Operations
 
@@ -144,6 +144,7 @@ This service provides 9 tools for comprehensive AnyDB integration:
 | `get_record` | Get a specific record with all cell data |
 | `create_record` | Create a new record in a database |
 | `update_record` | Update an existing record's metadata and content |
+| `delete_record` | Delete an existing record permanently |
 | `search_records` | Search for records by keyword across database |
 
 ### File Operations
@@ -300,7 +301,6 @@ MIT
    - Configure Claude Desktop config file
    - Start: `npm run start:mcp`
 2. **For ChatGPT (REST API)**:
-
    - Install dependencies: `npm install`
    - Build: `npm run build`
    - Start REST server: `npm run start:rest`

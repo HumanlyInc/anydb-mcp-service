@@ -4,21 +4,21 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
-import type { AnyDBClient } from "anydb-api-sdk-ts";
 import { ADOCellValueType } from "anydb-api-sdk-ts";
 
-// Mock the AnyDB client
-const mockAnyDBClient = {
+// Mock the AnyDB client - we define our own type since it has additional methods beyond the SDK
+const mockAnyDBClient: any = {
   listTeams: jest.fn(),
   listDatabasesForTeam: jest.fn(),
   listRecords: jest.fn(),
   getRecord: jest.fn(),
   createRecord: jest.fn(),
   updateRecord: jest.fn(),
+  removeRecord: jest.fn(),
   searchRecords: jest.fn(),
   downloadFile: jest.fn(),
   uploadFile: jest.fn(),
-} as unknown as jest.Mocked<AnyDBClient>;
+};
 
 describe("MCP Tool Validation", () => {
   beforeEach(() => {
@@ -55,11 +55,11 @@ describe("MCP Tool Validation", () => {
 
     it("should throw error when teamid is missing", async () => {
       mockAnyDBClient.listDatabasesForTeam.mockRejectedValue(
-        new Error("teamid is required")
+        new Error("teamid is required"),
       );
 
       await expect(mockAnyDBClient.listDatabasesForTeam("")).rejects.toThrow(
-        "teamid is required"
+        "teamid is required",
       );
     });
   });
@@ -110,7 +110,7 @@ describe("MCP Tool Validation", () => {
         undefined,
         undefined,
         undefined,
-        "50"
+        "50",
       );
 
       expect(result.items).toHaveLength(50);
@@ -139,7 +139,7 @@ describe("MCP Tool Validation", () => {
         teamid,
         adbid,
         undefined,
-        templateid
+        templateid,
       );
 
       expect(result).toEqual(mockResponse);
@@ -147,7 +147,7 @@ describe("MCP Tool Validation", () => {
         teamid,
         adbid,
         undefined,
-        templateid
+        templateid,
       );
     });
 
@@ -173,7 +173,7 @@ describe("MCP Tool Validation", () => {
       expect(mockAnyDBClient.listRecords).toHaveBeenCalledWith(
         teamid,
         adbid,
-        parentid
+        parentid,
       );
     });
   });
@@ -280,6 +280,24 @@ describe("MCP Tool Validation", () => {
 
       expect(result).toEqual(mockRecord);
       expect(result.meta.name).toBe("Updated Name");
+    });
+  });
+
+  describe("delete_record", () => {
+    it("should delete an existing record", async () => {
+      const params = {
+        adoid: "6966c97ea9a78803df3aa495",
+        adbid: "6966569a6dfb26607e99ac70",
+        teamid: "6966569a6dfb26607e99ac63",
+        removefromids: "000000000000000000000000",
+      };
+      const mockResult = true;
+      mockAnyDBClient.removeRecord.mockResolvedValue(mockResult);
+
+      const result = await mockAnyDBClient.removeRecord(params);
+
+      expect(result).toEqual(mockResult);
+      expect(result).toBe(true);
     });
   });
 
@@ -411,11 +429,11 @@ describe("MCP Tool Validation", () => {
         adoid: "",
       };
       mockAnyDBClient.uploadFile.mockRejectedValue(
-        new Error("adoid is required")
+        new Error("adoid is required"),
       );
 
       await expect(mockAnyDBClient.uploadFile(params)).rejects.toThrow(
-        "adoid is required"
+        "adoid is required",
       );
     });
   });

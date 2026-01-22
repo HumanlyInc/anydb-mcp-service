@@ -10,6 +10,7 @@ import type {
   ADB,
   CreateRecordParams,
   UpdateRecordParams,
+  DeleteRecordParams,
   SearchRecordsParams,
   DownloadFileParams,
   DownloadFileResponse,
@@ -42,13 +43,13 @@ export class AnyDBClient {
 
     if (!token) {
       throw new Error(
-        "AnyDB API key required. Provide apiKey parameter or set ANYDB_DEFAULT_API_KEY in .env file."
+        "AnyDB API key required. Provide apiKey parameter or set ANYDB_DEFAULT_API_KEY in .env file.",
       );
     }
 
     if (!email) {
       throw new Error(
-        "User email required. Provide userEmail parameter or set ANYDB_DEFAULT_USER_EMAIL in .env file."
+        "User email required. Provide userEmail parameter or set ANYDB_DEFAULT_USER_EMAIL in .env file.",
       );
     }
 
@@ -71,20 +72,20 @@ export class AnyDBClient {
         console.error(
           `[AnyDB Request] ${config.method?.toUpperCase()} ${config.baseURL}${
             config.url
-          }`
+          }`,
         );
         console.error(`[AnyDB Request] API Key: ${maskedKey}`);
         console.error(`[AnyDB Request] User Email: ${email}`);
         if (config.params && Object.keys(config.params).length > 0) {
           console.error(
             `[AnyDB Request] Params:`,
-            JSON.stringify(config.params, null, 2)
+            JSON.stringify(config.params, null, 2),
           );
         }
         if (config.data) {
           console.error(
             `[AnyDB Request] Body:`,
-            JSON.stringify(config.data, null, 2)
+            JSON.stringify(config.data, null, 2),
           );
         }
         return config;
@@ -92,28 +93,28 @@ export class AnyDBClient {
       (error) => {
         console.error(`[AnyDB Request Error]`, error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // Add response interceptor for logging
     client.interceptors.response.use(
       (response) => {
         console.error(
-          `[AnyDB Response] Status: ${response.status} ${response.statusText}`
+          `[AnyDB Response] Status: ${response.status} ${response.statusText}`,
         );
         // Log brief summary instead of full response
         const dataType = Array.isArray(response.data)
           ? `Array[${response.data.length}]`
           : typeof response.data === "object"
-          ? `Object{${Object.keys(response.data).join(", ")}}`
-          : typeof response.data;
+            ? `Object{${Object.keys(response.data).join(", ")}}`
+            : typeof response.data;
         console.error(`[AnyDB Response] Data Type: ${dataType}`);
         return response;
       },
       (error) => {
         if (error.response) {
           console.error(
-            `[AnyDB Response Error] Status: ${error.response.status}`
+            `[AnyDB Response Error] Status: ${error.response.status}`,
           );
           const errorMsg =
             error.response.data?.message ||
@@ -126,7 +127,7 @@ export class AnyDBClient {
           console.error(`[AnyDB Response Error] ${error.message}`);
         }
         return Promise.reject(error);
-      }
+      },
     );
 
     return client;
@@ -144,7 +145,7 @@ export class AnyDBClient {
     adbid: string,
     adoid: string,
     apiKey?: string,
-    userEmail?: string
+    userEmail?: string,
   ): Promise<ADORecord> {
     try {
       const client = this.getClient(apiKey, userEmail);
@@ -178,7 +179,7 @@ export class AnyDBClient {
   async listDatabasesForTeam(
     teamid: string,
     apiKey?: string,
-    userEmail?: string
+    userEmail?: string,
   ): Promise<ADB[]> {
     try {
       const client = this.getClient(apiKey, userEmail);
@@ -200,7 +201,7 @@ export class AnyDBClient {
     adbid: string,
     parentid?: string,
     apiKey?: string,
-    userEmail?: string
+    userEmail?: string,
   ): Promise<ADORecord[]> {
     try {
       const client = this.getClient(apiKey, userEmail);
@@ -224,13 +225,13 @@ export class AnyDBClient {
   async createRecord(
     params: CreateRecordParams,
     apiKey?: string,
-    userEmail?: string
+    userEmail?: string,
   ): Promise<ADORecord> {
     try {
       const client = this.getClient(apiKey, userEmail);
       const response = await client.post(
         "/integrations/ext/createrecord",
-        params
+        params,
       );
       return response.data;
     } catch (error) {
@@ -245,13 +246,13 @@ export class AnyDBClient {
   async updateRecord(
     params: UpdateRecordParams,
     apiKey?: string,
-    userEmail?: string
+    userEmail?: string,
   ): Promise<ADORecord> {
     try {
       const client = this.getClient(apiKey, userEmail);
       const response = await client.put(
         "/integrations/ext/updaterecord",
-        params
+        params,
       );
       return response.data;
     } catch (error) {
@@ -261,12 +262,37 @@ export class AnyDBClient {
   }
 
   /**
+   * Delete a record
+   */
+  async removeRecord(
+    params: DeleteRecordParams,
+    apiKey?: string,
+    userEmail?: string,
+  ): Promise<boolean> {
+    try {
+      const client = this.getClient(apiKey, userEmail);
+      const response = await client.delete("/integrations/ext/remove", {
+        data: params,
+      });
+      if (response.data.status === "success") {
+        return true;
+      }
+      throw new Error(
+        `Failed to remove record: ${response.data.message || "Unknown error"}`,
+      );
+    } catch (error) {
+      console.error("Error deleting record:", error);
+      throw new Error(`Failed to delete record: ${error}`);
+    }
+  }
+
+  /**
    * Search for records with a keyword
    */
   async searchRecords(
     params: SearchRecordsParams,
     apiKey?: string,
-    userEmail?: string
+    userEmail?: string,
   ): Promise<ADORecord[]> {
     try {
       const client = this.getClient(apiKey, userEmail);
@@ -288,7 +314,7 @@ export class AnyDBClient {
   async downloadFile(
     params: DownloadFileParams,
     apiKey?: string,
-    userEmail?: string
+    userEmail?: string,
   ): Promise<DownloadFileResponse> {
     try {
       const client = this.getClient(apiKey, userEmail);
@@ -335,7 +361,7 @@ export class AnyDBClient {
   async getUploadUrl(
     params: GetUploadUrlParams,
     apiKey?: string,
-    userEmail?: string
+    userEmail?: string,
   ): Promise<GetUploadUrlResponse> {
     try {
       const client = this.getClient(apiKey, userEmail);
@@ -363,7 +389,7 @@ export class AnyDBClient {
   async uploadFileToUrl(
     uploadUrl: string,
     fileContent: Buffer | string,
-    contentType?: string
+    contentType?: string,
   ): Promise<void> {
     try {
       await axios.put(uploadUrl, fileContent, {
@@ -386,7 +412,7 @@ export class AnyDBClient {
   async completeUpload(
     params: CompleteUploadParams,
     apiKey?: string,
-    userEmail?: string
+    userEmail?: string,
   ): Promise<CompleteUploadResponse> {
     try {
       const client = this.getClient(apiKey, userEmail);

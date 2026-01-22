@@ -119,6 +119,13 @@ export interface UpdateRecordParams {
   content?: Record<string, any>;
 }
 
+export interface DeleteRecordParams {
+  adoid: string;
+  adbid: string;
+  teamid: string;
+  removefromids: string; // Comma-separated parent ADOIDs, or NULL_OBJECTID to delete permanently
+}
+
 export interface SearchRecordsParams {
   adbid: string;
   teamid: string;

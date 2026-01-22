@@ -106,7 +106,7 @@ app.get(
       const record = await client.getRecord(
         teamid as string,
         adbid as string,
-        adoid as string
+        adoid as string,
       );
       res.json({ success: true, data: record });
     } catch (error) {
@@ -115,7 +115,7 @@ app.get(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // List teams
@@ -133,7 +133,7 @@ app.get(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // List databases for a team
@@ -158,7 +158,7 @@ app.get(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // List records in a database
@@ -190,7 +190,7 @@ app.get(
         templateid as string | undefined,
         templatename as string | undefined,
         pagesize as string | undefined,
-        lastmarker as string | undefined
+        lastmarker as string | undefined,
       );
       res.json({ success: true, data: records });
     } catch (error) {
@@ -199,7 +199,7 @@ app.get(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // Create a new record
@@ -225,7 +225,7 @@ app.post(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // Update a record
@@ -251,7 +251,38 @@ app.put(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
+);
+
+// Delete a record
+app.delete(
+  "/integrations/ext/remove",
+  authenticate,
+  async (req: Request, res: Response) => {
+    try {
+      const { adoid, adbid, teamid, removefromids } = req.body;
+      if (!adoid || !adbid || !teamid) {
+        return res.status(400).json({
+          success: false,
+          error: "adoid, adbid, and teamid are required",
+        });
+      }
+      const params = {
+        adoid,
+        adbid,
+        teamid,
+        removefromids: removefromids || "000000000000000000000000", // NULL_OBJECTID
+      };
+      const client = getAnyDBClient(req);
+      const result = await client.removeRecord(params);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  },
 );
 
 // Search records
@@ -284,7 +315,7 @@ app.get(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // Download file from record cell
@@ -317,7 +348,7 @@ app.get(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // Get upload URL (Step 1 of upload process)
@@ -350,7 +381,7 @@ app.get(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // Upload file to URL (Step 2 - typically handled client-side, but included for completeness)
@@ -384,7 +415,7 @@ app.put(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // Complete upload (Step 3 of upload process)
@@ -416,7 +447,7 @@ app.put(
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }
+  },
 );
 
 // OpenAPI specification endpoint
@@ -432,7 +463,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   app.listen(PORT, () => {
     console.log(`AnyDB REST API server running on http://localhost:${PORT}`);
     console.log(
-      `OpenAPI spec available at http://localhost:${PORT}/openapi.json`
+      `OpenAPI spec available at http://localhost:${PORT}/openapi.json`,
     );
   });
 }
