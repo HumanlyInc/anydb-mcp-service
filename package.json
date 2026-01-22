@@ -1,11 +1,24 @@
 {
   "name": "anydb-mcp-service",
   "version": "1.0.0",
-  "description": "MCP server for AnyDB Template creation and management",
+  "description": "Model Context Protocol (MCP) server for AnyDB database and record management through AI assistants",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "anydb-mcp-service": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HumanlyInc/anydb-mcp-service.git"
+  },
+  "homepage": "https://www.anydb.com",
+  "bugs": {
+    "url": "https://www.anydb.com/support"
   },
   "scripts": {
     "build": "tsc",
@@ -20,11 +33,18 @@
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "anydb",
-    "template",
-    "agent"
+    "database",
+    "ai",
+    "claude",
+    "chatgpt",
+    "automation",
+    "records",
+    "workflow",
+    "integration"
   ],
-  "author": "",
+  "author": "AnyDB Team",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
