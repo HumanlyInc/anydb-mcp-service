@@ -338,6 +338,68 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "copy_record",
+    description:
+      "Create a copy of an existing AnyDB record. The copy will be an independent record with its own ID. You can optionally attach the copy to a different parent record and control how file attachments are handled. There are three attachment modes: (1) 'noattachments' - Copy without any file attachments (files are not copied), (2) 'link' - Copy with linked attachments (files reference the same storage location as the original), (3) 'duplicate' - Copy with duplicated attachments (files are fully copied to new storage locations, creating true independent copies).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adoid: {
+          type: "string",
+          description: "The source record ID to copy (MongoDB ObjectId)",
+        },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        teamid: {
+          type: "string",
+          description: "The team ID (MongoDB ObjectId)",
+        },
+        attachto: {
+          type: "string",
+          description:
+            "Optional parent record ID to attach the copied record to (MongoDB ObjectId). If not provided, the copy will be created at the same level as the original record.",
+        },
+        attachmentsmode: {
+          type: "string",
+          description:
+            "How to handle file attachments in the copy. Choose one of: 'noattachments' (don't copy files), 'link' (reference same files), or 'duplicate' (create independent file copies). Defaults to 'link' if not specified.",
+          enum: ["noattachments", "link", "duplicate"],
+        },
+      },
+      required: ["adoid", "adbid", "teamid"],
+    },
+  },
+  {
+    name: "move_record",
+    description:
+      "Move an existing AnyDB record to a new parent. This changes the parent-child relationship of the record in the database hierarchy. The record itself remains the same, but its location in the tree structure changes. Use this to reorganize records or change their grouping.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        adoid: {
+          type: "string",
+          description: "The record ID to move (MongoDB ObjectId)",
+        },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        teamid: {
+          type: "string",
+          description: "The team ID (MongoDB ObjectId)",
+        },
+        parentid: {
+          type: "string",
+          description:
+            "The target parent record ID to move this record under (MongoDB ObjectId). The record will become a child of this parent.",
+        },
+      },
+      required: ["adoid", "adbid", "teamid", "parentid"],
+    },
+  },
+  {
     name: "search_records",
     description:
       "Search for records in a database using a keyword. Optionally filter by parent record and specify pagination.",
@@ -634,6 +696,58 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: result
                 ? "Record deleted successfully"
                 : "Failed to delete record",
+            },
+          ],
+        };
+      }
+
+      case "copy_record": {
+        const adoid = args?.adoid as string;
+        const adbid = args?.adbid as string;
+        const teamid = args?.teamid as string;
+        if (!adoid || !adbid || !teamid) {
+          throw new Error("adoid, adbid, and teamid are required");
+        }
+        const params = {
+          adoid,
+          adbid,
+          teamid,
+          attachto: args?.attachto as string | undefined,
+          attachmentsmode:
+            (args?.attachmentsmode as "noattachments" | "link" | "duplicate") ||
+            "link",
+        };
+        const result = await anydbClient.copyRecord(params);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "move_record": {
+        const adoid = args?.adoid as string;
+        const adbid = args?.adbid as string;
+        const teamid = args?.teamid as string;
+        const parentid = args?.parentid as string;
+        if (!adoid || !adbid || !teamid || !parentid) {
+          throw new Error("adoid, adbid, teamid, and parentid are required");
+        }
+        const params = {
+          adoid,
+          adbid,
+          teamid,
+          parentid,
+        };
+        const result = await anydbClient.moveRecord(params);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
             },
           ],
         };

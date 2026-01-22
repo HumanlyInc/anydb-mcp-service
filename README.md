@@ -132,7 +132,7 @@ npx anydb-mcp-serviceRATION.md](CHATGPT_INTEGRATION.md) for detailed setup instr
 
 The server uses stdio transport and can be integrated with any MCP-compatible client:
 
-This service provides 10 tools for comprehensive AnyDB integration:
+This service provides 12 tools for comprehensive AnyDB integration:
 
 ### Record Operations
 
@@ -145,6 +145,8 @@ This service provides 10 tools for comprehensive AnyDB integration:
 | `create_record` | Create a new record in a database |
 | `update_record` | Update an existing record's metadata and content |
 | `delete_record` | Delete an existing record permanently |
+| `copy_record` | Copy a record with control over file attachment handling |
+| `move_record` | Move a record to a new parent location |
 | `search_records` | Search for records by keyword across database |
 
 ### File Operations
@@ -152,6 +154,7 @@ This service provides 10 tools for comprehensive AnyDB integration:
 | Tool | Description |
 |------|-------------|
 | `download_file` | Download or get URL for files attached to record cells |
+| `upload_file` | Upload files to record cells with base64 content |
 ### Building from Source
 
 ```bash
@@ -199,9 +202,39 @@ Once configured, you can interact with AnyDB through natural language:
 "Show me databases in team XYZ"
 "Create a new record in database ABC with name 'Project Plan'"
 "Search for records containing 'budget' in database ABC"
+"Copy this record with all file attachments duplicated"
+"Move record XYZ under parent ABC"
 "Upload this file to record XYZ"
 
 ````
+
+### Understanding copy_record Attachment Modes
+
+When copying records, you have three options for handling file attachments:
+
+1. **`noattachments`** - Copy the record without any files
+   - Use when you want a clean copy without attachments
+   - Fastest option, no file operations needed
+   - Example: "Copy this record template without files"
+
+2. **`link`** (default) - Copy with linked attachments
+   - Files reference the same storage location as the original
+   - Quick operation, minimal storage used
+   - Changes to original files affect the copy
+   - Use for related records that should share the same files
+   - Example: "Copy this record and link to the same attachments"
+
+3. **`duplicate`** - Copy with fully duplicated attachments
+   - Creates independent copies of all files
+   - Slowest option but creates true independent records
+   - Changes to original files don't affect the copy
+   - Use when you need completely separate file copies
+   - Example: "Copy this record and duplicate all file attachments"
+
+Choose the mode based on your use case:
+- Need independent files? Use `duplicate`
+- Want to share files between records? Use `link`
+- Don't need files at all? Use `noattachments`
 
 ### Programmatic Usage
 
@@ -223,6 +256,22 @@ const record = await client.createRecord({
   teamid: 'team-id',
   adbid: 'database-id',
   name: 'New Record'
+});
+
+// Copy a record with duplicated attachments
+const copiedRecord = await client.copyRecord({
+  teamid: 'team-id',
+  adbid: 'database-id',
+  adoid: 'record-id',
+  attachmentsmode: 'duplicate'
+});
+
+// Move a record to a new parent
+const movedRecord = await client.moveRecord({
+  teamid: 'team-id',
+  adbid: 'database-id',
+  adoid: 'record-id',
+  parentid: 'new-parent-id'
 });
 ````
 
