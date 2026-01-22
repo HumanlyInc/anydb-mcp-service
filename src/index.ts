@@ -85,7 +85,7 @@ import type { TemplateStructure } from "./types.js";
 // Initialize AnyDB client with credentials from environment
 if (!config.defaultApiKey || !config.defaultUserEmail) {
   throw new Error(
-    "ANYDB_DEFAULT_API_KEY and ANYDB_DEFAULT_USER_EMAIL must be set in environment variables"
+    "ANYDB_DEFAULT_API_KEY and ANYDB_DEFAULT_USER_EMAIL must be set in environment variables",
   );
 }
 
@@ -295,7 +295,8 @@ const TOOLS: Tool[] = [
         },
         content: {
           type: "object",
-          description: "Optional content updates (key-value pairs)",
+          description:
+            "Optional content updates. Each key should be a cell key from the record, and the value should be an object containing 'pos' (cell position like 'A1'), 'key' (cell key), and 'value' (the new cell value). Use get_record first to retrieve the current cell content, then reuse that structure and only update the 'value' or other properties as needed.",
         },
       },
       required: ["meta"],
@@ -434,7 +435,7 @@ const server = new Server(
     capabilities: {
       tools: {},
     },
-  }
+  },
 );
 
 // Handle list tools request
@@ -518,7 +519,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           templateid,
           templatename,
           pagesize,
-          lastmarker
+          lastmarker,
         );
         return {
           content: [
@@ -639,7 +640,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         if (!filename || !fileContent || !teamid || !adbid || !adoid) {
           throw new Error(
-            "filename, fileContent, teamid, adbid, and adoid are required"
+            "filename, fileContent, teamid, adbid, and adoid are required",
           );
         }
 

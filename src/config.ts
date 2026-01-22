@@ -8,11 +8,11 @@ console.error(
   "[Config] ANYDB_DEFAULT_API_KEY:",
   process.env.ANYDB_DEFAULT_API_KEY
     ? `${process.env.ANYDB_DEFAULT_API_KEY.substring(0, 8)}...`
-    : "NOT SET"
+    : "NOT SET",
 );
 console.error(
   "[Config] ANYDB_DEFAULT_USER_EMAIL:",
-  process.env.ANYDB_DEFAULT_USER_EMAIL || "NOT SET"
+  process.env.ANYDB_DEFAULT_USER_EMAIL || "NOT SET",
 );
 
 export const config = {
