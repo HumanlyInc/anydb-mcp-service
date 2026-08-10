@@ -132,7 +132,7 @@ npx anydb-mcp-serviceRATION.md](CHATGPT_INTEGRATION.md) for detailed setup instr
 
 The server uses stdio transport and can be integrated with any MCP-compatible client:
 
-This service provides 12 tools for comprehensive AnyDB integration:
+This service provides 19 tools for comprehensive AnyDB integration:
 
 ### Record Operations
 
@@ -140,21 +140,67 @@ This service provides 12 tools for comprehensive AnyDB integration:
 |------|-------------|
 | `list_teams` | List all teams accessible with your credentials |
 | `list_databases_for_team` | Get all databases within a team |
-| `list_records` | List records in a database with filtering and pagination |
+| `list_records` | List records with pagination and structured field filters |
 | `get_record` | Get a specific record with all cell data |
+| `list_templates` | List templates/types available in a database |
+| `get_template` | Get a template schema by `templatename` |
 | `create_record` | Create a new record in a database |
+| `bulk_create_records` | Create up to 100 records with per-record results |
 | `update_record` | Update an existing record's metadata and content |
+| `bulk_update_records` | Update up to 100 records with per-record results |
 | `delete_record` | Delete an existing record permanently |
 | `copy_record` | Copy a record with control over file attachment handling |
 | `move_record` | Move a record to a new parent location |
 | `search_records` | Search for records by keyword across database |
+| `search_team_records` | Search each accessible database in a team sequentially |
 
 ### File Operations
 
 | Tool | Description |
 |------|-------------|
 | `download_file` | Download or get URL for files attached to record cells |
-| `upload_file` | Upload files to record cells with base64 content |
+| `upload_file` | Upload small files inline with filename-based MIME detection |
+| `prepare_file_upload` | Create a file record and get a presigned upload URL |
+| `complete_file_upload` | Finalize a successful presigned upload |
+
+### Structured Record Filters
+
+Use `list_records` with `templatename` and a `filter` array. Field names wrapped
+as `{{Field Name}}` are resolved against the template schema.
+
+```json
+{
+  "teamid": "team-id",
+  "adbid": "database-id",
+  "templatename": "Tasks",
+  "filter": [
+    { "type": "cell", "field": "{{Status}}", "op": "eq", "value": "Done" }
+  ]
+}
+```
+
+Bulk create and update accept at most 100 records. They use bounded concurrency
+and return one ordered result per input. Successful operations are not rolled
+back when another item fails; use `clientref` to correlate results.
+
+### Headless Download Check
+
+`download_file` returns a presigned URL that can be fetched without AnyDB
+headers or cookies. Normal file URLs expire after approximately **60 seconds**.
+Callers must fetch them immediately and must not cache or reuse them; request a
+new URL for every later download attempt.
+
+The integration test verifies this headless fetch path.
+Set the following variables to enable it:
+
+```env
+ANYDB_TEST_TEAM_ID=team-id
+ANYDB_TEST_DATABASE_ID=database-id
+ANYDB_TEST_FILE_RECORD_ID=file-record-id
+ANYDB_TEST_FILE_CELL_POS=A1
+ANYDB_TEST_FILE_SHA256=optional-expected-sha256
+```
+
 ### Building from Source
 
 ```bash

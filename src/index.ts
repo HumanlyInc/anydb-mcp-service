@@ -84,8 +84,10 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { AnyDBClient } from "anydb-api-sdk-ts";
+import { AnyDBClient, PredefinedTemplateAdoIds } from "anydb-api-sdk-ts";
+import { lookup as lookupMimeType } from "mime-types";
 import { config } from "./config.js";
+import { ExtApiClient } from "./ext-api-client.js";
 import { schemaReader } from "./schema-reader.js";
 import type { TemplateStructure } from "./types.js";
 
@@ -102,8 +104,56 @@ const anydbClient = new AnyDBClient({
   baseURL: config.anydbApiBaseUrl,
 });
 
+const extApiClient = new ExtApiClient({
+  apiKey: config.defaultApiKey,
+  userEmail: config.defaultUserEmail,
+  baseURL: config.anydbApiBaseUrl,
+});
+
 // Define available tools
 const TOOLS: Tool[] = [
+  {
+    name: "list_templates",
+    description:
+      "List the templates (types) available in a database. Use this to discover templatename values and cell schemas before creating or updating records.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: {
+          type: "string",
+          description: "The team ID (MongoDB ObjectId)",
+        },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+      },
+      required: ["teamid", "adbid"],
+    },
+  },
+  {
+    name: "get_template",
+    description:
+      "Get a database template (type) by templatename, including its cell keys, positions, formats, and properties. The terms templatename and typename mean the same thing.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: {
+          type: "string",
+          description: "The team ID (MongoDB ObjectId)",
+        },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        templatename: {
+          type: "string",
+          description: "The template/type name returned by list_templates",
+        },
+      },
+      required: ["teamid", "adbid", "templatename"],
+    },
+  },
   {
     name: "get_record",
     description:
@@ -192,6 +242,40 @@ const TOOLS: Tool[] = [
           description:
             "Optional pagination marker. Use the marker from the previous response to get the next page of results.",
         },
+        filter: {
+          type: "array",
+          description:
+            "Optional structured filters. With templatename, field may use '{{Field Name}}' and will be resolved to its cell position. Multiple filters are combined by the backend.",
+          items: {
+            type: "object",
+            properties: {
+              type: {
+                type: "string",
+                enum: ["meta", "badge", "cell"],
+              },
+              field: { type: "string" },
+              op: {
+                type: "string",
+                enum: [
+                  "eq",
+                  "neq",
+                  "gt",
+                  "lt",
+                  "gte",
+                  "lte",
+                  "like",
+                  "contains",
+                  "startswith",
+                  "endswith",
+                  "includes",
+                  "notincludes",
+                ],
+              },
+              value: {},
+            },
+            required: ["type", "field", "op", "value"],
+          },
+        },
       },
       required: ["teamid", "adbid"],
     },
@@ -232,6 +316,45 @@ const TOOLS: Tool[] = [
         },
       },
       required: ["adbid", "teamid", "name"],
+    },
+  },
+  {
+    name: "bulk_create_records",
+    description:
+      "Create up to 100 records in one request. Processing uses bounded concurrency and returns an ordered result for every input; failures do not roll back successful records. Use clientref to correlate results.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID" },
+        adbid: { type: "string", description: "The database ID" },
+        records: {
+          type: "array",
+          minItems: 1,
+          maxItems: 100,
+          items: {
+            type: "object",
+            properties: {
+              clientref: {
+                type: "string",
+                description: "Optional caller-generated correlation value",
+              },
+              name: { type: "string", description: "Record name" },
+              attach: { type: "string", description: "Optional parent ID" },
+              template: {
+                type: "string",
+                description: "Optional template ID",
+              },
+              templatename: {
+                type: "string",
+                description: "Optional template/type name",
+              },
+              content: { type: "object" },
+            },
+            required: ["name"],
+          },
+        },
+      },
+      required: ["teamid", "adbid", "records"],
     },
   },
   {
@@ -307,6 +430,50 @@ const TOOLS: Tool[] = [
         },
       },
       required: ["meta"],
+    },
+  },
+  {
+    name: "bulk_update_records",
+    description:
+      "Update up to 100 records in one request. Processing uses bounded concurrency and returns an ordered result for every input; failures do not roll back successful updates. Use clientref to correlate results.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        records: {
+          type: "array",
+          minItems: 1,
+          maxItems: 100,
+          items: {
+            type: "object",
+            properties: {
+              clientref: {
+                type: "string",
+                description: "Optional caller-generated correlation value",
+              },
+              meta: {
+                type: "object",
+                properties: {
+                  adoid: { type: "string" },
+                  adbid: { type: "string" },
+                  teamid: { type: "string" },
+                  name: { type: "string" },
+                  description: { type: "string" },
+                  icon: { type: "string" },
+                  followup: { type: "number" },
+                  locked: { type: "boolean" },
+                  status: { type: "string" },
+                  attach: { type: "string" },
+                  assignees: { type: "object" },
+                },
+                required: ["adoid", "adbid", "teamid"],
+              },
+              content: { type: "object" },
+            },
+            required: ["meta"],
+          },
+        },
+      },
+      required: ["records"],
     },
   },
   {
@@ -436,9 +603,33 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "search_team_records",
+    description:
+      "Search records across every accessible database in a team. This lists the team's databases and runs search_records against each one sequentially. Results are grouped by database, and failures in one database do not discard successful results from others.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: {
+          type: "string",
+          description: "The team ID (MongoDB ObjectId)",
+        },
+        search: {
+          type: "string",
+          description: "The search keyword",
+        },
+        limit: {
+          type: "string",
+          description:
+            "Optional maximum results per database (numeric string). Defaults to the search_records backend limit.",
+        },
+      },
+      required: ["teamid", "search"],
+    },
+  },
+  {
     name: "download_file",
     description:
-      "Download a file or get download URL from a record cell. Returns JSON with a 'url' field containing the file download link. IMPORTANT: The MCP client/host must handle this URL appropriately: (1) For human users, create a clickable download button/link in the UI. (2) For LLM processing, fetch the file content from the URL and provide it to the LLM. The URL may be temporary/pre-signed, so use it promptly. First use get_record to see which cells contain files and their cellpos values (e.g., A1, B5, etc.).",
+      "Download a file or get download URL from a record cell. Returns JSON with a 'url' field containing a presigned file link. Normal file URLs expire after approximately 60 seconds: fetch immediately and do not cache or reuse them. The MCP client/host should render the URL as a link for humans or fetch its bytes for LLM processing. First use get_record to find file cells and their cellpos values.",
     inputSchema: {
       type: "object",
       properties: {
@@ -478,7 +669,7 @@ const TOOLS: Tool[] = [
   {
     name: "upload_file",
     description:
-      "Upload a file to an AnyDB record. Provide the file content directly (NOT a file path). For images and binary files, provide the raw binary data. The file will be attached to the specified record at the given cell position. Use get_record first to see the record structure and available cell positions.",
+      "Upload a small file to an AnyDB record using inline content. Base64 is the default encoding; set contentEncoding to 'utf8' for plain text. For large files, use prepare_file_upload and complete_file_upload instead.",
     inputSchema: {
       type: "object",
       properties: {
@@ -489,8 +680,13 @@ const TOOLS: Tool[] = [
         },
         fileContent: {
           type: "string",
+          description: "The encoded file content, not a file path.",
+        },
+        contentEncoding: {
+          type: "string",
+          enum: ["base64", "utf8"],
           description:
-            "The file content. Provide the actual file data here, not a file path.",
+            "Encoding of fileContent. Defaults to 'base64'. Use 'utf8' only for plain text.",
         },
         teamid: {
           type: "string",
@@ -514,10 +710,66 @@ const TOOLS: Tool[] = [
         contentType: {
           type: "string",
           description:
-            "The MIME type of the file (e.g., 'image/png', 'application/pdf', 'text/plain'). Important for proper file handling.",
+            "Optional MIME type (e.g., 'image/png'). When omitted, it is inferred from filename and falls back to application/octet-stream.",
         },
       },
       required: ["filename", "fileContent", "teamid", "adbid", "adoid"],
+    },
+  },
+  {
+    name: "prepare_file_upload",
+    description:
+      "Create a file record and return a presigned URL for uploading bytes directly with HTTP PUT. Use this for large files, then call complete_file_upload after the PUT succeeds.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        filename: { type: "string", description: "The file name" },
+        filesize: {
+          type: "string",
+          description: "Exact file size in bytes as a numeric string",
+        },
+        teamid: { type: "string", description: "The team ID" },
+        adbid: { type: "string", description: "The database ID" },
+        adoid: {
+          type: "string",
+          description: "The parent record ID to attach the file record to",
+        },
+        cellpos: {
+          type: "string",
+          description: "File cell position; defaults to A1",
+        },
+        contentType: {
+          type: "string",
+          description:
+            "Optional MIME type. When omitted, it is inferred from filename and falls back to application/octet-stream.",
+        },
+      },
+      required: ["filename", "filesize", "teamid", "adbid", "adoid"],
+    },
+  },
+  {
+    name: "complete_file_upload",
+    description:
+      "Complete a presigned file upload after the client has PUT the bytes to the URL returned by prepare_file_upload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        filesize: {
+          type: "string",
+          description: "Exact uploaded file size in bytes",
+        },
+        teamid: { type: "string", description: "The team ID" },
+        adbid: { type: "string", description: "The database ID" },
+        adoid: {
+          type: "string",
+          description: "The file record ID returned by prepare_file_upload",
+        },
+        cellpos: {
+          type: "string",
+          description: "File cell position; defaults to A1",
+        },
+      },
+      required: ["filesize", "teamid", "adbid", "adoid"],
     },
   },
 ];
@@ -552,6 +804,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
+      case "list_templates": {
+        const teamid = args?.teamid as string;
+        const adbid = args?.adbid as string;
+        if (!teamid || !adbid) {
+          throw new Error("teamid and adbid are required");
+        }
+        const templates = await extApiClient.listTemplates(teamid, adbid);
+        return {
+          content: [{ type: "text", text: JSON.stringify(templates, null, 2) }],
+        };
+      }
+
+      case "get_template": {
+        const teamid = args?.teamid as string;
+        const adbid = args?.adbid as string;
+        const templatename = args?.templatename as string;
+        if (!teamid || !adbid || !templatename) {
+          throw new Error("teamid, adbid, and templatename are required");
+        }
+        const template = await extApiClient.getTemplate(
+          teamid,
+          adbid,
+          templatename,
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(template, null, 2) }],
+        };
+      }
+
       case "get_record": {
         const teamid = args?.teamid as string;
         const adbid = args?.adbid as string;
@@ -609,15 +890,46 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const templatename = args?.templatename as string | undefined;
         const pagesize = args?.pagesize as string | undefined;
         const lastmarker = args?.lastmarker as string | undefined;
-        const records = await anydbClient.listRecords(
-          teamid,
-          adbid,
-          parentid,
-          templateid,
-          templatename,
-          pagesize,
-          lastmarker,
-        );
+        const filter = args?.filter as
+          | Array<{
+              type: "meta" | "badge" | "cell";
+              field: string;
+              op:
+                | "eq"
+                | "neq"
+                | "gt"
+                | "lt"
+                | "gte"
+                | "lte"
+                | "like"
+                | "contains"
+                | "startswith"
+                | "endswith"
+                | "includes"
+                | "notincludes";
+              value: unknown;
+            }>
+          | undefined;
+        const records = filter
+          ? await extApiClient.listRecords({
+              teamid,
+              adbid,
+              parentid,
+              templateid,
+              templatename,
+              pagesize,
+              lastmarker,
+              filter,
+            })
+          : await anydbClient.listRecords(
+              teamid,
+              adbid,
+              parentid,
+              templateid,
+              templatename,
+              pagesize,
+              lastmarker,
+            );
         return {
           content: [
             {
@@ -654,6 +966,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case "bulk_create_records": {
+        const teamid = args?.teamid as string;
+        const adbid = args?.adbid as string;
+        const records = args?.records as Array<{
+          clientref?: string;
+          name: string;
+          attach?: string;
+          template?: string;
+          templatename?: string;
+          content?: Record<string, unknown>;
+        }>;
+        if (!teamid || !adbid || !Array.isArray(records) || !records.length) {
+          throw new Error(
+            "teamid, adbid, and a non-empty records array are required",
+          );
+        }
+        if (records.length > 100) {
+          throw new Error("bulk_create_records accepts at most 100 records");
+        }
+        const result = await extApiClient.bulkCreateRecords({
+          teamid,
+          adbid,
+          records,
+        });
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      }
+
       case "update_record": {
         const meta = args?.meta as any;
         if (!meta || !meta.adoid || !meta.adbid || !meta.teamid) {
@@ -671,6 +1012,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify(record, null, 2),
             },
           ],
+        };
+      }
+
+      case "bulk_update_records": {
+        const records = args?.records as Array<{
+          clientref?: string;
+          meta: Record<string, unknown> & {
+            adoid: string;
+            adbid: string;
+            teamid: string;
+          };
+          content?: Record<string, unknown>;
+        }>;
+        if (!Array.isArray(records) || !records.length) {
+          throw new Error("a non-empty records array is required");
+        }
+        if (records.length > 100) {
+          throw new Error("bulk_update_records accepts at most 100 records");
+        }
+        const result = await extApiClient.bulkUpdateRecords(records);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       }
 
@@ -779,6 +1142,64 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case "search_team_records": {
+        const teamid = args?.teamid as string;
+        const search = args?.search as string;
+        const limit = args?.limit as string | undefined;
+        if (!teamid || !search) {
+          throw new Error("teamid and search are required");
+        }
+
+        const databases = await anydbClient.listDatabasesForTeam(teamid);
+        const results: Array<{
+          database: { adbid: string; name: string };
+          records: unknown;
+        }> = [];
+        const errors: Array<{
+          database: { adbid: string; name: string };
+          error: string;
+        }> = [];
+
+        for (const database of databases) {
+          const databaseInfo = {
+            adbid: database.adbid,
+            name: database.name,
+          };
+          try {
+            const records = await anydbClient.searchRecords({
+              teamid,
+              adbid: database.adbid,
+              search,
+              limit,
+            });
+            results.push({ database: databaseInfo, records });
+          } catch (error) {
+            errors.push({
+              database: databaseInfo,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  search,
+                  databasesSearched: databases.length,
+                  results,
+                  errors,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
       case "download_file": {
         const teamid = args?.teamid as string;
         const adbid = args?.adbid as string;
@@ -821,10 +1242,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         const cellpos = args?.cellpos as string | undefined;
-        const contentType = args?.contentType as string | undefined;
+        const contentType =
+          (args?.contentType as string | undefined) ||
+          lookupMimeType(filename) ||
+          "application/octet-stream";
+        const contentEncoding =
+          (args?.contentEncoding as "base64" | "utf8" | undefined) || "base64";
 
-        // Convert string to Buffer for upload
-        const content = Buffer.from(fileContent);
+        const content = Buffer.from(fileContent, contentEncoding);
 
         const result = await anydbClient.uploadFile({
           filename,
@@ -841,6 +1266,79 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "prepare_file_upload": {
+        const filename = args?.filename as string;
+        const filesize = args?.filesize as string;
+        const teamid = args?.teamid as string;
+        const adbid = args?.adbid as string;
+        const parentAdoid = args?.adoid as string;
+        const cellpos = (args?.cellpos as string | undefined) || "A1";
+        const contentType =
+          (args?.contentType as string | undefined) ||
+          lookupMimeType(filename) ||
+          "application/octet-stream";
+        if (!filename || !filesize || !teamid || !adbid || !parentAdoid) {
+          throw new Error(
+            "filename, filesize, teamid, adbid, and adoid are required",
+          );
+        }
+
+        const fileRecord = await anydbClient.createRecord({
+          name: filename,
+          teamid,
+          adbid,
+          attach: parentAdoid,
+          template: PredefinedTemplateAdoIds.FILE_TEMPLATE_ADOID,
+        });
+        const fileAdoid = fileRecord.meta.adoid;
+        const url = await anydbClient.getUploadUrl({
+          filename,
+          filesize,
+          teamid,
+          adbid,
+          adoid: fileAdoid,
+          cellpos,
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                { url, adoid: fileAdoid, cellpos, contentType },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      case "complete_file_upload": {
+        const filesize = args?.filesize as string;
+        const teamid = args?.teamid as string;
+        const adbid = args?.adbid as string;
+        const adoid = args?.adoid as string;
+        const cellpos = (args?.cellpos as string | undefined) || "A1";
+        if (!filesize || !teamid || !adbid || !adoid) {
+          throw new Error("filesize, teamid, adbid, and adoid are required");
+        }
+        const completed = await anydbClient.completeUpload({
+          filesize,
+          teamid,
+          adbid,
+          adoid,
+          cellpos,
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ completed, adoid, cellpos }, null, 2),
             },
           ],
         };
