@@ -61,11 +61,12 @@ console.log = (...args: any[]) => {
  * File Upload Workflow
  * =============================================================================
  *
- * Uploading files is simple with the upload_file tool:
+ * Uploading small files is simple with the upload_file tool:
  * 1. Prepare your file content as a base64-encoded string
  * 2. Call upload_file with filename, fileContent, teamid, adbid, adoid, and optional cellpos
- * 3. The tool handles the complete upload process automatically
- * 4. Returns success response when the file is attached to the record
+ * 3. The tool creates a separate child File record attached to the supplied parent adoid
+ * 4. Upload preparation and completion target the child File record, not the parent
+ * 5. Returns the created child File record ID after completing the upload
  *
  * Example: Upload a text file
  *   - filename: "document.txt"
@@ -669,7 +670,7 @@ const TOOLS: Tool[] = [
   {
     name: "upload_file",
     description:
-      "Upload a small file to an AnyDB record using inline content. Base64 is the default encoding; set contentEncoding to 'utf8' for plain text. For large files, use prepare_file_upload and complete_file_upload instead.",
+      "Upload a small file inline using the supported single-call workflow. This creates a separate child File record attached to the supplied parent adoid; it does not write into the parent record's content. Base64 is the default encoding; set contentEncoding to 'utf8' for plain text. For large files, use prepare_file_upload and complete_file_upload instead.",
     inputSchema: {
       type: "object",
       properties: {
@@ -700,12 +701,12 @@ const TOOLS: Tool[] = [
         adoid: {
           type: "string",
           description:
-            "The record ID (MongoDB ObjectId) where the file will be attached. Get from list_records or create with create_record.",
+            "The parent record ID (MongoDB ObjectId). A separate child File record will be created and attached to this parent.",
         },
         cellpos: {
           type: "string",
           description:
-            "Optional cell position where the file will be stored (e.g., 'A1', 'B2'). Defaults to 'A1' if omitted.",
+            "Optional file cell position on the new child File record, not on the parent record. Defaults to 'A1'.",
         },
         contentType: {
           type: "string",
