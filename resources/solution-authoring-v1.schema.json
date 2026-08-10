@@ -174,14 +174,21 @@
         "confirmDataLoss": { "type": "boolean", "default": false }
       }
     },
-    "workflowNode": {
+    "workflowTriggerConfig": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["alias", "type", "config"],
       "properties": {
-        "alias": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
-        "type": { "type": "string", "minLength": 1 },
-        "config": { "type": "object" }
+        "formName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "templateName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "fieldNames": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "parentRecordId": { "$ref": "#/$defs/objectId" },
+        "filter": { "type": "string", "minLength": 1 },
+        "interval": { "type": "string", "minLength": 1 },
+        "specificTime": { "type": "string", "minLength": 1 },
+        "daysOfWeek": { "type": "string", "minLength": 1 },
+        "daysOfMonth": { "type": "string", "minLength": 1 },
+        "startTime": { "type": "string", "minLength": 1 },
+        "endTime": { "type": "string", "minLength": 1 }
       }
     },
     "createWorkflowInput": {
@@ -196,23 +203,27 @@
         "workflow": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["name", "enabled", "trigger", "actions", "connections"],
+          "required": ["name", "trigger", "script"],
           "properties": {
             "name": { "type": "string", "minLength": 1, "maxLength": 200 },
             "description": { "type": "string", "maxLength": 2000 },
             "enabled": { "type": "boolean", "default": false },
-            "trigger": { "$ref": "#/$defs/workflowNode" },
-            "actions": { "type": "array", "items": { "$ref": "#/$defs/workflowNode" } },
-            "connections": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["from", "to"],
-                "properties": {
-                  "from": { "type": "string", "minLength": 1 },
-                  "to": { "type": "string", "minLength": 1 }
-                }
+            "trigger": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "config"],
+              "properties": {
+                "type": { "enum": ["trigger_on_form_submit", "trigger_on_record_create", "trigger_on_record_update", "trigger_on_schedule", "trigger_manual"] },
+                "config": { "$ref": "#/$defs/workflowTriggerConfig" }
+              }
+            },
+            "script": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["source"],
+              "properties": {
+                "source": { "type": "string", "minLength": 1 },
+                "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 30000 }
               }
             }
           }

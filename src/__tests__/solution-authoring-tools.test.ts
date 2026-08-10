@@ -3,6 +3,8 @@ import { describe, expect, it, jest } from "@jest/globals";
 import type {
   CreateTypeRequest,
   CreateTypeResult,
+  CreateWorkflowRequest,
+  CreateWorkflowResult,
   ExtApiClient,
   UpdateTypeRequest,
   UpdateTypeResult,
@@ -129,6 +131,90 @@ describe("solution authoring tools", () => {
     expect(JSON.parse(result.content[0].text)).toMatchObject({
       operation: "update_type",
       migration: { status: "queued" },
+    });
+  });
+
+  it("forwards a two-step workflow creation request", async () => {
+    const createWorkflow = jest.fn<ExtApiClient["createWorkflow"]>();
+    createWorkflow.mockResolvedValue({
+      success: true,
+      operation: "create_workflow",
+      requestId: "workflow-request-1",
+      result: {
+        workflowId: "507f1f77bcf86cd799439091",
+        name: "On SAF Form Submit",
+        enabled: false,
+        persisted: true,
+      },
+      graph: {
+        triggerType: "trigger_on_form_submit",
+        triggerId: "trigger_on_form_submit-runtime",
+        actionType: "action_script",
+        actionId: "action_script-runtime",
+        recordIdBinding: "{{trigger_on_form_submit-runtime.adoid}}",
+      },
+      warnings: [],
+      validation: { valid: true, errors: [] },
+    } as CreateWorkflowResult);
+    const client = { createWorkflow } as unknown as ExtApiClient;
+    const request: CreateWorkflowRequest & Record<string, unknown> = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      clientRequestId: "workflow-request-1",
+      workflow: {
+        name: "On SAF Form Submit",
+        trigger: {
+          type: "trigger_on_form_submit",
+          config: { formName: "SAF Transfer Form" },
+        },
+        script: { source: "output.summary(input.recordId);" },
+      },
+    };
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_create_workflow",
+      request,
+      client,
+    );
+
+    expect(SOLUTION_AUTHORING_TOOLS[2].name).toBe("anydb_create_workflow");
+    expect(isSolutionAuthoringTool("anydb_create_workflow")).toBe(true);
+    expect(SOLUTION_AUTHORING_TOOLS[2].inputSchema).toMatchObject({
+      properties: {
+        workflow: {
+          required: ["name", "trigger", "script"],
+          properties: {
+            trigger: {
+              properties: {
+                type: {
+                  enum: [
+                    "trigger_on_form_submit",
+                    "trigger_on_record_create",
+                    "trigger_on_record_update",
+                    "trigger_on_schedule",
+                    "trigger_manual",
+                  ],
+                },
+              },
+            },
+            script: expect.any(Object),
+          },
+        },
+      },
+    });
+    const workflowSchema = JSON.stringify(
+      SOLUTION_AUTHORING_TOOLS[2].inputSchema,
+    );
+    expect(workflowSchema).not.toContain('"actions"');
+    expect(workflowSchema).not.toContain('"connections"');
+    expect(workflowSchema).not.toContain("trigger_on_record_delete");
+    expect(createWorkflow).toHaveBeenCalledWith(request);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      operation: "create_workflow",
+      graph: {
+        actionType: "action_script",
+        recordIdBinding: "{{trigger_on_form_submit-runtime.adoid}}",
+      },
     });
   });
 });

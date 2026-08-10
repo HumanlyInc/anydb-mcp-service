@@ -70,14 +70,13 @@ Only use a positional reference where required, notably the first argument to `D
 
 ## Workflows
 
-A workflow has exactly one trigger and a directed graph of actions. Common triggers are record create, update, delete, form submit, schedule, and manual. Actions include create/update/find/move/copy record, email, notification, export, webhook, AI, and script.
+A workflow created through MCP has exactly one trigger connected directly to exactly one script action. Available triggers are `trigger_on_form_submit`, `trigger_on_record_create`, `trigger_on_record_update`, `trigger_on_schedule`, and `trigger_manual`.
 
 - Build workflows only after referenced type names and field keys are final.
-- Give every trigger/action a unique client alias and connect aliases in an acyclic graph.
-- Every action must be reachable from the trigger; reject disconnected nodes and cycles.
-- Scope triggers by exact type and field keys, and validate filters against those fields.
-- Script and webhook actions may be license-gated.
-- Create disabled by default. Enable only when explicitly requested and the complete graph is ready.
+- Use stable `formName` and `templateName` values; do not provide runtime IDs, aliases, action arrays, or connections.
+- Form submit and record create/update triggers automatically pass their `adoid` output to the script as `input.recordId`.
+- Schedule and manual triggers do not receive an automatic record input.
+- Scripts may be license-gated. Create disabled by default and enable only when explicitly requested.
 
 ## Construction Procedure
 

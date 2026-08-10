@@ -170,6 +170,49 @@ export interface UpdateTypeResult {
   validation: { valid: true; errors: [] };
 }
 
+export interface CreateWorkflowRequest {
+  teamid: string;
+  adbid: string;
+  clientRequestId: string;
+  validateOnly?: boolean;
+  workflow: {
+    name: string;
+    description?: string;
+    enabled?: boolean;
+    trigger: {
+      type:
+        | "trigger_on_form_submit"
+        | "trigger_on_record_create"
+        | "trigger_on_record_update"
+        | "trigger_on_schedule"
+        | "trigger_manual";
+      config: Record<string, unknown>;
+    };
+    script: { source: string; timeoutMs?: number };
+  };
+}
+
+export interface CreateWorkflowResult {
+  success: true;
+  operation: "create_workflow";
+  requestId: string;
+  result: {
+    workflowId?: string;
+    name: string;
+    enabled: boolean;
+    persisted: boolean;
+  };
+  graph: {
+    triggerType: string;
+    triggerId?: string;
+    actionType: "action_script";
+    actionId?: string;
+    recordIdBinding?: string;
+  };
+  warnings: string[];
+  validation: { valid: true; errors: [] };
+}
+
 export interface BulkCreateRecordInput {
   clientref?: string;
   name: string;
@@ -276,6 +319,15 @@ export class ExtApiClient {
       `/integrations/ext/templates/${encodeURIComponent(templateName)}`,
       body,
     );
+    return this.unwrap(response.data);
+  }
+
+  async createWorkflow(
+    params: CreateWorkflowRequest,
+  ): Promise<CreateWorkflowResult> {
+    const response = await this.client.post<
+      ExtApiResponse<CreateWorkflowResult>
+    >("/integrations/ext/workflows", params);
     return this.unwrap(response.data);
   }
 

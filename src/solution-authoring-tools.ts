@@ -2,6 +2,7 @@ import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 import type {
   CreateTypeRequest,
+  CreateWorkflowRequest,
   ExtApiClient,
   UpdateTypeRequest,
 } from "./ext-api-client.js";
@@ -17,6 +18,7 @@ const authoringSchema = JSON.parse(
   $defs: Record<string, unknown> & {
     createTypeInput: Record<string, unknown>;
     updateTypeInput: Record<string, unknown>;
+    createWorkflowInput: Record<string, unknown>;
   };
 };
 
@@ -30,6 +32,11 @@ const updateTypeInputSchema = {
   $defs: authoringSchema.$defs,
 };
 
+const createWorkflowInputSchema = {
+  ...authoringSchema.$defs.createWorkflowInput,
+  $defs: authoringSchema.$defs,
+};
+
 export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_create_type",
@@ -40,6 +47,11 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
     name: "anydb_update_type",
     description: `Read ${SOLUTION_BUILDING_GUIDE_URI} before the first authoring call in a task. Patch the latest revision of one workspace type by stable template name. Existing records are migrated automatically after persistence; destructive changes require explicit data-loss confirmation.`,
     inputSchema: updateTypeInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_create_workflow",
+    description: `Read ${SOLUTION_BUILDING_GUIDE_URI} before authoring. Create exactly one supported trigger connected directly to exactly one script action. The server resolves stable form/type names, generates runtime artifact IDs, and automatically binds record-producing trigger output to script input.recordId.`,
+    inputSchema: createWorkflowInputSchema as unknown as Tool["inputSchema"],
   },
 ];
 
@@ -58,6 +70,10 @@ export async function callSolutionAuthoringTool(
     result = await client.createType(args as unknown as CreateTypeRequest);
   } else if (name === "anydb_update_type") {
     result = await client.updateType(args as unknown as UpdateTypeRequest);
+  } else if (name === "anydb_create_workflow") {
+    result = await client.createWorkflow(
+      args as unknown as CreateWorkflowRequest,
+    );
   } else {
     throw new Error(`Unknown solution authoring tool: ${name}`);
   }
