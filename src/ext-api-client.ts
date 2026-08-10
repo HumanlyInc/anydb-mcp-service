@@ -40,6 +40,41 @@ export interface ListRecordsParams {
   }>;
 }
 
+export interface DiscoverTypesParams {
+  teamid: string;
+  adbid: string;
+  search: string;
+  source?: "workspace" | "builtin" | "all";
+  limit?: number;
+}
+
+export interface TemplateDiscoveryCandidate {
+  source: "workspace" | "builtin";
+  templateId: string;
+  name: string;
+  description: string;
+  icon: string;
+  version?: number;
+  fieldCount: number;
+  previewImageUrl?: string;
+}
+
+export interface TemplateDiscoveryResult {
+  search: string;
+  sources: {
+    workspace?: {
+      status: "ok" | "unavailable";
+      candidates: TemplateDiscoveryCandidate[];
+    };
+    builtin?: {
+      status: "ok" | "unavailable";
+      candidates: TemplateDiscoveryCandidate[];
+      categories?: string[];
+    };
+  };
+  candidates: TemplateDiscoveryCandidate[];
+}
+
 export interface BulkCreateRecordInput {
   clientref?: string;
   name: string;
@@ -96,6 +131,15 @@ export class ExtApiClient {
       `/integrations/ext/templates/${encodeURIComponent(templatename)}`,
       { params: { teamid, adbid } },
     );
+    return this.unwrap(response.data);
+  }
+
+  async discoverTypes(
+    params: DiscoverTypesParams,
+  ): Promise<TemplateDiscoveryResult> {
+    const response = await this.client.get<
+      ExtApiResponse<TemplateDiscoveryResult>
+    >("/integrations/ext/templates/discover", { params });
     return this.unwrap(response.data);
   }
 

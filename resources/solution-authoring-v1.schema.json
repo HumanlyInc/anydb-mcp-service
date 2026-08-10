@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anydb://schemas/solution-authoring/v1",
+  "title": "AnyDB Solution Authoring Contract v1",
+  "description": "Semantic schemas for AnyDB cells and the three solution-authoring mutation tools.",
+  "type": "object",
+  "$defs": {
+    "objectId": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{24}$"
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "colspan", "rowspan"],
+      "properties": {
+        "position": { "type": "string", "pattern": "^[A-Z]+[1-9][0-9]*$" },
+        "colspan": { "type": "integer", "minimum": 1 },
+        "rowspan": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "valueType", "format", "layout"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "valueType": {
+          "enum": ["string", "number", "boolean", "array", "void", "file", "object", "ref", "user"]
+        },
+        "format": {
+          "enum": ["general", "number", "currency", "percentage", "date", "datetime", "time", "ref", "signature", "file", "checkbox", "user", "users", "select", "multi-select", "rich-text", "attachments", "comments", "ai", "barcode", "qrcode", "chart", "report", "lookup", "button", "timeline", "dynamic", "heading"]
+        },
+        "formula": { "type": "string", "minLength": 1 },
+        "targetType": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "lookup": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fromField", "targetField"],
+          "properties": {
+            "fromField": { "type": "string", "minLength": 1 },
+            "targetField": { "type": "string", "minLength": 1 }
+          }
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "required": { "type": "boolean", "default": false },
+        "locked": { "type": "boolean", "default": false },
+        "layout": { "$ref": "#/$defs/layout" }
+      }
+    },
+    "badge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "formula"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "formula": { "type": "string", "minLength": 1 }
+      }
+    },
+    "childPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowOnly", "autoCreate"],
+      "properties": {
+        "allowOnly": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "autoCreate": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["typeName", "minimum"],
+            "properties": {
+              "typeName": { "type": "string", "minLength": 1 },
+              "minimum": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "typeDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "fields"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "icon": { "type": "string" },
+        "titleFormula": { "type": "string", "minLength": 1 },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/field" }
+        },
+        "badges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/badge" }
+        },
+        "childPolicy": { "$ref": "#/$defs/childPolicy" }
+      }
+    },
+    "createTypeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "clientRequestId", "mode"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "mode": { "enum": ["define", "import_builtin"] },
+        "type": { "$ref": "#/$defs/typeDefinition" },
+        "builtInTemplateId": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "define" } } },
+          "then": { "required": ["type"] },
+          "else": { "required": ["builtInTemplateId"] }
+        }
+      ]
+    },
+    "fieldUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "newKey": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "valueType": { "$ref": "#/$defs/field/properties/valueType" },
+        "format": { "$ref": "#/$defs/field/properties/format" },
+        "formula": { "type": "string" },
+        "targetType": { "type": "string", "minLength": 1 },
+        "lookup": { "$ref": "#/$defs/field/properties/lookup" },
+        "options": { "$ref": "#/$defs/field/properties/options" },
+        "required": { "type": "boolean" },
+        "locked": { "type": "boolean" },
+        "layout": { "$ref": "#/$defs/layout" }
+      }
+    },
+    "updateTypeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "templateid", "clientRequestId", "expectedRevision", "changes", "migration"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "templateid": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "expectedRevision": { "type": "string", "minLength": 1 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "changes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "description": { "type": "string" },
+            "addFields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
+            "updateFields": { "type": "array", "items": { "$ref": "#/$defs/fieldUpdate" } },
+            "removeFields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+            "replaceBadges": { "type": ["array", "null"], "items": { "$ref": "#/$defs/badge" } },
+            "replaceChildPolicy": { "oneOf": [{ "$ref": "#/$defs/childPolicy" }, { "type": "null" }] }
+          }
+        },
+        "migration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "confirmDataLoss"],
+          "properties": {
+            "mode": { "enum": ["none", "validate", "apply"] },
+            "confirmDataLoss": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "workflowNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alias", "type", "config"],
+      "properties": {
+        "alias": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
+        "type": { "type": "string", "minLength": 1 },
+        "config": { "type": "object" }
+      }
+    },
+    "createWorkflowInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "clientRequestId", "workflow"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "workflow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "enabled", "trigger", "actions", "connections"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "description": { "type": "string", "maxLength": 2000 },
+            "enabled": { "type": "boolean", "default": false },
+            "trigger": { "$ref": "#/$defs/workflowNode" },
+            "actions": { "type": "array", "items": { "$ref": "#/$defs/workflowNode" } },
+            "connections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["from", "to"],
+                "properties": {
+                  "from": { "type": "string", "minLength": 1 },
+                  "to": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-anydb-tool-input-schemas": {
+    "anydb_create_type": { "$ref": "#/$defs/createTypeInput" },
+    "anydb_update_type": { "$ref": "#/$defs/updateTypeInput" },
+    "anydb_create_workflow": { "$ref": "#/$defs/createWorkflowInput" }
+  }
+}

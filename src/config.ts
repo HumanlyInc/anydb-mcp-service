@@ -19,9 +19,6 @@ export const config = {
   // AnyDB Internal API endpoint (not exposed outside local subnet)
   anydbApiBaseUrl: process.env.ANYDB_API_URL || "https://app.anydb.com/api",
 
-  // AnyDB Server source directory (for reading schemas and static data)
-  anydbServerSource: process.env.ANYDB_SERVER_SOURCE || "",
-
   // Default authentication credentials (optional)
   // If set, users won't need to provide apiKey and userEmail via chat
   defaultApiKey: process.env.ANYDB_DEFAULT_API_KEY || undefined,
