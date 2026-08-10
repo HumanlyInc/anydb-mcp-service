@@ -34,6 +34,13 @@ describe("solution resources", () => {
     expect(resource.mimeType).toBe("application/schema+json");
     expect(schema.$id).toBe(SOLUTION_AUTHORING_SCHEMA_URI);
     expect(schema.$defs.field.properties.format.enum).toContain("lookup");
+    expect(schema.$defs.field.properties.lookup.properties.mode.enum).toEqual([
+      "snapshot",
+      "live",
+    ]);
+    expect(schema.$defs.field.properties.lookup.properties.mode.default).toBe(
+      "snapshot",
+    );
     expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_create_type",
     );

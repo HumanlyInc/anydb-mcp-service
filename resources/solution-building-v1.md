@@ -30,7 +30,7 @@ Supported authoring formats are `general`, `number`, `currency`, `percentage`, `
 Important format rules:
 
 - `ref` selects an independent record and requires an exact `targetType` name.
-- `lookup` mirrors a field through a `ref`; provide `lookup.fromField` and `lookup.targetField`.
+- `lookup` mirrors a field through a `ref`; provide `lookup.fromField`, `lookup.targetField`, and an optional `lookup.mode` of `snapshot` or `live`. The default is `snapshot`.
 - `attachments` embeds child records and requires the child `targetType`. Give it enough space, normally full width and 6-7 rows high.
 - `select` and `multi-select` require stable `options`.
 - Computed fields use `formula` and should normally be `locked`.
@@ -92,6 +92,7 @@ Prefer stable key references:
 {{Field Key}}
 SEQNUM("Sequence", 1000)
 DYNREF(<ref position>, {{Target Field}}, "GO")
+DYNREF(<ref position>, {{Target Field}})
 C@CURRREC!N@Child Type!{{Amount}}
 A@CURRREC!N@Parent Type!{{Field}}[0]
 SUM(...), COUNT(...), MAX(...)
@@ -99,7 +100,7 @@ MAXBY(...), FILTER(...), GROUPBYSUM(...)
 M@CREATED, M@CREATEDBY
 ```
 
-Only use a positional reference where required, notably the first argument to `DYNREF`. Create referenced types and finalize field keys before formulas that depend on them. Use journal children with packed object values plus `MAXBY` or `FILTER` when the parent needs current state derived from history.
+Only use a positional reference where required, notably the first argument to `DYNREF`. Choose lookup mode from the use case: use `snapshot` and the `"GO"` form when the value should be copied as the ref is selected and later source changes should not ripple through referencing records; use `live` and omit `"GO"` when target-field changes must update referencing records. Prefer `snapshot` when ongoing synchronization is not required. Create referenced types and finalize field keys before formulas that depend on them. Use journal children with packed object values plus `MAXBY` or `FILTER` when the parent needs current state derived from history.
 
 ## Workflows
 

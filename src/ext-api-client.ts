@@ -222,6 +222,15 @@ export interface BulkCreateRecordInput {
   content?: Record<string, unknown>;
 }
 
+export interface CreateRecordRequest {
+  teamid: string;
+  adbid: string;
+  name: string;
+  attach?: string;
+  templatename?: string;
+  content?: Record<string, unknown>;
+}
+
 export interface BulkUpdateRecordInput {
   clientref?: string;
   meta: Record<string, unknown> & {
@@ -361,6 +370,14 @@ export class ExtApiClient {
     const response = await this.client.post<
       ExtApiResponse<CreateWorkflowResult>
     >("/integrations/ext/workflows", params);
+    return this.unwrap(response.data);
+  }
+
+  async createRecord(params: CreateRecordRequest): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/createrecord",
+      params,
+    );
     return this.unwrap(response.data);
   }
 

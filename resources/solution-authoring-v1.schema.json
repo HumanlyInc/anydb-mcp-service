@@ -39,8 +39,21 @@
           "additionalProperties": false,
           "required": ["fromField", "targetField"],
           "properties": {
-            "fromField": { "type": "string", "minLength": 1 },
-            "targetField": { "type": "string", "minLength": 1 }
+            "fromField": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Key of the local ref field through which the target record is selected."
+            },
+            "targetField": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Key of the field to read from the referenced record."
+            },
+            "mode": {
+              "enum": ["snapshot", "live"],
+              "default": "snapshot",
+              "description": "Use snapshot to copy the target value when the ref is selected without later target-change ripple; use live when target changes must update referencing records."
+            }
           }
         },
         "options": {

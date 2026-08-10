@@ -323,14 +323,18 @@ const TOOLS: Tool[] = [
           description:
             "Optional parent record ID to attach this record to (MongoDB ObjectId)",
         },
-        template: {
+        templatename: {
           type: "string",
           description:
-            "Optional template ID to use for creating the record (MongoDB ObjectId)",
+            "Optional stable template/type name. Use the exact workspace type name returned by list_templates or anydb_get_type_definition; do not provide a template ID.",
         },
         content: {
           type: "object",
-          description: "Optional content data for the record (key-value pairs)",
+          description:
+            'Optional cell updates keyed by grid position. Each value must be an object, for example {"A1": {"value": "Main Warehouse"}, "D3": {"value": true}}. Existing key, type, format, and props are preserved from the selected template.',
+          additionalProperties: {
+            type: "object",
+          },
         },
       },
       required: ["adbid", "teamid", "name"],
@@ -995,10 +999,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           teamid,
           name,
           attach: args?.attach as string | undefined,
-          template: args?.template as string | undefined,
+          templatename: args?.templatename as string | undefined,
           content: args?.content as Record<string, any> | undefined,
         };
-        const record = await anydbClient.createRecord(params);
+        const record = await extApiClient.createRecord(params);
         return {
           content: [
             {

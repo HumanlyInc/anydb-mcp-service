@@ -108,4 +108,72 @@ describe("ExtApiClient", () => {
       /POST http:\/\/127\.0\.0\.1:\d+\/integrations\/ext\/templates failed \(400\).*clientRequestId.*Invalid value/,
     );
   });
+
+  it("creates a record using a stable template name and nested cell updates", async () => {
+    let receivedBody: unknown;
+    const baseURL = await listen((incoming, response) => {
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        receivedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: { meta: { adoid: "507f1f77bcf86cd799439099" } },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+    const record = {
+      teamid: "69b42543b78e125defa011d2",
+      adbid: "6a7a30bee59ebbded551602f",
+      templatename: "Location",
+      name: "Main Warehouse",
+      content: {
+        A1: { value: "Main Warehouse" },
+        D3: { value: true },
+      },
+    };
+
+    await client.createRecord(record);
+
+    expect(receivedBody).toEqual(record);
+    expect(receivedBody).not.toHaveProperty("template");
+  });
+
+  it("includes the backend record validation body when creation fails", async () => {
+    const baseURL = await listen((_incoming, response) => {
+      response.statusCode = 400;
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({
+          status: "error",
+          error: {
+            type: "validation",
+            props: { templatename: { message: "Template not found" } },
+          },
+        }),
+      );
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+
+    await expect(
+      client.createRecord({
+        teamid: "69b42543b78e125defa011d2",
+        adbid: "6a7a30bee59ebbded551602f",
+        templatename: "Location",
+        name: "Main Warehouse",
+      }),
+    ).rejects.toThrow(/templatename.*Template not found/);
+  });
 });
