@@ -12,6 +12,8 @@ function createClient() {
     discoverTypes: jest.fn(),
     getTypeDefinition: jest.fn(),
     listWorkflows: jest.fn(),
+    getWorkflow: jest.fn(),
+    getWorkflowExecutionHistory: jest.fn(),
   } as unknown as ExtApiClient;
 }
 
@@ -21,6 +23,8 @@ describe("solution discovery tools", () => {
       "anydb_discover_types",
       "anydb_get_type_definition",
       "anydb_list_workflows",
+      "anydb_get_workflow",
+      "anydb_get_workflow_execution_history",
     ]);
     expect(isSolutionDiscoveryTool("anydb_get_type_definition")).toBe(true);
     expect(isSolutionDiscoveryTool("anydb_create_type")).toBe(false);
@@ -73,6 +77,65 @@ describe("solution discovery tools", () => {
       "507f1f77bcf86cd799439012",
       "507f1f77bcf86cd799439013",
     );
+  });
+
+  it("gets execution history for a selected workflow", async () => {
+    const client = createClient();
+    jest
+      .mocked(client.getWorkflowExecutionHistory)
+      .mockResolvedValue([{ executionId: "run-1", status: "failed" }]);
+
+    const result = await callSolutionDiscoveryTool(
+      "anydb_get_workflow_execution_history",
+      {
+        teamid: "507f1f77bcf86cd799439012",
+        adbid: "507f1f77bcf86cd799439013",
+        workflowId: "507f1f77bcf86cd799439014",
+      },
+      client,
+    );
+
+    expect(client.getWorkflowExecutionHistory).toHaveBeenCalledWith(
+      "507f1f77bcf86cd799439012",
+      "507f1f77bcf86cd799439013",
+      "507f1f77bcf86cd799439014",
+    );
+    expect(JSON.parse(result.content[0].text)).toEqual([
+      { executionId: "run-1", status: "failed" },
+    ]);
+  });
+
+  it("gets one workflow with its execution records", async () => {
+    const client = createClient();
+    jest.mocked(client.getWorkflow).mockResolvedValue({
+      workflowId: "507f1f77bcf86cd799439014",
+      name: "Transfer completed",
+      enabled: true,
+      createdAt: 1,
+      trigger: null,
+      actions: [],
+      executionHistory: [{ executionId: "run-1", status: "success" }],
+    });
+
+    const result = await callSolutionDiscoveryTool(
+      "anydb_get_workflow",
+      {
+        teamid: "507f1f77bcf86cd799439012",
+        adbid: "507f1f77bcf86cd799439013",
+        workflowId: "507f1f77bcf86cd799439014",
+      },
+      client,
+    );
+
+    expect(client.getWorkflow).toHaveBeenCalledWith(
+      "507f1f77bcf86cd799439012",
+      "507f1f77bcf86cd799439013",
+      "507f1f77bcf86cd799439014",
+    );
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      workflowId: "507f1f77bcf86cd799439014",
+      executionHistory: [{ executionId: "run-1", status: "success" }],
+    });
   });
 
   it("rejects an invalid definition source", async () => {

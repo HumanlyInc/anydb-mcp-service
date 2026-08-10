@@ -229,6 +229,46 @@ describe("ExtApiClient", () => {
     ]);
   });
 
+  it("gets one workflow with history at its exact external API path", async () => {
+    let receivedUrl = "";
+    const baseURL = await listen((incoming, response) => {
+      receivedUrl = incoming.url || "";
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({
+          status: "success",
+          data: {
+            workflowId: "507f1f77bcf86cd799439091",
+            name: "Workflow",
+            enabled: true,
+            createdAt: 1,
+            trigger: null,
+            actions: [],
+            executionHistory: [{ executionId: "run-1", status: "success" }],
+          },
+        }),
+      );
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+
+    const workflow = await client.getWorkflow(
+      request.teamid,
+      request.adbid,
+      "507f1f77bcf86cd799439091",
+    );
+
+    expect(receivedUrl).toBe(
+      `/integrations/ext/workflows/507f1f77bcf86cd799439091?teamid=${request.teamid}&adbid=${request.adbid}`,
+    );
+    expect(workflow.executionHistory).toEqual([
+      { executionId: "run-1", status: "success" },
+    ]);
+  });
+
   it("updates a workflow at its exact external API path", async () => {
     let receivedMethod = "";
     let receivedUrl = "";

@@ -68,6 +68,40 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
       required: ["teamid", "adbid"],
     },
   },
+  {
+    name: "anydb_get_workflow",
+    description:
+      "Get one workflow's normalized trigger/action graph and retained execution records, including per-artifact status, outputs, and errors. Use this to diagnose whether a workflow fired and what happened. Use a workflowId returned by anydb_list_workflows or anydb_create_workflow.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID" },
+        adbid: { type: "string", description: "The database ID" },
+        workflowId: {
+          type: "string",
+          description: "The workflow ID returned by discovery or creation",
+        },
+      },
+      required: ["teamid", "adbid", "workflowId"],
+    },
+  },
+  {
+    name: "anydb_get_workflow_execution_history",
+    description:
+      "Get the retained execution records for one workflow, including per-artifact status, outputs, and errors. Returns an empty array when the workflow has not run. Use a workflowId returned by anydb_list_workflows or anydb_create_workflow.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID" },
+        adbid: { type: "string", description: "The database ID" },
+        workflowId: {
+          type: "string",
+          description: "The workflow ID returned by discovery or creation",
+        },
+      },
+      required: ["teamid", "adbid", "workflowId"],
+    },
+  },
 ];
 
 const DISCOVERY_TOOL_NAMES = new Set(
@@ -142,6 +176,16 @@ export async function callSolutionDiscoveryTool(
     }
     case "anydb_list_workflows":
       return textResult(await client.listWorkflows(teamid, adbid));
+    case "anydb_get_workflow": {
+      const workflowId = requiredString(args, "workflowId");
+      return textResult(await client.getWorkflow(teamid, adbid, workflowId));
+    }
+    case "anydb_get_workflow_execution_history": {
+      const workflowId = requiredString(args, "workflowId");
+      return textResult(
+        await client.getWorkflowExecutionHistory(teamid, adbid, workflowId),
+      );
+    }
     default:
       throw new Error(`Unknown solution discovery tool: ${name}`);
   }

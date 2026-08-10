@@ -113,6 +113,10 @@ export interface WorkflowSummary {
   }>;
 }
 
+export interface WorkflowDetails extends WorkflowSummary {
+  executionHistory: unknown[];
+}
+
 export interface WorkflowArtifactCatalogEntry {
   type: string;
   description: string;
@@ -385,6 +389,30 @@ export class ExtApiClient {
   ): Promise<WorkflowSummary[]> {
     const response = await this.client.get<ExtApiResponse<WorkflowSummary[]>>(
       "/integrations/ext/workflows",
+      { params: { teamid, adbid } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getWorkflow(
+    teamid: string,
+    adbid: string,
+    workflowId: string,
+  ): Promise<WorkflowDetails> {
+    const response = await this.client.get<ExtApiResponse<WorkflowDetails>>(
+      `/integrations/ext/workflows/${encodeURIComponent(workflowId)}`,
+      { params: { teamid, adbid } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getWorkflowExecutionHistory(
+    teamid: string,
+    adbid: string,
+    workflowId: string,
+  ): Promise<unknown[]> {
+    const response = await this.client.get<ExtApiResponse<unknown[]>>(
+      `/integrations/ext/workflows/${encodeURIComponent(workflowId)}/execution-history`,
       { params: { teamid, adbid } },
     );
     return this.unwrap(response.data);
