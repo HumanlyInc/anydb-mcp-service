@@ -6,7 +6,7 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
   {
     name: "anydb_discover_types",
     description:
-      "Search reusable AnyDB types before designing a new solution. Searches workspace templates, the built-in catalog, or both and reports each source's availability independently.",
+      "Search reusable AnyDB types before designing a new solution. For authoring, search source=workspace first; search source=builtin only when no workspace type has the required fields. Use source=all only for general exploration.",
     inputSchema: {
       type: "object",
       properties: {
@@ -36,7 +36,7 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
   {
     name: "anydb_get_type_definition",
     description:
-      "Get the latest complete definition of a workspace or built-in type by its stable name. Use the candidate name returned by anydb_discover_types, never a version-specific template ID.",
+      "Get the latest complete definition of a workspace or built-in type by its stable name. Use it to judge reuse from semantic content and behavior, not the candidate name, description, or search score. Use the candidate name returned by anydb_discover_types, never a version-specific template ID.",
     inputSchema: {
       type: "object",
       properties: {

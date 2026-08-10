@@ -4,6 +4,7 @@ import type {
   CreateTypeRequest,
   CreateWorkflowRequest,
   ExtApiClient,
+  UpdateWorkflowRequest,
   UpdateTypeRequest,
 } from "./ext-api-client.js";
 import {
@@ -19,6 +20,7 @@ const authoringSchema = JSON.parse(
     createTypeInput: Record<string, unknown>;
     updateTypeInput: Record<string, unknown>;
     createWorkflowInput: Record<string, unknown>;
+    updateWorkflowInput: Record<string, unknown>;
   };
 };
 
@@ -37,6 +39,21 @@ const createWorkflowInputSchema = {
   $defs: authoringSchema.$defs,
 };
 
+const updateWorkflowInputSchema = {
+  ...authoringSchema.$defs.updateWorkflowInput,
+  $defs: authoringSchema.$defs,
+};
+
+const workflowCatalogInputSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["teamid", "adbid"],
+  properties: {
+    teamid: authoringSchema.$defs.objectId,
+    adbid: authoringSchema.$defs.objectId,
+  },
+};
+
 export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_get_authoring_guide",
@@ -50,7 +67,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   },
   {
     name: "anydb_create_type",
-    description: `Call anydb_get_authoring_guide before the first authoring call in a task. Use its canonical type-layout rules to design every field's position, colspan, and rowspan, then submit that complete structure here. Create one standalone AnyDB type, define one type in a larger solution, or import one selected built-in type. Discover reusable types first and do not invent related types or workflows when the requested type is standalone.`,
+    description: `Call anydb_get_authoring_guide before the first authoring call in a task. Before creating a standalone AnyDB type or a type in a larger solution, search workspace types and inspect complete definitions. Compare semantic content and behavior, not names or descriptions: fields, types/formats, relationships, formulas/lookups, and workflow-facing keys. Reuse compatible workspace content first; only if none exists, inspect and import a compatible built-in. Define a new type only when neither source can fulfill the use case. For new definitions, use the guide's canonical type-layout rules and provide every field's position, colspan, and rowspan.`,
     inputSchema: createTypeInputSchema as unknown as Tool["inputSchema"],
   },
   {
@@ -60,8 +77,26 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   },
   {
     name: "anydb_create_workflow",
-    description: `Read the authoring guide (call anydb_get_authoring_guide) before authoring. Create exactly one supported trigger connected directly to exactly one script action. The server resolves stable form/type names, generates runtime artifact IDs, and automatically binds record-producing trigger output to script input.recordId.`,
+    description: `Read the authoring guide, then call anydb_list_workflow_triggers and anydb_list_workflow_actions before authoring. Create one supported trigger followed by an ordered chain of registered actions. Prefer one script action when the team license permits it and that is the simplest design. Use action keys and symbolic output bindings; the server generates runtime artifact IDs and connections.`,
     inputSchema: createWorkflowInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_update_workflow",
+    description:
+      "Update an existing workflow's name, description, or enabled state through the standard workflow service. Use the workflowId returned by workflow discovery or creation.",
+    inputSchema: updateWorkflowInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_list_workflow_triggers",
+    description:
+      "List server-supported workflow triggers with descriptions, output schemas, and whether each trigger is accepted by anydb_create_workflow. Each inputSchema is the exact object shape accepted at workflow.trigger.config; use those property names directly. Call before choosing a workflow trigger.",
+    inputSchema: workflowCatalogInputSchema as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_list_workflow_actions",
+    description:
+      "List registered workflow actions with descriptions, exact input/output schemas, trigger compatibility, and whether each action is accepted by anydb_create_workflow. The action_script entry includes authoritative script runtime APIs and authoring rules.",
+    inputSchema: workflowCatalogInputSchema as Tool["inputSchema"],
   },
 ];
 
@@ -119,6 +154,21 @@ export async function callSolutionAuthoringTool(
     const normalized = normalizeStructuredArgument(args, "workflow", name);
     result = await client.createWorkflow(
       normalized as unknown as CreateWorkflowRequest,
+    );
+  } else if (name === "anydb_update_workflow") {
+    const normalized = normalizeStructuredArgument(args, "changes", name);
+    result = await client.updateWorkflow(
+      normalized as unknown as UpdateWorkflowRequest,
+    );
+  } else if (name === "anydb_list_workflow_triggers") {
+    result = await client.listWorkflowTriggers(
+      String(args.teamid || ""),
+      String(args.adbid || ""),
+    );
+  } else if (name === "anydb_list_workflow_actions") {
+    result = await client.listWorkflowActions(
+      String(args.teamid || ""),
+      String(args.adbid || ""),
     );
   } else {
     throw new Error(`Unknown solution authoring tool: ${name}`);

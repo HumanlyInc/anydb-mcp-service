@@ -25,6 +25,20 @@ describe("solution resources", () => {
     expect(resource.text).toContain("six-column grid, A-F");
     expect(resource.text).toContain("Build an occupancy map");
     expect(resource.text).toContain("## Construction Procedure");
+    expect(resource.text).toContain('source: "workspace"');
+    expect(resource.text).toContain('source: "builtin"');
+    expect(resource.text).toContain(
+      "Create a new type with `anydb_create_type` in define mode only when neither",
+    );
+    expect(resource.text).toContain(
+      "Names, descriptions, and search scores are discovery hints",
+    );
+    expect(resource.text).toContain(
+      "field purpose, value type and format, requiredness and options",
+    );
+    expect(resource.text).toContain(
+      'config: { "templateName": "Transfer Record", "fieldNames": ["Status"] }',
+    );
   });
 
   it("reads a valid machine-readable authoring schema", () => {
@@ -52,6 +66,15 @@ describe("solution resources", () => {
     );
     expect(schema.$defs.updateTypeInput.properties).not.toHaveProperty(
       "templateid",
+    );
+    expect(
+      schema.$defs.createWorkflowInput.properties.workflow.properties,
+    ).toHaveProperty("actions");
+    expect(
+      schema.$defs.updateWorkflowInput.properties.changes.properties,
+    ).toHaveProperty("enabled");
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_update_workflow",
     );
   });
 

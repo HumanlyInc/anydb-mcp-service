@@ -113,6 +113,18 @@ export interface WorkflowSummary {
   }>;
 }
 
+export interface WorkflowArtifactCatalogEntry {
+  type: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  outputSchema: Record<string, unknown>;
+  creatableViaAnydbCreateWorkflow: boolean;
+  availableForCurrentTeam?: boolean;
+  unavailableReason?: string;
+  supportedTriggers?: string[];
+  guidance?: Record<string, unknown>;
+}
+
 export interface CreateTypeRequest {
   teamid: string;
   adbid: string;
@@ -188,7 +200,13 @@ export interface CreateWorkflowRequest {
         | "trigger_manual";
       config: Record<string, unknown>;
     };
-    script: { source: string; timeoutMs?: number };
+    actions?: Array<{
+      key: string;
+      type: string;
+      description?: string;
+      config: Record<string, unknown>;
+    }>;
+    script?: { source: string; timeoutMs?: number };
   };
 }
 
@@ -205,12 +223,37 @@ export interface CreateWorkflowResult {
   graph: {
     triggerType: string;
     triggerId?: string;
-    actionType: "action_script";
+    actions: Array<{ key: string; type: string; actionId?: string }>;
+    actionType?: "action_script";
     actionId?: string;
     recordIdBinding?: string;
   };
   warnings: string[];
   validation: { valid: true; errors: [] };
+}
+
+export interface UpdateWorkflowRequest {
+  teamid: string;
+  adbid: string;
+  workflowId: string;
+  clientRequestId: string;
+  changes: {
+    name?: string;
+    description?: string;
+    enabled?: boolean;
+  };
+}
+
+export interface UpdateWorkflowResult {
+  success: true;
+  operation: "update_workflow";
+  requestId: string;
+  result: {
+    workflowId: string;
+    name: string;
+    description: string;
+    enabled: boolean;
+  };
 }
 
 export interface BulkCreateRecordInput {
@@ -347,6 +390,30 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async listWorkflowTriggers(
+    teamid: string,
+    adbid: string,
+  ): Promise<WorkflowArtifactCatalogEntry[]> {
+    const response = await this.client.get<
+      ExtApiResponse<WorkflowArtifactCatalogEntry[]>
+    >("/integrations/ext/workflow-triggers", {
+      params: { teamid, adbid },
+    });
+    return this.unwrap(response.data);
+  }
+
+  async listWorkflowActions(
+    teamid: string,
+    adbid: string,
+  ): Promise<WorkflowArtifactCatalogEntry[]> {
+    const response = await this.client.get<
+      ExtApiResponse<WorkflowArtifactCatalogEntry[]>
+    >("/integrations/ext/workflow-actions", {
+      params: { teamid, adbid },
+    });
+    return this.unwrap(response.data);
+  }
+
   async createType(params: CreateTypeRequest): Promise<CreateTypeResult> {
     const response = await this.client.post<ExtApiResponse<CreateTypeResult>>(
       "/integrations/ext/templates",
@@ -370,6 +437,16 @@ export class ExtApiClient {
     const response = await this.client.post<
       ExtApiResponse<CreateWorkflowResult>
     >("/integrations/ext/workflows", params);
+    return this.unwrap(response.data);
+  }
+
+  async updateWorkflow(
+    params: UpdateWorkflowRequest,
+  ): Promise<UpdateWorkflowResult> {
+    const { workflowId, ...body } = params;
+    const response = await this.client.put<
+      ExtApiResponse<UpdateWorkflowResult>
+    >(`/integrations/ext/workflows/${encodeURIComponent(workflowId)}`, body);
     return this.unwrap(response.data);
   }
 

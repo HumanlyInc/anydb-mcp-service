@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
 import { createServer, type RequestListener, type Server } from "node:http";
 
-import { ExtApiClient, type CreateTypeRequest } from "../ext-api-client.js";
+import {
+  ExtApiClient,
+  type CreateTypeRequest,
+  type UpdateWorkflowRequest,
+} from "../ext-api-client.js";
 
 describe("ExtApiClient", () => {
   let server: Server | undefined;
@@ -175,5 +179,110 @@ describe("ExtApiClient", () => {
         name: "Main Warehouse",
       }),
     ).rejects.toThrow(/templatename.*Template not found/);
+  });
+
+  it("gets workflow trigger and action catalogs for the workspace", async () => {
+    const receivedUrls: string[] = [];
+    const baseURL = await listen((incoming, response) => {
+      receivedUrls.push(incoming.url || "");
+      const isActionRequest = incoming.url?.startsWith(
+        "/integrations/ext/workflow-actions",
+      );
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({
+          status: "success",
+          data: [
+            {
+              type: isActionRequest
+                ? "action_script"
+                : "trigger_on_record_update",
+              description: "Definition",
+              inputSchema: {},
+              outputSchema: {},
+              creatableViaAnydbCreateWorkflow: true,
+            },
+          ],
+        }),
+      );
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+
+    const triggers = await client.listWorkflowTriggers(
+      request.teamid,
+      request.adbid,
+    );
+    const actions = await client.listWorkflowActions(
+      request.teamid,
+      request.adbid,
+    );
+
+    expect(triggers[0].type).toBe("trigger_on_record_update");
+    expect(actions[0].type).toBe("action_script");
+    expect(receivedUrls).toEqual([
+      `/integrations/ext/workflow-triggers?teamid=${request.teamid}&adbid=${request.adbid}`,
+      `/integrations/ext/workflow-actions?teamid=${request.teamid}&adbid=${request.adbid}`,
+    ]);
+  });
+
+  it("updates a workflow at its exact external API path", async () => {
+    let receivedMethod = "";
+    let receivedUrl = "";
+    let receivedBody: unknown;
+    const baseURL = await listen((incoming, response) => {
+      receivedMethod = incoming.method || "";
+      receivedUrl = incoming.url || "";
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        receivedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: {
+              success: true,
+              operation: "update_workflow",
+              requestId: "enable-1",
+              result: {
+                workflowId: "507f1f77bcf86cd799439091",
+                name: "Workflow",
+                description: "",
+                enabled: true,
+              },
+            },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+    const update: UpdateWorkflowRequest = {
+      teamid: request.teamid,
+      adbid: request.adbid,
+      workflowId: "507f1f77bcf86cd799439091",
+      clientRequestId: "enable-1",
+      changes: { enabled: true },
+    };
+
+    await client.updateWorkflow(update);
+
+    expect(receivedMethod).toBe("PUT");
+    expect(receivedUrl).toBe(
+      "/integrations/ext/workflows/507f1f77bcf86cd799439091",
+    );
+    expect(receivedBody).toEqual({
+      teamid: update.teamid,
+      adbid: update.adbid,
+      clientRequestId: update.clientRequestId,
+      changes: update.changes,
+    });
   });
 });

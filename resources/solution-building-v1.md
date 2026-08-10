@@ -7,7 +7,7 @@ Read this guide before the first type- or solution-authoring call in a task. An 
 - **Standalone type**: one independently useful type with its own fields, layout, formulas, badges, and optional references to existing types. The type itself is the complete deliverable.
 - **Solution**: multiple coordinated types with ownership or reference relationships and optional workflows.
 
-For a standalone type, perform discovery for that type, inspect compatible candidates, then reuse, import, or define exactly that type. Do not require child types, relationships, or workflows when the requested type does not need them. A standalone type can later participate in a larger solution without being redesigned.
+For a standalone type, search the workspace first and inspect candidate definitions for the required content and behavior. Reuse a compatible workspace type when one exists. Only when none is compatible, search built-in types and inspect their definitions; import a compatible built-in before using it. Create a new type only when neither source contains a compatible definition. Names, descriptions, and search scores are discovery hints, not compatibility evidence. Decide from the complete definition: field purpose, value type and format, requiredness and options, references and ownership, formulas and lookups, and any keys or outputs consumed by workflows. Do not require child types, relationships, or workflows when the requested type does not need them. A standalone type can later participate in a larger solution without being redesigned.
 
 ## Type Roles
 
@@ -104,26 +104,42 @@ Only use a positional reference where required, notably the first argument to `D
 
 ## Workflows
 
-A workflow created through MCP has exactly one trigger connected directly to exactly one script action. Available triggers are `trigger_on_form_submit`, `trigger_on_record_create`, `trigger_on_record_update`, `trigger_on_schedule`, and `trigger_manual`.
+A workflow created through MCP has exactly one trigger followed by an ordered chain of one or more actions. Prefer one trigger with one `action_script` when that is the simplest design and the current team license permits it; use registered non-script actions when scripting is unavailable or a native action is clearer. Available triggers are `trigger_on_form_submit`, `trigger_on_record_create`, `trigger_on_record_update`, `trigger_on_schedule`, and `trigger_manual`.
 
+- Call `anydb_list_workflow_triggers` before choosing a trigger. It returns each trigger's description and exact input/output schemas.
+- Call `anydb_list_workflow_actions` before writing actions. It returns every registered action, its exact input/output schema, trigger compatibility, structural support by `anydb_create_workflow`, and `availableForCurrentTeam`. Do not select an unavailable action; `unavailableReason` explains the current policy restriction.
+- Form submit requires `config.formName`. The server resolves the stable form name to its internal share ID.
+- Record create/update can use `config.templateName`, `config.parentRecordId`, and `config.filter`. Record update alone can use `config.fieldNames` to run only when selected fields change.
+- To run only when `Transfer Record.Status` changes, use `trigger_on_record_update` with `config: { "templateName": "Transfer Record", "fieldNames": ["Status"] }`. Use these semantic names exactly; native runtime properties such as `typename`, `typeid`, and `cellids` are internal and must not be sent to `anydb_create_workflow`.
+- Schedule accepts interval or calendar/time settings. `specificTime` cannot be combined with interval, weekday/month-day, or time-window settings.
+- Manual accepts an empty config object.
 - Build workflows only after referenced type names and field keys are final.
-- Use stable `formName` and `templateName` values; do not provide runtime IDs, aliases, action arrays, or connections.
-- Form submit and record create/update triggers automatically pass their `adoid` output to the script as `input.recordId`.
+- Use stable `formName` and `templateName` values; do not provide runtime artifact IDs.
+- Send actions in execution order. Each action has a unique client-local `key`, a registered `type`, and `config` matching that action's catalog input schema. The server creates and connects the persisted artifact IDs.
+- Map outputs into later action inputs with `{{trigger.outputName}}` or `{{priorActionKey.outputName}}`. A binding may only reference the trigger or an earlier action in the chain. Output names must come from the corresponding catalog output schema.
+- Form submit and record create/update triggers automatically pass their `adoid` output to an `action_script` as `recordId` when that input is omitted. Explicit `{{trigger.adoid}}` mappings are also supported.
 - Schedule and manual triggers do not receive an automatic record input.
-- Scripts may be license-gated. Create disabled by default and enable only when explicitly requested.
+- For a triggering-record script, require `input.recordId`, load it with `await anydb.getRecordById(input.recordId)`, and fail before side effects if it is missing or inaccessible. Use criteria/refIds only for intentional scheduled, manual, or batch workflows.
+- Use only APIs and signatures returned in the `action_script` catalog guidance. Do not invent global helpers, capability probes, or compatibility wrappers.
+- Await all data and mutation calls. Begin every explicit loop with `await anydb.yield()`.
+- Make update-triggered side effects idempotent or persist a state transition that exits the triggering condition.
+- End scripts with explicit `output.set(...)` values and a concise `output.summary(...)`.
+- Scripts and some other actions may be license-gated. Create disabled by default and enable only when explicitly requested.
+- Use `anydb_update_workflow` to change an existing workflow's name, description, or enabled state. Workflow updates continue to enforce the standard workflow authorization policy.
 
 ## Construction Procedure
 
 1. Read this guide and `anydb://schemas/solution-authoring/v1`.
 2. Classify the request as a standalone type or multi-type solution, and do not broaden its scope without user direction.
 3. Privately model the requested types, roles, fields, layouts, and formulas. Include relationships and workflows only when required.
-4. Run `anydb_discover_types` for each proposed type across workspace and built-in sources.
-5. Inspect promising definitions. Reuse a compatible workspace type or import a compatible built-in type before defining a duplicate.
-6. Fix stable type names and field keys.
-7. For a standalone type, create or import it now and stop after validating it unless more work was requested.
-8. For a multi-type solution, create independent reference types first, child types next, and master/container types after their dependencies.
-9. Update only where relationships could not be resolved during creation.
-10. Re-check every formula and target. Discover existing workflows and create workflows last only when automation is part of the request.
+4. For each proposed type, call `anydb_discover_types` with `source: "workspace"`. Inspect promising candidates with `anydb_get_type_definition`. Compare semantic content and behavior, not names: field purpose, value type and format, requiredness and options, references and ownership, formulas and lookups, and workflow-facing keys or outputs. If a workspace definition can fulfill the requested use case without changing its meaning, reuse it and do not import or create a duplicate.
+5. Only when no content-compatible workspace type exists, call `anydb_discover_types` with `source: "builtin"` and inspect promising built-in definitions by the same criteria. If one fulfills the requested use case, import it with `anydb_create_type` in import mode before referencing or using it.
+6. Create a new type with `anydb_create_type` in define mode only when neither the workspace nor built-in catalog contains a content-compatible type. A matching name, description, icon, or search score is never sufficient evidence, and a different name does not make equivalent content incompatible.
+7. Fix stable type names and field keys.
+8. For a standalone type, reuse, import, or create it now and stop after validating it unless more work was requested.
+9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies.
+10. Update only where relationships could not be resolved during creation.
+11. Re-check every formula and target. Discover existing workflows, call the workflow trigger/action catalog tools, and create workflows last only when automation is part of the request.
 
 Use a stable idempotency key for every mutation. On partial failure, inspect current state and resume; do not blindly recreate successful artifacts.
 

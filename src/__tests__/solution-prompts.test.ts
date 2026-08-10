@@ -18,6 +18,10 @@ describe("solution prompts", () => {
 
     expect(text).toContain("one standalone AnyDB type");
     expect(text).toContain("anydb_discover_types");
+    expect(text).toContain('source "workspace"');
+    expect(text).toContain('source "builtin"');
+    expect(text).toContain("Compare semantic content and behavior, not names");
+    expect(text).toContain("A matching name is insufficient");
     expect(text).toContain("Do not introduce additional types or workflows");
   });
 
@@ -31,6 +35,10 @@ describe("solution prompts", () => {
     expect(text).toContain("Track orders and fulfillment");
     expect(text).toContain("anydb://guides/solution-building/v1");
     expect(text).toContain("anydb_get_type_definition");
+    expect(text).toContain('source "workspace"');
+    expect(text).toContain('source "builtin"');
+    expect(text).toContain("Compare semantic content and behavior, not names");
+    expect(text).toContain("A matching name is insufficient");
     expect(text).toContain("anydb_list_workflows");
     expect(text).toContain("Do not call mutation tools");
   });
