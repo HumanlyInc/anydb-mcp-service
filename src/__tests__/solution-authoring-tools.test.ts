@@ -16,16 +16,47 @@ import {
 } from "../solution-authoring-tools.js";
 
 describe("solution authoring tools", () => {
+  it("includes guide fetching as the first tool", () => {
+    const guideTool = SOLUTION_AUTHORING_TOOLS[0];
+    expect(guideTool.name).toBe("anydb_get_authoring_guide");
+    expect(guideTool.description).toContain(
+      "canonical AnyDB solution-building guide",
+    );
+    expect(guideTool.inputSchema).toMatchObject({
+      type: "object",
+      properties: {},
+      required: [],
+    });
+    expect(isSolutionAuthoringTool("anydb_get_authoring_guide")).toBe(true);
+  });
+
+  it("returns guide text when calling anydb_get_authoring_guide", async () => {
+    const client = {} as ExtApiClient;
+    const result = await callSolutionAuthoringTool(
+      "anydb_get_authoring_guide",
+      undefined,
+      client,
+    );
+
+    expect(result.content).toHaveLength(1);
+    expect(result.content[0].type).toBe("text");
+    expect(typeof result.content[0].text).toBe("string");
+    expect(result.content[0].text.length).toBeGreaterThan(0);
+    expect(result.content[0].text).toContain("AnyDB");
+  });
+
   it("advertises create type with the packaged semantic schema", () => {
-    const tool = SOLUTION_AUTHORING_TOOLS[0];
+    const tool = SOLUTION_AUTHORING_TOOLS[1];
     expect(tool.name).toBe("anydb_create_type");
     expect(tool.description).toContain("standalone AnyDB type");
+    expect(tool.description).toContain("canonical type-layout rules");
+    expect(tool.description).toContain("position, colspan, and rowspan");
     expect(tool.inputSchema).toMatchObject({
       required: ["teamid", "adbid", "clientRequestId", "mode"],
       $defs: expect.objectContaining({ field: expect.any(Object) }),
     });
     expect(isSolutionAuthoringTool("anydb_create_type")).toBe(true);
-    expect(SOLUTION_AUTHORING_TOOLS[1]).toMatchObject({
+    expect(SOLUTION_AUTHORING_TOOLS[2]).toMatchObject({
       name: "anydb_update_type",
       inputSchema: expect.objectContaining({
         required: expect.arrayContaining([
@@ -54,7 +85,7 @@ describe("solution authoring tools", () => {
       adbid: "507f1f77bcf86cd799439012",
       clientRequestId: "meeting-note-v1",
       validateOnly: true,
-      mode: "define",
+      mode: "define" as const,
       type: {
         name: "Meeting Note",
         fields: [
@@ -79,6 +110,58 @@ describe("solution authoring tools", () => {
       operation: "create_type",
       result: { persisted: false },
     });
+  });
+
+  it("parses a type object stringified by an MCP client", async () => {
+    const createType = jest.fn<ExtApiClient["createType"]>();
+    createType.mockResolvedValue({
+      success: true,
+      operation: "create_type",
+      requestId: "location-v1",
+      result: { name: "Location", persisted: false },
+      warnings: [],
+      validation: { valid: true, errors: [] },
+    } as CreateTypeResult);
+    const client = { createType } as unknown as ExtApiClient;
+    const type = {
+      name: "Location",
+      fields: [
+        {
+          key: "Name",
+          valueType: "string",
+          format: "general",
+          layout: { position: "A1", colspan: 6, rowspan: 1 },
+        },
+      ],
+    };
+    const args = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      clientRequestId: "location-v1",
+      validateOnly: true,
+      mode: "define" as const,
+      type: JSON.stringify(type, null, 2),
+    };
+
+    await callSolutionAuthoringTool("anydb_create_type", args, client);
+
+    expect(createType).toHaveBeenCalledWith({ ...args, type });
+  });
+
+  it("rejects a malformed stringified type before making an HTTP call", async () => {
+    const createType = jest.fn<ExtApiClient["createType"]>();
+    const client = { createType } as unknown as ExtApiClient;
+
+    await expect(
+      callSolutionAuthoringTool(
+        "anydb_create_type",
+        { type: "{not-json" },
+        client,
+      ),
+    ).rejects.toThrow(
+      "anydb_create_type.type must be an object or valid JSON object string",
+    );
+    expect(createType).not.toHaveBeenCalled();
   });
 
   it("forwards a name-based type update request", async () => {
@@ -121,9 +204,10 @@ describe("solution authoring tools", () => {
       confirmDataLoss: false,
     };
 
+    const mcpArgs = { ...request, changes: JSON.stringify(request.changes) };
     const result = await callSolutionAuthoringTool(
       "anydb_update_type",
-      request,
+      mcpArgs,
       client,
     );
 
@@ -171,15 +255,16 @@ describe("solution authoring tools", () => {
       },
     };
 
+    const mcpArgs = { ...request, workflow: JSON.stringify(request.workflow) };
     const result = await callSolutionAuthoringTool(
       "anydb_create_workflow",
-      request,
+      mcpArgs,
       client,
     );
 
-    expect(SOLUTION_AUTHORING_TOOLS[2].name).toBe("anydb_create_workflow");
+    expect(SOLUTION_AUTHORING_TOOLS[3].name).toBe("anydb_create_workflow");
     expect(isSolutionAuthoringTool("anydb_create_workflow")).toBe(true);
-    expect(SOLUTION_AUTHORING_TOOLS[2].inputSchema).toMatchObject({
+    expect(SOLUTION_AUTHORING_TOOLS[3].inputSchema).toMatchObject({
       properties: {
         workflow: {
           required: ["name", "trigger", "script"],
@@ -203,7 +288,7 @@ describe("solution authoring tools", () => {
       },
     });
     const workflowSchema = JSON.stringify(
-      SOLUTION_AUTHORING_TOOLS[2].inputSchema,
+      SOLUTION_AUTHORING_TOOLS[3].inputSchema,
     );
     expect(workflowSchema).not.toContain('"actions"');
     expect(workflowSchema).not.toContain('"connections"');

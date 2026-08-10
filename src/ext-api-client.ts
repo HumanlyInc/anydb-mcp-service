@@ -245,6 +245,39 @@ export class ExtApiClient {
       },
       timeout: 30000,
     });
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error: unknown) => Promise.reject(this.toRequestError(error)),
+    );
+  }
+
+  private toRequestError(error: unknown): Error {
+    if (!axios.isAxiosError(error)) {
+      return error instanceof Error ? error : new Error(String(error));
+    }
+
+    const method = error.config?.method?.toUpperCase() || "REQUEST";
+    const route = error.config?.url || "AnyDB API";
+    const baseURL = error.config?.baseURL?.replace(/\/$/, "");
+    const url = baseURL ? `${baseURL}/${route.replace(/^\//, "")}` : route;
+    const status = error.response?.status;
+    const responseBody = error.response?.data;
+    let detail: string | undefined;
+
+    if (typeof responseBody === "string") {
+      detail = responseBody.trim();
+    } else if (responseBody !== undefined) {
+      try {
+        detail = JSON.stringify(responseBody);
+      } catch {
+        detail = String(responseBody);
+      }
+    }
+
+    const context = `${method} ${url}${status ? ` failed (${status})` : " failed"}`;
+    return new Error(`${context}: ${detail || error.message}`, {
+      cause: error,
+    });
   }
 
   private unwrap<T>(response: ExtApiResponse<T>): T {

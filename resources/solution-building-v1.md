@@ -37,7 +37,40 @@ Important format rules:
 - Use `description`, `required`, and format-specific semantic properties instead of raw internal `props`.
 - Layout positions match `^[A-Z]+[1-9][0-9]*$`; `colspan` and `rowspan` are positive integers. Occupied grid areas must not overlap.
 
-Use heading cells to organize dense forms. Put identity and status fields first, related fields together, computed summaries near their source data, and child attachment areas after the parent's own fields. Badges should expose a small number of fields useful when scanning records.
+### Canonical Type Layout
+
+When defining a type, the MCP client must design the complete cell layout and send it in each field's `layout`. Use this visual style unless the user explicitly requests another arrangement:
+
+- Treat the form as a six-column grid, A-F, with unlimited rows.
+- Preserve the requested field order from top to bottom. Put identity and status fields first, keep related inline fields together, place computed summaries near their source data, and put child attachment areas after the parent's own fields.
+- Build an occupancy map while assigning positions. Reserve every coordinate covered by each field's `colspan` and `rowspan`; never overlap cells or extend a span beyond column F.
+- Place inline fields (`general`, `number`, `currency`, `percentage`, `date`, `datetime`, `time`, `select`, `multi-select`, `checkbox`, `user`, `users`, `ref`, and `lookup`) left to right. Move to column A of the next row when the field does not fit or begins a new logical group.
+- Row-end gaps are acceptable. Do not widen fields or add unrelated fields merely to fill a row.
+- Start block fields (`heading`, `rich-text`, `attachments`, notes, and summaries) on a new row. Do not place a block field in unused columns beside inline fields.
+- Make headings full width at column A with `colspan: 6` and `rowspan: 1`.
+- Give rich-text fields at least `colspan: 3` and `rowspan: 3`, normally starting at column A.
+- Give attachments at least `colspan: 3` and `rowspan: 4`. Place two adjacent attachment fields side by side (`A` with `colspan: 3`, then `D` with `colspan: 3`); otherwise use a full-width attachment at A with `colspan: 6`.
+- When a file field is the record's hero image, place it at A1 with `colspan: 1` and `rowspan: 4`; inline fields may flow beside it. Start the next block immediately after the occupied hero rows, without blank spacer rows.
+- Do not insert empty rows solely for visual spacing.
+
+Reference layout:
+
+```text
+A B C D E F
+P X X X X .
+P X X X . .
+P X X X . .
+P X X . . .
+H H H H H H
+B B B B B B
+B B B B B B
+B B B B B B
+B B B B B B
+```
+
+`P` is an optional hero image, `X` is an inline field, `H` is a heading, `B` is a block field, and `.` is unused space. Before calling `anydb_create_type`, verify that every field is present exactly once, positions are unique, spans remain inside A-F, and occupied areas do not overlap.
+
+Badges should expose a small number of fields useful when scanning records.
 
 ## Relationships
 

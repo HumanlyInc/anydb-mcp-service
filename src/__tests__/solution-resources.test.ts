@@ -21,6 +21,9 @@ describe("solution resources", () => {
     expect(resource.text).toContain("## Authoring Scope");
     expect(resource.text).toContain("Standalone type");
     expect(resource.text).toContain("## Cells");
+    expect(resource.text).toContain("### Canonical Type Layout");
+    expect(resource.text).toContain("six-column grid, A-F");
+    expect(resource.text).toContain("Build an occupancy map");
     expect(resource.text).toContain("## Construction Procedure");
   });
 
