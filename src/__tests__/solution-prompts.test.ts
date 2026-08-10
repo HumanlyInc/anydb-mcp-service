@@ -40,6 +40,11 @@ describe("solution prompts", () => {
     expect(text).toContain("Compare semantic content and behavior, not names");
     expect(text).toContain("A matching name is insufficient");
     expect(text).toContain("anydb_list_workflows");
+    expect(text).toContain(
+      "workflow only when a required event or record change",
+    );
+    expect(text).toContain("Prefer formulas/lookups for derived values");
+    expect(text).toContain("five or more workflows as a design-review signal");
     expect(text).toContain("Do not call mutation tools");
   });
 

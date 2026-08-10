@@ -99,6 +99,7 @@ Before any mutation:
 4. Only when no content-compatible workspace type exists, search source "builtin" and inspect promising definitions with anydb_get_type_definition by the same criteria. Import a compatible built-in before using it.
 5. Define a new type only when neither source's content can fulfill the use case. A matching name is insufficient, and a different name does not rule out reuse.
 6. Call anydb_list_workflows and identify reusable or conflicting automation.
+7. Add a workflow only when a required event or record change must cause a mutation, notification, or external side effect. Prefer formulas/lookups for derived values, consolidate compatible automation, and treat five or more workflows as a design-review signal rather than a hard limit.
 
 Return a concise implementation blueprint, not chain-of-thought. Include the ordered artifacts, dependencies, reuse decisions, unresolved questions, and validation risks. Do not call mutation tools until the complete blueprint is coherent.`,
         },

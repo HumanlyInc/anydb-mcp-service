@@ -44,6 +44,21 @@ describe("solution resources", () => {
       "executionHistory[].artifactExecutions[].output.logLines",
     );
     expect(resource.text).toContain("call `anydb_get_workflow`");
+    expect(resource.text).toContain(
+      "Its ID is `created.id` (the new adoid), not `created.adoid`",
+    );
+    expect(resource.text).toContain("After creating or changing a workflow");
+    expect(resource.text).toContain("anydb_get_workflow_execution_history");
+    expect(resource.text).toContain(
+      "Create workflows only for required automation",
+    );
+    expect(resource.text).toContain(
+      "an event or change on one record must automatically create, update",
+    );
+    expect(resource.text).toContain(
+      "Five or more workflows is a design-review signal",
+    );
+    expect(resource.text).toContain("It is not a hard limit");
   });
 
   it("reads a valid machine-readable authoring schema", () => {

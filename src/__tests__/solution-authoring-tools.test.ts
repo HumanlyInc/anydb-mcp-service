@@ -277,6 +277,9 @@ describe("solution authoring tools", () => {
 
     expect(SOLUTION_AUTHORING_TOOLS[3].name).toBe("anydb_create_workflow");
     expect(isSolutionAuthoringTool("anydb_create_workflow")).toBe(true);
+    expect(SOLUTION_AUTHORING_TOOLS[3].description).toContain(
+      "anydb_get_workflow_execution_history",
+    );
     expect(SOLUTION_AUTHORING_TOOLS[3].inputSchema).toMatchObject({
       properties: {
         workflow: {

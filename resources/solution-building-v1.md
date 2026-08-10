@@ -106,6 +106,10 @@ Only use a positional reference where required, notably the first argument to `D
 
 A workflow created through MCP has exactly one trigger followed by an ordered chain of one or more actions. Prefer one trigger with one `action_script` when that is the simplest design and the current team license permits it; use registered non-script actions when scripting is unavailable or a native action is clearer. Available triggers are `trigger_on_form_submit`, `trigger_on_record_create`, `trigger_on_record_update`, `trigger_on_schedule`, and `trigger_manual`.
 
+Create workflows only for required automation. A workflow is appropriate when an event or change on one record must automatically create, update, notify about, or otherwise cause a side effect on another record or external system. Do not create workflows merely to make a solution appear complete. When the requirement is only to display or calculate derived data, prefer formulas, lookups, references, and aggregations instead of mutation automation.
+
+Keep the workflow set small and purposeful. Reuse an existing workflow or combine behavior under one compatible trigger and action chain when doing so remains clear and correct. Five or more workflows is a design-review signal: check for duplicates, overlapping triggers, and behavior that can be consolidated or expressed declaratively. It is not a hard limit; retain additional workflows when distinct triggers, permissions, failure boundaries, or business behaviors genuinely require them.
+
 - Call `anydb_list_workflow_triggers` before choosing a trigger. It returns each trigger's description and exact input/output schemas.
 - Call `anydb_list_workflow_actions` before writing actions. It returns every registered action, its exact input/output schema, trigger compatibility, structural support by `anydb_create_workflow`, and `availableForCurrentTeam`. Do not select an unavailable action; `unavailableReason` explains the current policy restriction.
 - Form submit requires `config.formName`. The server resolves the stable form name to its internal share ID.
@@ -121,6 +125,7 @@ A workflow created through MCP has exactly one trigger followed by an ordered ch
 - Schedule and manual triggers do not receive an automatic record input.
 - For a triggering-record script, require `input.recordId`, load it with `await anydb.getRecordById(input.recordId)`, and fail before side effects if it is missing or inaccessible. Use criteria/refIds only for intentional scheduled, manual, or batch workflows.
 - Use only APIs and signatures returned in the `action_script` catalog guidance. Do not invent global helpers, capability probes, or compatibility wrappers.
+- `await anydb.createRecord(...)` returns the created runtime record. Its ID is `created.id` (the new adoid), not `created.adoid`. Omit `parentid` only when root creation is intentional; if attaching a child, resolve and validate the parent ID before calling `createRecord`.
 - `script.runtime.ts` is authoritative for supported script commands. Its catalog guidance exposes `globals`, `anydbApis`, `outputApis`, and record helpers. Use `log(...)` or `console.log(...)` for concise diagnostics around inputs, branch decisions, record IDs, and mutation results; never log credentials, tokens, or sensitive record content.
 - After a run, call `anydb_get_workflow` and inspect the script action at `executionHistory[].artifactExecutions[].output.logLines`. An empty execution history means the workflow did not run; a failed artifact also exposes its `error` alongside any captured output.
 - Await all data and mutation calls. Begin every explicit loop with `await anydb.yield()`.
@@ -128,6 +133,7 @@ A workflow created through MCP has exactly one trigger followed by an ordered ch
 - End scripts with explicit `output.set(...)` values and a concise `output.summary(...)`.
 - Scripts and some other actions may be license-gated. Create disabled by default and enable only when explicitly requested.
 - Use `anydb_update_workflow` to change an existing workflow's name, description, or enabled state. Workflow updates continue to enforce the standard workflow authorization policy.
+- After creating or changing a workflow, keep it disabled until practical verification is ready. Trigger one representative run, then call `anydb_get_workflow` (or `anydb_get_workflow_execution_history`) and inspect the workflow-level status plus each artifact's input, output, logs, and error before considering the automation complete.
 
 ## Construction Procedure
 
@@ -141,7 +147,7 @@ A workflow created through MCP has exactly one trigger followed by an ordered ch
 8. For a standalone type, reuse, import, or create it now and stop after validating it unless more work was requested.
 9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies.
 10. Update only where relationships could not be resolved during creation.
-11. Re-check every formula and target. Discover existing workflows, call the workflow trigger/action catalog tools, and create workflows last only when automation is part of the request.
+11. Re-check every formula and target. Identify required cross-record or external side effects, discover existing workflows, and prefer formulas/lookups for derived values that do not require mutation. Call the workflow trigger/action catalog tools and create workflows last only when automation is required. If the design reaches five workflows, review it for duplication or safe consolidation before proceeding; exceed five only when distinct behavior justifies it.
 
 Use a stable idempotency key for every mutation. On partial failure, inspect current state and resume; do not blindly recreate successful artifacts.
 

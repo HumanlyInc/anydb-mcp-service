@@ -77,7 +77,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   },
   {
     name: "anydb_create_workflow",
-    description: `Read the authoring guide, then call anydb_list_workflow_triggers and anydb_list_workflow_actions before authoring. Create one supported trigger followed by an ordered chain of registered actions. Prefer one script action when the team license permits it and that is the simplest design. Use action keys and symbolic output bindings; the server generates runtime artifact IDs and connections.`,
+    description: `Read the authoring guide, then call anydb_list_workflow_triggers and anydb_list_workflow_actions before authoring. Create one supported trigger followed by an ordered chain of registered actions. Prefer one script action when the team license permits it and that is the simplest design. Use action keys and symbolic output bindings; the server generates runtime artifact IDs and connections. After creation, run one representative case and inspect anydb_get_workflow or anydb_get_workflow_execution_history before considering the automation verified.`,
     inputSchema: createWorkflowInputSchema as unknown as Tool["inputSchema"],
   },
   {
