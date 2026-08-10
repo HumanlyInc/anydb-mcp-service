@@ -89,6 +89,7 @@ import { AnyDBClient, PredefinedTemplateAdoIds } from "anydb-api-sdk-ts";
 import { lookup as lookupMimeType } from "mime-types";
 import { config } from "./config.js";
 import { ExtApiClient } from "./ext-api-client.js";
+import { normalizeRecordContent } from "./record-update.js";
 import { schemaReader } from "./schema-reader.js";
 import type { TemplateStructure } from "./types.js";
 
@@ -1001,9 +1002,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!meta || !meta.adoid || !meta.adbid || !meta.teamid) {
           throw new Error("meta with adoid, adbid, and teamid are required");
         }
+        const current = await anydbClient.getRecord(
+          meta.teamid,
+          meta.adbid,
+          meta.adoid,
+        );
         const params = {
           meta,
-          content: args?.content as Record<string, any> | undefined,
+          content: normalizeRecordContent(
+            current,
+            args?.content as Record<string, unknown> | undefined,
+          ),
         };
         const record = await anydbClient.updateRecord(params);
         return {
@@ -1032,7 +1041,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (records.length > 100) {
           throw new Error("bulk_update_records accepts at most 100 records");
         }
-        const result = await extApiClient.bulkUpdateRecords(records);
+        const normalizedRecords = [];
+        for (const record of records) {
+          const current = await anydbClient.getRecord(
+            record.meta.teamid,
+            record.meta.adbid,
+            record.meta.adoid,
+          );
+          normalizedRecords.push({
+            ...record,
+            content: normalizeRecordContent(current, record.content),
+          });
+        }
+        const result = await extApiClient.bulkUpdateRecords(normalizedRecords);
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
