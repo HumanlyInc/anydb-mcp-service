@@ -31,7 +31,7 @@ export interface TemplateStructure {
   description?: string;
   fields: FieldDefinition[];
   relationships?: {
-    templateId: string;
+    templateName: string;
     type: "one-to-one" | "one-to-many" | "many-to-many";
     fieldName: string;
   }[];

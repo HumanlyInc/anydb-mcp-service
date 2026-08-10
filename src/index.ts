@@ -82,6 +82,8 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
@@ -92,6 +94,17 @@ import { lookup as lookupMimeType } from "mime-types";
 import { config } from "./config.js";
 import { ExtApiClient } from "./ext-api-client.js";
 import { normalizeRecordContent } from "./record-update.js";
+import {
+  callSolutionAuthoringTool,
+  isSolutionAuthoringTool,
+  SOLUTION_AUTHORING_TOOLS,
+} from "./solution-authoring-tools.js";
+import {
+  callSolutionDiscoveryTool,
+  isSolutionDiscoveryTool,
+  SOLUTION_DISCOVERY_TOOLS,
+} from "./solution-discovery-tools.js";
+import { getSolutionPrompt, listSolutionPrompts } from "./solution-prompts.js";
 import {
   listSolutionResources,
   readSolutionResource,
@@ -120,43 +133,8 @@ const extApiClient = new ExtApiClient({
 
 // Define available tools
 const TOOLS: Tool[] = [
-  {
-    name: "anydb_discover_types",
-    description:
-      "Search reusable AnyDB types before designing a new solution. Searches workspace templates, the built-in catalog, or both and reports each source's availability independently.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        teamid: {
-          type: "string",
-          description: "The team ID (MongoDB ObjectId)",
-        },
-        adbid: {
-          type: "string",
-          description: "The database ID (MongoDB ObjectId)",
-        },
-        search: {
-          type: "string",
-          description:
-            "A concise description of the type or solution capability needed",
-        },
-        source: {
-          type: "string",
-          enum: ["workspace", "builtin", "all"],
-          description: "Catalogs to search; defaults to all",
-          default: "all",
-        },
-        limit: {
-          type: "integer",
-          minimum: 1,
-          maximum: 50,
-          description: "Maximum candidates per source; defaults to 20",
-          default: 20,
-        },
-      },
-      required: ["teamid", "adbid", "search"],
-    },
-  },
+  ...SOLUTION_AUTHORING_TOOLS,
+  ...SOLUTION_DISCOVERY_TOOLS,
   {
     name: "list_templates",
     description:
@@ -267,15 +245,10 @@ const TOOLS: Tool[] = [
           description:
             "Optional parent record ID to filter child records (MongoDB ObjectId). If not provided, then the root database records are returned.",
         },
-        templateid: {
-          type: "string",
-          description:
-            "Optional template ID to filter records by type (MongoDB ObjectId). Only returns records created from this template.",
-        },
         templatename: {
           type: "string",
           description:
-            "Optional template name to filter records by type. Alternative to templateid - provide one or the other, not both.",
+            "Optional stable template name to filter records by type. The backend resolves it to the latest template version.",
         },
         pagesize: {
           type: "string",
@@ -829,8 +802,9 @@ const server = new Server(
     capabilities: {
       tools: {},
       resources: {},
+      prompts: {},
     },
-    instructions: `Before authoring an AnyDB solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A solution is a coordinated set of types, cells, relationships, formulas, and workflows. Design the complete solution first, discover and reuse compatible workspace or built-in types, create dependencies in order, and create workflows last. Do not mutate types or workflows until the relevant guidance has been read.`,
+    instructions: `Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read.`,
   },
 );
 
@@ -841,6 +815,14 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => ({
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => ({
   contents: [readSolutionResource(request.params.uri)],
 }));
+
+server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+  prompts: listSolutionPrompts(),
+}));
+
+server.setRequestHandler(GetPromptRequestSchema, async (request) =>
+  getSolutionPrompt(request.params.name, request.params.arguments),
+);
 
 // Handle list tools request
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -858,41 +840,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   console.error(`======================================\n`);
 
   try {
-    switch (name) {
-      case "anydb_discover_types": {
-        const teamid = args?.teamid as string;
-        const adbid = args?.adbid as string;
-        const search = args?.search as string;
-        const source = args?.source as
-          | "workspace"
-          | "builtin"
-          | "all"
-          | undefined;
-        const limit = args?.limit as number | undefined;
-        if (!teamid || !adbid || !search) {
-          throw new Error("teamid, adbid, and search are required");
-        }
-        if (source && !["workspace", "builtin", "all"].includes(source)) {
-          throw new Error("source must be workspace, builtin, or all");
-        }
-        if (
-          limit !== undefined &&
-          (!Number.isInteger(limit) || limit < 1 || limit > 50)
-        ) {
-          throw new Error("limit must be an integer from 1 to 50");
-        }
-        const discovery = await extApiClient.discoverTypes({
-          teamid,
-          adbid,
-          search,
-          source,
-          limit,
-        });
-        return {
-          content: [{ type: "text", text: JSON.stringify(discovery, null, 2) }],
-        };
-      }
+    if (isSolutionAuthoringTool(name)) {
+      return await callSolutionAuthoringTool(name, args, extApiClient);
+    }
 
+    if (isSolutionDiscoveryTool(name)) {
+      return await callSolutionDiscoveryTool(name, args, extApiClient);
+    }
+
+    switch (name) {
       case "list_templates": {
         const teamid = args?.teamid as string;
         const adbid = args?.adbid as string;
@@ -975,7 +931,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("teamid and adbid are required");
         }
         const parentid = args?.parentid as string | undefined;
-        const templateid = args?.templateid as string | undefined;
         const templatename = args?.templatename as string | undefined;
         const pagesize = args?.pagesize as string | undefined;
         const lastmarker = args?.lastmarker as string | undefined;
@@ -1004,7 +959,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               teamid,
               adbid,
               parentid,
-              templateid,
               templatename,
               pagesize,
               lastmarker,
@@ -1014,7 +968,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               teamid,
               adbid,
               parentid,
-              templateid,
+              undefined,
               templatename,
               pagesize,
               lastmarker,

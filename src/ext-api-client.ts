@@ -75,6 +75,101 @@ export interface TemplateDiscoveryResult {
   candidates: TemplateDiscoveryCandidate[];
 }
 
+export interface GetTypeDefinitionParams {
+  teamid: string;
+  adbid: string;
+  templateName: string;
+  source: "workspace" | "builtin";
+}
+
+export interface TypeDefinitionResult {
+  source: "workspace" | "builtin";
+  templateName: string;
+  templateId?: string;
+  status: "ok" | "not_found_or_unavailable";
+  definition?: Record<string, unknown>;
+}
+
+export interface WorkflowSummary {
+  workflowId: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  createdAt: number;
+  updatedAt?: number;
+  trigger: {
+    id: string;
+    type: string;
+    description?: string;
+    config: Record<string, unknown>;
+    nextActionId: string | null;
+  } | null;
+  actions: Array<{
+    id: string;
+    type: string;
+    description?: string;
+    config: Record<string, unknown>;
+    nextActionIds: string[];
+  }>;
+}
+
+export interface CreateTypeRequest {
+  teamid: string;
+  adbid: string;
+  clientRequestId: string;
+  validateOnly?: boolean;
+  mode: "define" | "import_builtin";
+  type?: Record<string, unknown>;
+  builtInTemplateName?: string;
+}
+
+export interface CreateTypeResult {
+  success: true;
+  operation: "create_type";
+  requestId: string;
+  result: {
+    templateId?: string;
+    sourceTemplateId?: string;
+    name: string;
+    revision?: string;
+    persisted: boolean;
+  };
+  warnings: string[];
+  validation: { valid: true; errors: [] };
+}
+
+export interface UpdateTypeRequest {
+  teamid: string;
+  adbid: string;
+  templateName: string;
+  clientRequestId: string;
+  expectedRevision: string;
+  validateOnly?: boolean;
+  changes: Record<string, unknown>;
+  confirmDataLoss: boolean;
+}
+
+export interface UpdateTypeResult {
+  success: true;
+  operation: "update_type";
+  requestId: string;
+  result: {
+    name: string;
+    previousTemplateId: string;
+    templateId?: string;
+    previousRevision: string;
+    revision: string;
+    persisted: boolean;
+  };
+  impact: { affectedFields: string[]; destructive: boolean };
+  migration: {
+    status: "not_started" | "queued" | "completed" | "enqueue_failed";
+    jobId?: number;
+  };
+  warnings: string[];
+  validation: { valid: true; errors: [] };
+}
+
 export interface BulkCreateRecordInput {
   clientref?: string;
   name: string;
@@ -140,6 +235,47 @@ export class ExtApiClient {
     const response = await this.client.get<
       ExtApiResponse<TemplateDiscoveryResult>
     >("/integrations/ext/templates/discover", { params });
+    return this.unwrap(response.data);
+  }
+
+  async getTypeDefinition(
+    params: GetTypeDefinitionParams,
+  ): Promise<TypeDefinitionResult> {
+    const { templateName, ...query } = params;
+    const response = await this.client.get<
+      ExtApiResponse<TypeDefinitionResult>
+    >(
+      `/integrations/ext/templates/${encodeURIComponent(templateName)}/definition`,
+      { params: query },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listWorkflows(
+    teamid: string,
+    adbid: string,
+  ): Promise<WorkflowSummary[]> {
+    const response = await this.client.get<ExtApiResponse<WorkflowSummary[]>>(
+      "/integrations/ext/workflows",
+      { params: { teamid, adbid } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async createType(params: CreateTypeRequest): Promise<CreateTypeResult> {
+    const response = await this.client.post<ExtApiResponse<CreateTypeResult>>(
+      "/integrations/ext/templates",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async updateType(params: UpdateTypeRequest): Promise<UpdateTypeResult> {
+    const { templateName, ...body } = params;
+    const response = await this.client.put<ExtApiResponse<UpdateTypeResult>>(
+      `/integrations/ext/templates/${encodeURIComponent(templateName)}`,
+      body,
+    );
     return this.unwrap(response.data);
   }
 

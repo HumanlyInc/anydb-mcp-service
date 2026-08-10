@@ -119,13 +119,13 @@
         "validateOnly": { "type": "boolean", "default": false },
         "mode": { "enum": ["define", "import_builtin"] },
         "type": { "$ref": "#/$defs/typeDefinition" },
-        "builtInTemplateId": { "type": "string", "minLength": 1 }
+        "builtInTemplateName": { "type": "string", "minLength": 1, "maxLength": 120 }
       },
       "allOf": [
         {
           "if": { "properties": { "mode": { "const": "define" } } },
           "then": { "required": ["type"] },
-          "else": { "required": ["builtInTemplateId"] }
+          "else": { "required": ["builtInTemplateName"] }
         }
       ]
     },
@@ -151,11 +151,11 @@
     "updateTypeInput": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["teamid", "adbid", "templateid", "clientRequestId", "expectedRevision", "changes", "migration"],
+      "required": ["teamid", "adbid", "templateName", "clientRequestId", "expectedRevision", "changes", "confirmDataLoss"],
       "properties": {
         "teamid": { "$ref": "#/$defs/objectId" },
         "adbid": { "$ref": "#/$defs/objectId" },
-        "templateid": { "$ref": "#/$defs/objectId" },
+        "templateName": { "type": "string", "minLength": 1, "maxLength": 120 },
         "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
         "expectedRevision": { "type": "string", "minLength": 1 },
         "validateOnly": { "type": "boolean", "default": false },
@@ -171,15 +171,7 @@
             "replaceChildPolicy": { "oneOf": [{ "$ref": "#/$defs/childPolicy" }, { "type": "null" }] }
           }
         },
-        "migration": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["mode", "confirmDataLoss"],
-          "properties": {
-            "mode": { "enum": ["none", "validate", "apply"] },
-            "confirmDataLoss": { "type": "boolean" }
-          }
-        }
+        "confirmDataLoss": { "type": "boolean", "default": false }
       }
     },
     "workflowNode": {

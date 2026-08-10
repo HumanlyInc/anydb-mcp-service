@@ -1,6 +1,13 @@
 # AnyDB Solution Building Contract v1
 
-Read this guide before the first solution-authoring call in a task. An AnyDB solution is a coordinated set of types, relationships, formulas, and workflows. Design the complete solution first, discover reusable types, create dependencies in order, and create workflows last.
+Read this guide before the first type- or solution-authoring call in a task. An authoring task may produce one standalone type or a coordinated solution of multiple types, relationships, formulas, and workflows. Match the implementation scope to the request; never invent related types or workflows merely to turn a standalone type into a solution. Discover reusable types first, create dependencies in order when they exist, and create workflows last only when automation is required.
+
+## Authoring Scope
+
+- **Standalone type**: one independently useful type with its own fields, layout, formulas, badges, and optional references to existing types. The type itself is the complete deliverable.
+- **Solution**: multiple coordinated types with ownership or reference relationships and optional workflows.
+
+For a standalone type, perform discovery for that type, inspect compatible candidates, then reuse, import, or define exactly that type. Do not require child types, relationships, or workflows when the requested type does not need them. A standalone type can later participate in a larger solution without being redesigned.
 
 ## Type Roles
 
@@ -75,21 +82,25 @@ A workflow has exactly one trigger and a directed graph of actions. Common trigg
 ## Construction Procedure
 
 1. Read this guide and `anydb://schemas/solution-authoring/v1`.
-2. Privately model all types, roles, fields, relationships, formulas, and workflows.
-3. Run `anydb_discover_types` for each proposed type across workspace and built-in sources.
-4. Inspect promising definitions. Reuse a compatible workspace type or import a compatible built-in type before defining a duplicate.
-5. Fix stable type names and field keys.
-6. Create independent reference types first.
-7. Create line-item and journal child types next.
-8. Create master/container types with attachment fields, child policies, and rollups.
+2. Classify the request as a standalone type or multi-type solution, and do not broaden its scope without user direction.
+3. Privately model the requested types, roles, fields, layouts, and formulas. Include relationships and workflows only when required.
+4. Run `anydb_discover_types` for each proposed type across workspace and built-in sources.
+5. Inspect promising definitions. Reuse a compatible workspace type or import a compatible built-in type before defining a duplicate.
+6. Fix stable type names and field keys.
+7. For a standalone type, create or import it now and stop after validating it unless more work was requested.
+8. For a multi-type solution, create independent reference types first, child types next, and master/container types after their dependencies.
 9. Update only where relationships could not be resolved during creation.
-10. Re-check every formula and target, then discover existing workflows and create workflows last.
+10. Re-check every formula and target. Discover existing workflows and create workflows last only when automation is part of the request.
 
 Use a stable idempotency key for every mutation. On partial failure, inspect current state and resume; do not blindly recreate successful artifacts.
 
+Use stable template names in all MCP inputs. Templates are versioned, and a stored template ID can refer to an obsolete or deleted revision. The AnyDB backend resolves each name to the latest available template ID; IDs returned in discovery or mutation results are informational and must not be reused as authoring inputs.
+
 ## Compact Example
 
-An order solution uses three types:
+A standalone `Meeting Note` type can contain `Subject`, `Meeting Date`, `Attendees`, `Summary`, `Decisions`, and `Follow-ups`. It needs no child type or workflow unless the requested process requires one. Discover existing meeting-note types, then reuse, import, or create this single type and validate its layout.
+
+For a multi-type example, an order solution uses three types:
 
 - `Product`: reference type with `SKU`, `Name`, and `Unit Price`.
 - `Order Item`: line-item child with `Product` (`ref` targeting `Product`), `SKU` (`lookup` from `Product`), `Quantity`, and locked `Total = {{Unit Price}} * {{Quantity}}`.

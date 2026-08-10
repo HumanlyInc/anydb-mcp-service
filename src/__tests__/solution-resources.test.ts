@@ -18,6 +18,8 @@ describe("solution resources", () => {
 
     const resource = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI);
     expect(resource.mimeType).toBe("text/markdown");
+    expect(resource.text).toContain("## Authoring Scope");
+    expect(resource.text).toContain("Standalone type");
     expect(resource.text).toContain("## Cells");
     expect(resource.text).toContain("## Construction Procedure");
   });
@@ -31,6 +33,15 @@ describe("solution resources", () => {
     expect(schema.$defs.field.properties.format.enum).toContain("lookup");
     expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_create_type",
+    );
+    expect(schema.$defs.createTypeInput.properties).toHaveProperty(
+      "builtInTemplateName",
+    );
+    expect(schema.$defs.updateTypeInput.properties).toHaveProperty(
+      "templateName",
+    );
+    expect(schema.$defs.updateTypeInput.properties).not.toHaveProperty(
+      "templateid",
     );
   });
 

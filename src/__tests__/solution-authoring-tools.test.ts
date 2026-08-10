@@ -1,0 +1,134 @@
+import { describe, expect, it, jest } from "@jest/globals";
+
+import type {
+  CreateTypeRequest,
+  CreateTypeResult,
+  ExtApiClient,
+  UpdateTypeRequest,
+  UpdateTypeResult,
+} from "../ext-api-client.js";
+import {
+  callSolutionAuthoringTool,
+  isSolutionAuthoringTool,
+  SOLUTION_AUTHORING_TOOLS,
+} from "../solution-authoring-tools.js";
+
+describe("solution authoring tools", () => {
+  it("advertises create type with the packaged semantic schema", () => {
+    const tool = SOLUTION_AUTHORING_TOOLS[0];
+    expect(tool.name).toBe("anydb_create_type");
+    expect(tool.description).toContain("standalone AnyDB type");
+    expect(tool.inputSchema).toMatchObject({
+      required: ["teamid", "adbid", "clientRequestId", "mode"],
+      $defs: expect.objectContaining({ field: expect.any(Object) }),
+    });
+    expect(isSolutionAuthoringTool("anydb_create_type")).toBe(true);
+    expect(SOLUTION_AUTHORING_TOOLS[1]).toMatchObject({
+      name: "anydb_update_type",
+      inputSchema: expect.objectContaining({
+        required: expect.arrayContaining([
+          "templateName",
+          "expectedRevision",
+          "confirmDataLoss",
+        ]),
+      }),
+    });
+    expect(isSolutionAuthoringTool("anydb_update_type")).toBe(true);
+  });
+
+  it("forwards a standalone type creation request", async () => {
+    const createType = jest.fn<ExtApiClient["createType"]>();
+    createType.mockResolvedValue({
+      success: true,
+      operation: "create_type",
+      requestId: "meeting-note-v1",
+      result: { name: "Meeting Note", persisted: false },
+      warnings: [],
+      validation: { valid: true, errors: [] },
+    } as CreateTypeResult);
+    const client = { createType } as unknown as ExtApiClient;
+    const request: CreateTypeRequest & Record<string, unknown> = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      clientRequestId: "meeting-note-v1",
+      validateOnly: true,
+      mode: "define",
+      type: {
+        name: "Meeting Note",
+        fields: [
+          {
+            key: "Subject",
+            valueType: "string",
+            format: "general",
+            layout: { position: "A1", colspan: 1, rowspan: 1 },
+          },
+        ],
+      },
+    };
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_create_type",
+      request,
+      client,
+    );
+
+    expect(createType).toHaveBeenCalledWith(request);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      operation: "create_type",
+      result: { persisted: false },
+    });
+  });
+
+  it("forwards a name-based type update request", async () => {
+    const updateType = jest.fn<ExtApiClient["updateType"]>();
+    updateType.mockResolvedValue({
+      success: true,
+      operation: "update_type",
+      requestId: "meeting-note-v2",
+      result: {
+        name: "Meeting Note",
+        previousTemplateId: "507f1f77bcf86cd799439010",
+        templateId: "507f1f77bcf86cd799439011",
+        previousRevision: "1",
+        revision: "2",
+        persisted: true,
+      },
+      impact: { affectedFields: ["Status"], destructive: false },
+      migration: { status: "queued", jobId: 12345678 },
+      warnings: [],
+      validation: { valid: true, errors: [] },
+    } as UpdateTypeResult);
+    const client = { updateType } as unknown as ExtApiClient;
+    const request: UpdateTypeRequest & Record<string, unknown> = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      templateName: "Meeting Note",
+      clientRequestId: "meeting-note-v2",
+      expectedRevision: "1",
+      changes: {
+        addFields: [
+          {
+            key: "Status",
+            valueType: "string",
+            format: "select",
+            options: ["Draft", "Final"],
+            layout: { position: "B1", colspan: 1, rowspan: 1 },
+          },
+        ],
+      },
+      confirmDataLoss: false,
+    };
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_update_type",
+      request,
+      client,
+    );
+
+    expect(updateType).toHaveBeenCalledWith(request);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      operation: "update_type",
+      migration: { status: "queued" },
+    });
+  });
+});
