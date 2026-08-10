@@ -159,9 +159,20 @@ This service provides 19 tools for comprehensive AnyDB integration:
 | Tool | Description |
 |------|-------------|
 | `download_file` | Download or get URL for files attached to record cells |
-| `upload_file` | Upload small files inline with filename-based MIME detection |
+| `upload_file` | Upload small files inline through a supported single-call child File workflow |
 | `prepare_file_upload` | Create a file record and get a presigned upload URL |
 | `complete_file_upload` | Finalize a successful presigned upload |
+
+`upload_file` is retained for backward compatibility and is not deprecated. It
+creates a separate child File record attached to the supplied parent `adoid`,
+then prepares, uploads, and completes the file against that child. It does not
+write file metadata into the parent record's content. Its optional `cellpos`
+identifies a cell on the child File record, not on the parent.
+
+Use `upload_file` for small inline payloads. Use `prepare_file_upload`, upload
+the bytes directly to its returned presigned URL, and then call
+`complete_file_upload` for large files. Both workflows use the same child File
+record architecture.
 
 ### Structured Record Filters
 
