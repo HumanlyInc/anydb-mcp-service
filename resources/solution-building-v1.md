@@ -121,6 +121,8 @@ A workflow created through MCP has exactly one trigger followed by an ordered ch
 - Schedule and manual triggers do not receive an automatic record input.
 - For a triggering-record script, require `input.recordId`, load it with `await anydb.getRecordById(input.recordId)`, and fail before side effects if it is missing or inaccessible. Use criteria/refIds only for intentional scheduled, manual, or batch workflows.
 - Use only APIs and signatures returned in the `action_script` catalog guidance. Do not invent global helpers, capability probes, or compatibility wrappers.
+- `script.runtime.ts` is authoritative for supported script commands. Its catalog guidance exposes `globals`, `anydbApis`, `outputApis`, and record helpers. Use `log(...)` or `console.log(...)` for concise diagnostics around inputs, branch decisions, record IDs, and mutation results; never log credentials, tokens, or sensitive record content.
+- After a run, call `anydb_get_workflow` and inspect the script action at `executionHistory[].artifactExecutions[].output.logLines`. An empty execution history means the workflow did not run; a failed artifact also exposes its `error` alongside any captured output.
 - Await all data and mutation calls. Begin every explicit loop with `await anydb.yield()`.
 - Make update-triggered side effects idempotent or persist a state transition that exits the triggering condition.
 - End scripts with explicit `output.set(...)` values and a concise `output.summary(...)`.

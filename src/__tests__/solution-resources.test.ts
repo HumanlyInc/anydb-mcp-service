@@ -39,6 +39,11 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       'config: { "templateName": "Transfer Record", "fieldNames": ["Status"] }',
     );
+    expect(resource.text).toContain("Use `log(...)` or `console.log(...)`");
+    expect(resource.text).toContain(
+      "executionHistory[].artifactExecutions[].output.logLines",
+    );
+    expect(resource.text).toContain("call `anydb_get_workflow`");
   });
 
   it("reads a valid machine-readable authoring schema", () => {
