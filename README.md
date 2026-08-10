@@ -64,7 +64,7 @@ Set the following environment variables:
 ```env
 ANYDB_DEFAULT_API_KEY=your_api_key_here
 ANYDB_DEFAULT_USER_EMAIL=your_email@example.com
-ANYDB_API_BASE_URL=https://app.anydb.com/api
+ANYDB_API_URL=https://app.anydb.com/api
 ```
 
 You can set these in:
@@ -102,7 +102,7 @@ Add to your Claude Desktop configuration file:
       "env": {
         "ANYDB_DEFAULT_API_KEY": "your_api_key_here",
         "ANYDB_DEFAULT_USER_EMAIL": "your_email@example.com",
-        "ANYDB_API_BASE_URL": "https://app.anydb.com/api"
+        "ANYDB_API_URL": "https://app.anydb.com/api"
       }
     }
   }
@@ -338,7 +338,7 @@ const movedRecord = await client.moveRecord({
 
 **Connection Issues**
 
-- Verify `ANYDB_API_BASE_URL` is set correctly (default: `https://app.anydb.com/api`)
+- Verify `ANYDB_API_URL` is set correctly (default: `https://app.anydb.com/api`)
 - Check that your API key and email are valid
 - Ensure network access to AnyDB API
 
