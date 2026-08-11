@@ -6,7 +6,7 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
   {
     name: "anydb_discover_types",
     description:
-      "Search reusable AnyDB types before designing a new solution. For authoring, search source=workspace first; search source=builtin only when no workspace type has the required fields. Use source=all only for general exploration.",
+      "Retrieve semantically plausible reusable AnyDB type candidates before designing a new type. For authoring, search source=workspace first; search source=builtin only when no workspace candidate is compatible. Candidate names, descriptions, categories, and ranking are hints, not proof of compatibility: call anydb_get_type_definition for plausible candidates and compare their complete fields, schema, relationships, formulas, and behavior with the requested role before reuse or import. Use source=all only for general exploration.",
     inputSchema: {
       type: "object",
       properties: {
@@ -14,7 +14,8 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
         adbid: { type: "string", description: "The database ID" },
         search: {
           type: "string",
-          description: "A concise description of the type needed",
+          description:
+            "One concise type concept or a comma-separated set of related names and synonyms. Discovery returns candidates to inspect; it does not confirm schema compatibility.",
         },
         source: {
           type: "string",

@@ -9,6 +9,21 @@
       "type": "string",
       "pattern": "^[a-fA-F0-9]{24}$"
     },
+    "createWorkspaceInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "name", "clientRequestId"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Name of the new empty workspace."
+        },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
     "layout": {
       "type": "object",
       "additionalProperties": false,
@@ -587,6 +602,7 @@
     }
   },
   "x-anydb-tool-input-schemas": {
+    "anydb_create_workspace": { "$ref": "#/$defs/createWorkspaceInput" },
     "anydb_create_type": { "$ref": "#/$defs/createTypeInput" },
     "anydb_update_type": { "$ref": "#/$defs/updateTypeInput" },
     "anydb_create_view": { "$ref": "#/$defs/createViewInput" },

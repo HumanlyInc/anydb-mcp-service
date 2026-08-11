@@ -4,6 +4,7 @@ import type {
   CreateShareRequest,
   CreateTypeRequest,
   CreateViewRequest,
+  CreateWorkspaceRequest,
   CreateWorkflowRequest,
   DeleteViewRequest,
   ExtApiClient,
@@ -22,6 +23,7 @@ const authoringSchema = JSON.parse(
   readSolutionResource(SOLUTION_AUTHORING_SCHEMA_URI).text,
 ) as {
   $defs: Record<string, unknown> & {
+    createWorkspaceInput: Record<string, unknown>;
     createTypeInput: Record<string, unknown>;
     createViewInput: Record<string, unknown>;
     updateViewInput: Record<string, unknown>;
@@ -75,6 +77,8 @@ function exposedInputSchema(name: string): Record<string, unknown> {
 }
 
 const createTypeInputSchema = exposedInputSchema("createTypeInput");
+
+const createWorkspaceInputSchema = exposedInputSchema("createWorkspaceInput");
 
 const updateTypeInputSchema = exposedInputSchema("updateTypeInput");
 
@@ -216,6 +220,12 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
       "Revoke one record or form share facet by shareId and kind. This removes its access/public link and preserves a different facet on the same internal share. Use after anydb_get_share confirms the exact target.",
     inputSchema: revokeShareInputSchema as unknown as Tool["inputSchema"],
   },
+  {
+    name: "anydb_create_workspace",
+    description:
+      "Create a new empty AnyDB workspace in an existing team. Use only when the user explicitly requests a new workspace. The authenticated user must have permission to create workspaces in the team. Use the returned adbid in subsequent type, View, share, workflow, and record tools.",
+    inputSchema: createWorkspaceInputSchema as unknown as Tool["inputSchema"],
+  },
 ];
 
 export function isSolutionAuthoringTool(name: string): boolean {
@@ -258,7 +268,11 @@ export async function callSolutionAuthoringTool(
 
   if (!args) throw new Error(`${name} arguments are required`);
   let result;
-  if (name === "anydb_create_type") {
+  if (name === "anydb_create_workspace") {
+    result = await client.createWorkspace(
+      args as unknown as CreateWorkspaceRequest,
+    );
+  } else if (name === "anydb_create_type") {
     const normalized = normalizeStructuredArgument(args, "type", name);
     result = await client.createType(
       normalized as unknown as CreateTypeRequest,

@@ -30,6 +30,27 @@ describe("solution discovery tools", () => {
     expect(isSolutionDiscoveryTool("anydb_create_type")).toBe(false);
   });
 
+  it("requires schema-level confirmation of discovery candidates", () => {
+    const discoverTool = SOLUTION_DISCOVERY_TOOLS.find(
+      (tool) => tool.name === "anydb_discover_types",
+    );
+    const searchSchema = (
+      discoverTool?.inputSchema.properties as Record<
+        string,
+        { description?: string }
+      >
+    ).search;
+
+    expect(discoverTool?.description).toContain(
+      "call anydb_get_type_definition for plausible candidates",
+    );
+    expect(discoverTool?.description).toContain("not proof of compatibility");
+    expect(searchSchema.description).toContain("comma-separated");
+    expect(searchSchema.description).toContain(
+      "does not confirm schema compatibility",
+    );
+  });
+
   it("gets a selected built-in type definition", async () => {
     const client = createClient();
     jest.mocked(client.getTypeDefinition).mockResolvedValue({
