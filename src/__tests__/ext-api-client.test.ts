@@ -6,6 +6,7 @@ import {
   type CreateShareRequest,
   type CreateTypeRequest,
   type CreateViewRequest,
+  type CreateWorkspaceRequest,
   type DeleteViewRequest,
   type RevokeShareRequest,
   type UpdateViewRequest,
@@ -54,6 +55,51 @@ describe("ExtApiClient", () => {
       ],
     },
   };
+
+  it("posts an empty workspace request to the external workspace route", async () => {
+    let receivedBody: unknown;
+    let receivedUrl = "";
+    const baseURL = await listen((incoming, response) => {
+      receivedUrl = incoming.url || "";
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        receivedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: {
+              success: true,
+              operation: "create_workspace",
+              requestId: "operations-workspace-v1",
+              result: {
+                adbid: "507f1f77bcf86cd799439012",
+                teamid: "507f1f77bcf86cd799439011",
+                name: "Operations Workspace",
+              },
+            },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+    const workspaceRequest: CreateWorkspaceRequest = {
+      teamid: "507f1f77bcf86cd799439011",
+      name: "Operations Workspace",
+      clientRequestId: "operations-workspace-v1",
+    };
+
+    const result = await client.createWorkspace(workspaceRequest);
+
+    expect(receivedUrl).toBe("/integrations/ext/workspaces");
+    expect(receivedBody).toEqual(workspaceRequest);
+    expect(result.result.adbid).toBe("507f1f77bcf86cd799439012");
+  });
 
   it("posts the create type request unchanged", async () => {
     let receivedBody: unknown;

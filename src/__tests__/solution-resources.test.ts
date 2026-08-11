@@ -19,6 +19,30 @@ describe("solution resources", () => {
     const resource = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI);
     expect(resource.mimeType).toBe("text/markdown");
     expect(resource.text).toContain("## Authoring Scope");
+    expect(resource.text).toContain("## Completion and Eventual Consistency");
+    expect(resource.text).toContain(
+      "does not guarantee that every derived or background effect is already visible",
+    );
+    expect(resource.text).toContain(
+      'Formula evaluation can temporarily expose a pending value (`"..."`)',
+    );
+    expect(resource.text).toContain(
+      "An empty execution history means no retained execution is visible yet",
+    );
+    expect(resource.text).toContain(
+      '`migration.status: "queued"` means the new revision is persisted but record migration is not complete',
+    );
+    expect(resource.text).toContain(
+      "Use bounded polling with short increasing intervals and an explicit deadline",
+    );
+    expect(resource.text).toContain(
+      "Never submit a duplicate mutation merely because an asynchronous side effect is still pending",
+    );
+    expect(resource.text).toContain("## Workspaces");
+    expect(resource.text).toContain("anydb_create_workspace");
+    expect(resource.text).toContain(
+      "The tool does not import samples, create business types, or populate records",
+    );
     expect(resource.text).toContain("Standalone type");
     expect(resource.text).toContain("## Cells");
     expect(resource.text).toContain("### Canonical Type Layout");
@@ -31,10 +55,37 @@ describe("solution resources", () => {
       "Create a new type with `anydb_create_type` in define mode only when neither",
     );
     expect(resource.text).toContain(
-      "Names, descriptions, and search scores are discovery hints",
+      "Treat `anydb_discover_types` as candidate retrieval, not compatibility confirmation",
+    );
+    expect(resource.text).toContain(
+      "Names, descriptions, categories, and search ranking are discovery hints",
     );
     expect(resource.text).toContain(
       "field purpose, value type and format, requiredness and options",
+    );
+    expect(resource.text).toContain(
+      "Relationship traversal uses AnyDB-specific references",
+    );
+    expect(resource.text).toContain(
+      "Connected child and parent references return arrays",
+    );
+    expect(resource.text).toContain("C@CURRREC!N@Invoice!{{Amount}}");
+    expect(resource.text).toContain("A@CURRREC!{{Budget}}[0]");
+    expect(resource.text).toContain(
+      "define `lookup.fromField`, `lookup.targetField`, and `lookup.mode` instead of manually writing `DYNREF`",
+    );
+    expect(resource.text).toContain(
+      "its first argument is the grid position of the `ref` cell",
+    );
+    expect(resource.text).toContain("Live lookup propagation is supported");
+    expect(resource.text).toContain(
+      "Do not assume a corrected template or lookup engine automatically backfills stale computed values",
+    );
+    expect(resource.text).toContain(
+      "can also run during record creation when a monitored field is initially set",
+    );
+    expect(resource.text).toContain(
+      "Do not treat this trigger as proof that the record previously existed",
     );
     expect(resource.text).toContain(
       'config: { "templateName": "Transfer Record", "fieldNames": ["Status"] }',
@@ -100,6 +151,14 @@ describe("solution resources", () => {
     expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_create_type",
     );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_create_workspace",
+    );
+    expect(schema.$defs.createWorkspaceInput.required).toEqual([
+      "teamid",
+      "name",
+      "clientRequestId",
+    ]);
     expect(schema.$defs.createTypeInput.properties).toHaveProperty(
       "builtInTemplateName",
     );

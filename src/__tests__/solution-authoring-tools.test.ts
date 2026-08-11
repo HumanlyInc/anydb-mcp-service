@@ -7,6 +7,8 @@ import type {
   CreateTypeResult,
   CreateViewRequest,
   CreateViewResult,
+  CreateWorkspaceRequest,
+  CreateWorkspaceResult,
   CreateWorkflowRequest,
   CreateWorkflowResult,
   ExtApiClient,
@@ -51,6 +53,50 @@ describe("solution authoring tools", () => {
     expect(typeof result.content[0].text).toBe("string");
     expect(result.content[0].text.length).toBeGreaterThan(0);
     expect(result.content[0].text).toContain("AnyDB");
+  });
+
+  it("advertises and forwards empty workspace creation", async () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_create_workspace",
+    );
+    expect(tool?.inputSchema).toMatchObject({
+      type: "object",
+      additionalProperties: false,
+      required: ["teamid", "name", "clientRequestId"],
+    });
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain('"$ref"');
+    expect(tool?.description).toContain("new empty AnyDB workspace");
+    expect(isSolutionAuthoringTool("anydb_create_workspace")).toBe(true);
+
+    const createWorkspace = jest.fn<ExtApiClient["createWorkspace"]>();
+    createWorkspace.mockResolvedValue({
+      success: true,
+      operation: "create_workspace",
+      requestId: "operations-workspace-v1",
+      result: {
+        adbid: "507f1f77bcf86cd799439012",
+        teamid: "507f1f77bcf86cd799439011",
+        name: "Operations Workspace",
+      },
+    } as CreateWorkspaceResult);
+    const client = { createWorkspace } as unknown as ExtApiClient;
+    const workspaceRequest: CreateWorkspaceRequest & Record<string, unknown> = {
+      teamid: "507f1f77bcf86cd799439011",
+      name: "Operations Workspace",
+      clientRequestId: "operations-workspace-v1",
+    };
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_create_workspace",
+      workspaceRequest,
+      client,
+    );
+
+    expect(createWorkspace).toHaveBeenCalledWith(workspaceRequest);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      operation: "create_workspace",
+      result: { adbid: "507f1f77bcf86cd799439012" },
+    });
   });
 
   it("advertises create type with the packaged semantic schema", () => {

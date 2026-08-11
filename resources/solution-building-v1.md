@@ -7,7 +7,22 @@ Read this guide before the first type- or solution-authoring call in a task. An 
 - **Standalone type**: one independently useful type with its own fields, layout, formulas, badges, and optional references to existing types. The type itself is the complete deliverable.
 - **Solution**: multiple coordinated types with ownership or reference relationships and optional workflows.
 
-For a standalone type, search the workspace first and inspect candidate definitions for the required content and behavior. Reuse a compatible workspace type when one exists. Only when none is compatible, search built-in types and inspect their definitions; import a compatible built-in before using it. Create a new type only when neither source contains a compatible definition. Names, descriptions, and search scores are discovery hints, not compatibility evidence. Decide from the complete definition: field purpose, value type and format, requiredness and options, references and ownership, formulas and lookups, and any keys or outputs consumed by workflows. Do not require child types, relationships, or workflows when the requested type does not need them. A standalone type can later participate in a larger solution without being redesigned.
+For a standalone type, search the workspace first and inspect candidate definitions for the required content and behavior. Treat `anydb_discover_types` as candidate retrieval, not compatibility confirmation: pass one concise concept or a small comma-separated set of related names and synonyms, then call `anydb_get_type_definition` for every plausible candidate before deciding. Reuse a compatible workspace type when one exists. Only when none is compatible, search built-in types and inspect their complete definitions; import a compatible built-in before using it. Create a new type only when neither source contains a compatible definition. Names, descriptions, categories, and search ranking are discovery hints, not compatibility evidence. Decide from the complete definition: field purpose, value type and format, requiredness and options, references and ownership, formulas and lookups, and any keys or outputs consumed by workflows. Do not require child types, relationships, or workflows when the requested type does not need them. A standalone type can later participate in a larger solution without being redesigned.
+
+## Completion and Eventual Consistency
+
+A successful mutation response confirms the primary request was accepted and, where reported, persisted. It does not guarantee that every derived or background effect is already visible. Formula dependency propagation, cross-record lookups, workflow execution, search indexing, notifications, and queued type migrations may complete later depending on system load.
+
+- Formula evaluation can temporarily expose a pending value (`"..."`) while dependencies are resolved and computed values are saved. Read the affected record again until the expected value appears or a stable error (`"err"`) is returned. Ordinary stored values and many local formulas may already be complete in the mutation response; do not delay when the required state is present.
+- A triggered workflow runs asynchronously. Poll `anydb_get_workflow` or `anydb_get_workflow_execution_history` until the expected execution appears and its workflow/artifact statuses are terminal (`success` or `failure`). An empty execution history means no retained execution is visible yet; it is not proof of success or failure.
+- For `anydb_update_type`, `migration.status: "queued"` means the new revision is persisted but record migration is not complete. `completed` means the synchronous migration finished, and `enqueue_failed` requires intervention. Do not depend on migrated record shape until representative affected records confirm the new revision and computed values.
+- Discovery and indexed search can lag immediately after creation or update. Prefer direct reads by returned ID or stable name for immediate verification, then retry discovery when indexing is required.
+
+Use bounded polling with short increasing intervals and an explicit deadline. Stop as soon as the expected terminal state is visible; on timeout, report the operation as accepted but not yet verified and include the request ID, artifact ID, workflow ID, or migration job ID returned by the mutation. Never submit a duplicate mutation merely because an asynchronous side effect is still pending. Retry the same mutation only with its original stable `clientRequestId`.
+
+## Workspaces
+
+Use `anydb_create_workspace` only when the user explicitly asks for a new workspace. It creates an empty workspace in an existing team and requires the authenticated user to have workspace-creation permission for that team. Provide a stable `clientRequestId`; an identical retry returns the original result, while reusing it with a different team or name is rejected. Use the returned `adbid` in all subsequent workspace-scoped tools. The tool does not import samples, create business types, or populate records.
 
 ## Type Roles
 
@@ -195,21 +210,36 @@ Example private record share:
 
 ## Formulas
 
-Prefer stable key references:
+Most arithmetic, comparison, conditional, text, date, and aggregation formulas are spreadsheet-like. Relationship traversal uses AnyDB-specific references. Prefer stable field keys and do not invent reference syntax.
+
+Use the reference form that matches the relationship:
+
+- Current-record field: `{{Field Key}}`, for example `{{Quantity}} * {{Unit Price}}`.
+- Current-record metadata: `M@NAME`, `M@STATUS`, `M@CREATED`, `M@UPDATED`, `M@CREATEDBY`, or `M@UPDATEDBY`.
+- All child values regardless of type: `C@CURRREC!{{Amount}}`.
+- Child values for one stable type name: `C@CURRREC!N@Invoice!{{Amount}}`.
+- Parent values: `A@CURRREC!{{Budget}}`.
+- Independent record selected by a `ref` field: use a semantic `lookup` field; the server compiles it to `DYNREF(<ref cell position>, {{Target Field}})`.
+
+Connected child and parent references return arrays. Pass child arrays to aggregations such as `SUM`, `COUNT`, `MAX`, `FILTER`, `SUMBY`, or `MAXBY`. When exactly one parent or child value is intended, select it explicitly with zero-based `[0]`, for example `A@CURRREC!{{Budget}}[0]`. Do not use `[0]` when all connected values must participate.
+
+Reference examples:
 
 ```text
 {{Field Key}}
 SEQNUM("Sequence", 1000)
-DYNREF(<ref position>, {{Target Field}}, "GO")
-DYNREF(<ref position>, {{Target Field}})
-C@CURRREC!N@Child Type!{{Amount}}
-A@CURRREC!N@Parent Type!{{Field}}[0]
-SUM(...), COUNT(...), MAX(...)
-MAXBY(...), FILTER(...), GROUPBYSUM(...)
+SUM(C@CURRREC!N@Invoice!{{Amount}})
+COUNT(C@CURRREC!N@Invoice!{{Name}})
+MAXBY(FILTER(C@CURRREC!N@Invoice!{{Packed Data}}, {type: "Open"}), "total")
+A@CURRREC!{{Budget}}[0]
 M@CREATED, M@CREATEDBY
 ```
 
-Only use a positional reference where required, notably the first argument to `DYNREF`. Choose lookup mode from the use case: use `snapshot` and the `"GO"` form when the value should be copied as the ref is selected and later source changes should not ripple through referencing records; use `live` and omit `"GO"` when target-field changes must update referencing records. Prefer `snapshot` when ongoing synchronization is not required. Create referenced types and finalize field keys before formulas that depend on them. Use journal children with packed object values plus `MAXBY` or `FILTER` when the parent needs current state derived from history.
+For linked independent records, define `lookup.fromField`, `lookup.targetField`, and `lookup.mode` instead of manually writing `DYNREF`. `fromField` is the stable key of a `ref` field and `targetField` is the stable key on its target type; the server resolves the required positional reference. Use `snapshot` when the value should be copied when the reference is selected and later source changes should not ripple through referencing records. Use `live` when target-field changes must update referencing records. Prefer `snapshot` when ongoing synchronization is not required.
+
+Live lookup propagation is supported: after the reference has resolved, changing the target field recomputes dependent live lookups. Snapshot lookups intentionally retain the value captured when the reference was selected. Do not assume a corrected template or lookup engine automatically backfills stale computed values stored on records created before the correction. Inspect affected records and explicitly reselect or update their reference field to trigger lookup evaluation; use a controlled migration or batch update when many records are affected.
+
+Only use a positional reference when raw `DYNREF` is unavoidable: its first argument is the grid position of the `ref` cell, not the ref field key or target record name. Never substitute a template ID or record ID into a formula reference. Create referenced types and finalize stable type names, field keys, and layouts before formulas that depend on them. Use journal children with packed object values plus `MAXBY` or `FILTER` when the parent needs current state derived from history.
 
 ## Workflows
 
@@ -223,6 +253,7 @@ Keep the workflow set small and purposeful. Reuse an existing workflow or combin
 - Call `anydb_list_workflow_actions` before writing actions. It returns every registered action, its exact input/output schema, trigger compatibility, structural support by `anydb_create_workflow`, and `availableForCurrentTeam`. Do not select an unavailable action; `unavailableReason` explains the current policy restriction.
 - Form submit requires `config.formName`. The server resolves the stable form name to its internal share ID.
 - Record create/update can use `config.templateName`, `config.parentRecordId`, and `config.filter`. Record update alone can use `config.fieldNames` to run only when selected fields change.
+- `trigger_on_record_update` with `config.fieldNames` can also run during record creation when a monitored field is initially set, because creation reports those fields as changed. Do not treat this trigger as proof that the record previously existed. Add an idempotent state/value guard in the action when behavior must apply only to a genuine later transition, or use `trigger_on_record_create` when creation is the intended event.
 - To run only when `Transfer Record.Status` changes, use `trigger_on_record_update` with `config: { "templateName": "Transfer Record", "fieldNames": ["Status"] }`. Use these semantic names exactly; native runtime properties such as `typename`, `typeid`, and `cellids` are internal and must not be sent to `anydb_create_workflow`.
 - Schedule accepts interval or calendar/time settings. `specificTime` cannot be combined with interval, weekday/month-day, or time-window settings.
 - Manual accepts an empty config object.

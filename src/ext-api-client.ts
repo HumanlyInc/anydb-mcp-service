@@ -12,6 +12,23 @@ interface ExtApiResponse<T> {
   message?: string;
 }
 
+export interface CreateWorkspaceRequest {
+  teamid: string;
+  name: string;
+  clientRequestId: string;
+}
+
+export interface CreateWorkspaceResult {
+  success: true;
+  operation: "create_workspace";
+  requestId: string;
+  result: {
+    adbid: string;
+    teamid: string;
+    name: string;
+  };
+}
+
 export interface ListRecordsParams {
   teamid: string;
   adbid: string;
@@ -641,6 +658,15 @@ export class ExtApiClient {
       "/integrations/ext/templates",
       params,
     );
+    return this.unwrap(response.data);
+  }
+
+  async createWorkspace(
+    params: CreateWorkspaceRequest,
+  ): Promise<CreateWorkspaceResult> {
+    const response = await this.client.post<
+      ExtApiResponse<CreateWorkspaceResult>
+    >("/integrations/ext/workspaces", params);
     return this.unwrap(response.data);
   }
 
