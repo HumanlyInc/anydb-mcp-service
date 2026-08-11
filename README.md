@@ -67,7 +67,7 @@ Add the server to the Claude Desktop configuration:
   "mcpServers": {
     "anydb": {
       "command": "npx",
-      "args": ["-y", "anydb-mcp-service"],
+      "args": ["-y", "anydb-mcp-service@latest"],
       "env": {
         "ANYDB_DEFAULT_API_KEY": "your_api_key_here",
         "ANYDB_DEFAULT_USER_EMAIL": "your_email@example.com",
@@ -79,6 +79,9 @@ Add the server to the Claude Desktop configuration:
 ```
 
 Restart Claude Desktop after changing its configuration.
+
+Use the exact variable name `ANYDB_API_URL`. `ANYDB_API_BASE_URL` is not
+recognized and causes the service to fall back to the default production URL.
 
 ### Other MCP Clients
 
@@ -117,7 +120,13 @@ version-specific implementation details, not semantic identifiers.
 
 ## MCP Tools
 
-The service exposes 41 tools.
+The service exposes 42 tools.
+
+### Setup
+
+| Tool                    | Description                                                                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `anydb_get_setup_guide` | Return API-key, MCP client configuration, verification, and troubleshooting guidance without requiring configured credentials |
 
 ### Solution Discovery
 
@@ -245,6 +254,7 @@ immediately and request a new URL instead of caching an expired one.
 
 | URI                                     | Content                                                                                        |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `anydb://guides/setup/v1`               | API-key retrieval, MCP client configuration, verification, and troubleshooting                 |
 | `anydb://guides/solution-building/v1`   | Design and construction rules for types, relationships, formulas, Views, shares, and workflows |
 | `anydb://schemas/solution-authoring/v1` | JSON Schema contracts used by solution-authoring tools                                         |
 

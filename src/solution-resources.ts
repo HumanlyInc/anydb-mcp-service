@@ -3,10 +3,19 @@ import { fileURLToPath } from "node:url";
 
 export const SOLUTION_BUILDING_GUIDE_URI =
   "anydb://guides/solution-building/v1";
+export const ANYDB_SETUP_GUIDE_URI = "anydb://guides/setup/v1";
 export const SOLUTION_AUTHORING_SCHEMA_URI =
   "anydb://schemas/solution-authoring/v1";
 
 const RESOURCES = [
+  {
+    uri: ANYDB_SETUP_GUIDE_URI,
+    name: "AnyDB MCP setup guide",
+    description:
+      "API-key retrieval, MCP client configuration, verification, and troubleshooting.",
+    mimeType: "text/markdown",
+    filename: "setup-guide-v1.md",
+  },
   {
     uri: SOLUTION_BUILDING_GUIDE_URI,
     name: "AnyDB solution-building guide",
