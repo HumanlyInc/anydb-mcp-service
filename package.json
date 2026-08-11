@@ -1,6 +1,6 @@
 {
   "name": "anydb-mcp-service",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Model Context Protocol (MCP) server for AnyDB database and record management through AI assistants",
   "type": "module",
   "main": "dist/index.js",
