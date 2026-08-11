@@ -49,11 +49,11 @@ Get your API key from **Profile > Integration** in the
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|---|---:|---|---|
-| `ANYDB_DEFAULT_API_KEY` | Yes | - | AnyDB integration API key |
-| `ANYDB_DEFAULT_USER_EMAIL` | Yes | - | Email associated with the API key |
-| `ANYDB_API_URL` | No | `https://app.anydb.com/api` | AnyDB API base URL |
+| Variable                   | Required | Default                     | Description                       |
+| -------------------------- | -------: | --------------------------- | --------------------------------- |
+| `ANYDB_DEFAULT_API_KEY`    |      Yes | -                           | AnyDB integration API key         |
+| `ANYDB_DEFAULT_USER_EMAIL` |      Yes | -                           | Email associated with the API key |
+| `ANYDB_API_URL`            |       No | `https://app.anydb.com/api` | AnyDB API base URL                |
 
 ### Claude Desktop
 
@@ -121,22 +121,22 @@ The service exposes 41 tools.
 
 ### Solution Discovery
 
-| Tool | Description |
-|---|---|
-| `anydb_get_authoring_guide` | Return the canonical solution-building guide before authoring |
-| `anydb_discover_types` | Search reusable workspace, built-in, or all type catalogs |
-| `anydb_get_type_definition` | Get a complete type definition by stable name and source |
-| `anydb_list_workflows` | List normalized workflow graphs in a database |
-| `anydb_get_workflow` | Get one workflow graph and retained execution details |
-| `anydb_get_workflow_execution_history` | Get retained executions for one workflow |
-| `anydb_list_workflow_triggers` | List supported triggers and exact schemas |
-| `anydb_list_workflow_actions` | List available actions, schemas, compatibility, and license availability |
+| Tool                                   | Description                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| `anydb_get_authoring_guide`            | Return the canonical solution-building guide before authoring            |
+| `anydb_discover_types`                 | Search reusable workspace, built-in, or all type catalogs                |
+| `anydb_get_type_definition`            | Get a complete type definition by stable name and source                 |
+| `anydb_list_workflows`                 | List normalized workflow graphs in a database                            |
+| `anydb_get_workflow`                   | Get one workflow graph and retained execution details                    |
+| `anydb_get_workflow_execution_history` | Get retained executions for one workflow                                 |
+| `anydb_list_workflow_triggers`         | List supported triggers and exact schemas                                |
+| `anydb_list_workflow_actions`          | List available actions, schemas, compatibility, and license availability |
 
 ### Type Authoring
 
-| Tool | Description |
-|---|---|
-| `anydb_create_type` | Define a new type or import a compatible built-in type |
+| Tool                | Description                                                       |
+| ------------------- | ----------------------------------------------------------------- |
+| `anydb_create_type` | Define a new type or import a compatible built-in type            |
 | `anydb_update_type` | Patch the latest revision of a workspace type and migrate records |
 
 `anydb_create_type` supports semantic fields, a six-column form layout,
@@ -145,13 +145,13 @@ explicit data-loss confirmation and an expected revision.
 
 ### Views
 
-| Tool | Description |
-|---|---|
-| `anydb_list_views` | List Views with decoded scope, targets, and filters |
-| `anydb_get_view` | Get one View's complete definition |
-| `anydb_create_view` | Create a filtered workspace or direct-child View |
-| `anydb_update_view` | Rename a View or replace its targets and filters |
-| `anydb_delete_view` | Permanently delete a confirmed View |
+| Tool                | Description                                         |
+| ------------------- | --------------------------------------------------- |
+| `anydb_list_views`  | List Views with decoded scope, targets, and filters |
+| `anydb_get_view`    | Get one View's complete definition                  |
+| `anydb_create_view` | Create a filtered workspace or direct-child View    |
+| `anydb_update_view` | Rename a View or replace its targets and filters    |
+| `anydb_delete_view` | Permanently delete a confirmed View                 |
 
 A workspace View is attached to the database root. A children View is attached
 to a specific parent and lists matching direct children. Targets use stable type
@@ -159,13 +159,13 @@ names; filters can address cell fields, metadata, or badges.
 
 ### Sharing
 
-| Tool | Description |
-|---|---|
+| Tool                     | Description                                                |
+| ------------------------ | ---------------------------------------------------------- |
 | `anydb_list_team_groups` | List stable team group names available for private sharing |
-| `anydb_list_shares` | List semantic record and form share facets |
-| `anydb_get_share` | Get one share facet by `shareId` and `kind` |
-| `anydb_create_share` | Create a public or private record or form share |
-| `anydb_revoke_share` | Revoke one facet while preserving another facet |
+| `anydb_list_shares`      | List semantic record and form share facets                 |
+| `anydb_get_share`        | Get one share facet by `shareId` and `kind`                |
+| `anydb_create_share`     | Create a public or private record or form share            |
+| `anydb_revoke_share`     | Revoke one facet while preserving another facet            |
 
 Public shares omit recipients and return a usable `publicUrl`. Private shares
 require recipient emails and/or exact group names. Record shares may specify a
@@ -174,9 +174,9 @@ template name and may specify the parent that receives submissions.
 
 ### Workflows
 
-| Tool | Description |
-|---|---|
-| `anydb_create_workflow` | Create one trigger followed by an ordered action chain |
+| Tool                    | Description                                             |
+| ----------------------- | ------------------------------------------------------- |
+| `anydb_create_workflow` | Create one trigger followed by an ordered action chain  |
 | `anydb_update_workflow` | Change a workflow's name, description, or enabled state |
 
 Always query the trigger and action catalogs before creating automation. They
@@ -186,23 +186,23 @@ run a representative case, and inspect its execution history before enabling it.
 
 ### Records and Templates
 
-| Tool | Description |
-|---|---|
-| `list_teams` | List accessible teams |
-| `list_databases_for_team` | List databases in a team |
-| `list_templates` | List workspace templates/types |
-| `get_template` | Get a template schema by stable `templatename` |
-| `list_records` | List records with pagination and structured filters |
-| `get_record` | Get one complete record |
-| `create_record` | Create a record, optionally from a template or under a parent |
-| `bulk_create_records` | Create up to 100 records with per-item results |
-| `update_record` | Update record metadata and partial cell content |
-| `bulk_update_records` | Update up to 100 records with per-item results |
-| `delete_record` | Permanently delete a record |
-| `copy_record` | Copy a record with configurable attachment handling |
-| `move_record` | Move a record to another parent |
-| `search_records` | Search records in one database |
-| `search_team_records` | Search each accessible database in a team |
+| Tool                      | Description                                                   |
+| ------------------------- | ------------------------------------------------------------- |
+| `list_teams`              | List accessible teams                                         |
+| `list_databases_for_team` | List databases in a team                                      |
+| `list_templates`          | List workspace templates/types                                |
+| `get_template`            | Get a template schema by stable `templatename`                |
+| `list_records`            | List records with pagination and structured filters           |
+| `get_record`              | Get one complete record                                       |
+| `create_record`           | Create a record, optionally from a template or under a parent |
+| `bulk_create_records`     | Create up to 100 records with per-item results                |
+| `update_record`           | Update record metadata and partial cell content               |
+| `bulk_update_records`     | Update up to 100 records with per-item results                |
+| `delete_record`           | Permanently delete a record                                   |
+| `copy_record`             | Copy a record with configurable attachment handling           |
+| `move_record`             | Move a record to another parent                               |
+| `search_records`          | Search records in one database                                |
+| `search_team_records`     | Search each accessible database in a team                     |
 
 Bulk operations use bounded concurrency and partial-failure semantics. A
 successful item is not rolled back when another item fails. Use `clientref` to
@@ -223,12 +223,12 @@ Structured `list_records` filters support metadata, badges, and template fields:
 
 ### Files
 
-| Tool | Description |
-|---|---|
-| `download_file` | Return a temporary download or preview URL |
-| `upload_file` | Upload a small inline payload in one call |
-| `prepare_file_upload` | Create a child File record and return a presigned PUT URL |
-| `complete_file_upload` | Finalize a successful presigned upload |
+| Tool                   | Description                                               |
+| ---------------------- | --------------------------------------------------------- |
+| `download_file`        | Return a temporary download or preview URL                |
+| `upload_file`          | Upload a small inline payload in one call                 |
+| `prepare_file_upload`  | Create a child File record and return a presigned PUT URL |
+| `complete_file_upload` | Finalize a successful presigned upload                    |
 
 Both upload workflows create a separate child File record attached to the
 supplied parent. They do not overwrite the parent's content. The optional
@@ -243,20 +243,20 @@ immediately and request a new URL instead of caching an expired one.
 
 ## MCP Resources
 
-| URI | Content |
-|---|---|
-| `anydb://guides/solution-building/v1` | Design and construction rules for types, relationships, formulas, Views, shares, and workflows |
-| `anydb://schemas/solution-authoring/v1` | JSON Schema contracts used by solution-authoring tools |
+| URI                                     | Content                                                                                        |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `anydb://guides/solution-building/v1`   | Design and construction rules for types, relationships, formulas, Views, shares, and workflows |
+| `anydb://schemas/solution-authoring/v1` | JSON Schema contracts used by solution-authoring tools                                         |
 
 The guide is also available through `anydb_get_authoring_guide` for clients that
 do not expose MCP resource reading directly.
 
 ## MCP Prompts
 
-| Prompt | Purpose |
-|---|---|
-| `design_anydb_type` | Plan one standalone type without inventing a larger solution |
-| `design_anydb_solution` | Plan a coordinated multi-type solution before mutation |
+| Prompt                  | Purpose                                                      |
+| ----------------------- | ------------------------------------------------------------ |
+| `design_anydb_type`     | Plan one standalone type without inventing a larger solution |
+| `design_anydb_solution` | Plan a coordinated multi-type solution before mutation       |
 
 Both prompts require a `goal` and accept optional `constraints`.
 
