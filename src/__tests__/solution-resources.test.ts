@@ -60,7 +60,15 @@ describe("solution resources", () => {
     );
     expect(resource.text).toContain("It is not a hard limit");
     expect(resource.text).toContain("## Sharing");
+    expect(resource.text).toContain("anydb_list_views");
+    expect(resource.text).toContain("anydb_delete_view");
+    expect(resource.text).toContain("native JSON string, number, or boolean");
+    expect(resource.text).toContain(
+      "`fieldType` is optional and may be `string`, `number`, `boolean`, `date`, or `array`",
+    );
     expect(resource.text).toContain("anydb_list_team_groups");
+    expect(resource.text).toContain("anydb_list_shares");
+    expect(resource.text).toContain("anydb_revoke_share");
     expect(resource.text).toContain(
       'A public share uses `privacy: "public"`, must omit `recipients`',
     );
@@ -120,6 +128,15 @@ describe("solution resources", () => {
     expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_update_view",
     );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_list_views",
+    );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_get_view",
+    );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_delete_view",
+    );
     expect(schema.$defs.updateViewInput.required).toEqual([
       "teamid",
       "adbid",
@@ -140,6 +157,15 @@ describe("solution resources", () => {
     expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_list_team_groups",
     );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_list_shares",
+    );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_get_share",
+    );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_revoke_share",
+    );
     expect(schema.$defs.createShareInput.required).toEqual([
       "teamid",
       "adbid",
@@ -151,6 +177,14 @@ describe("solution resources", () => {
       { required: ["emails"] },
       { required: ["groupNames"] },
     ]);
+    expect(schema.$defs.deleteViewInput.required).toContain("clientRequestId");
+    expect(schema.$defs.revokeShareInput.required).toContain("clientRequestId");
+    expect(schema.$defs.viewFilter.properties.value.description).toContain(
+      "does not coerce",
+    );
+    expect(schema.$defs.viewFilter.properties.fieldType.description).toContain(
+      "not required",
+    );
   });
 
   it("rejects unknown resources", () => {

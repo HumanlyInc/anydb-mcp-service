@@ -6,6 +6,8 @@ import {
   type CreateShareRequest,
   type CreateTypeRequest,
   type CreateViewRequest,
+  type DeleteViewRequest,
+  type RevokeShareRequest,
   type UpdateViewRequest,
   type UpdateWorkflowRequest,
 } from "../ext-api-client.js";
@@ -299,6 +301,91 @@ describe("ExtApiClient", () => {
       "/integrations/ext/shares",
     ]);
     expect(receivedShare).toEqual(shareRequest);
+  });
+
+  it("uses exact View and Share lifecycle routes", async () => {
+    const received: Array<{ method: string; url: string; body?: unknown }> = [];
+    const baseURL = await listen((incoming, response) => {
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        const bodyText = Buffer.concat(chunks).toString("utf8");
+        received.push({
+          method: incoming.method || "",
+          url: incoming.url || "",
+          ...(bodyText ? { body: JSON.parse(bodyText) } : {}),
+        });
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ status: "success", data: [] }));
+      });
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+    const teamid = request.teamid;
+    const adbid = request.adbid;
+    const viewId = "507f1f77bcf86cd799439099";
+    const shareId = "507f1f77bcf86cd799439098";
+    const deleteViewRequest: DeleteViewRequest = {
+      teamid,
+      adbid,
+      viewId,
+      clientRequestId: "delete-view-v1",
+    };
+    const revokeShareRequest: RevokeShareRequest = {
+      teamid,
+      adbid,
+      shareId,
+      kind: "form",
+      clientRequestId: "revoke-form-v1",
+    };
+
+    await client.listViews(teamid, adbid);
+    await client.getView(teamid, adbid, viewId);
+    await client.deleteView(deleteViewRequest);
+    await client.listShares(teamid, adbid);
+    await client.getShare(teamid, adbid, shareId, "form");
+    await client.revokeShare(revokeShareRequest);
+
+    expect(received).toEqual([
+      {
+        method: "GET",
+        url: `/integrations/ext/views?teamid=${teamid}&adbid=${adbid}`,
+      },
+      {
+        method: "GET",
+        url: `/integrations/ext/views/${viewId}?teamid=${teamid}&adbid=${adbid}`,
+      },
+      {
+        method: "DELETE",
+        url: `/integrations/ext/views/${viewId}`,
+        body: {
+          teamid,
+          adbid,
+          clientRequestId: "delete-view-v1",
+        },
+      },
+      {
+        method: "GET",
+        url: `/integrations/ext/shares?teamid=${teamid}&adbid=${adbid}`,
+      },
+      {
+        method: "GET",
+        url: `/integrations/ext/shares/${shareId}?teamid=${teamid}&adbid=${adbid}&kind=form`,
+      },
+      {
+        method: "DELETE",
+        url: `/integrations/ext/shares/${shareId}`,
+        body: {
+          teamid,
+          adbid,
+          kind: "form",
+          clientRequestId: "revoke-form-v1",
+        },
+      },
+    ]);
   });
 
   it("includes the backend error body when a request fails", async () => {

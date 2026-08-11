@@ -88,11 +88,15 @@ Use a reference for shared master data. Use a child for a detail that belongs to
 
 Use `anydb_create_view` to create a saved filtered listing after its target types exist. A View is a separate object, not part of a type definition.
 
+- Call `anydb_list_views` before creation. Compare scope, parent, target type names, and complete filters; reuse or update a compatible View instead of creating a duplicate.
+- Use `anydb_get_view` for one View's complete decoded definition. Use `anydb_delete_view` only after confirming the exact `viewId`; deletion is permanent.
 - `scope: "workspace"` attaches the View to the database root. It displays matching root-level records from the stable type names listed in `targets`.
 - `scope: "children"` requires `parentRecordId`. It displays matching direct children of that record from the stable type names listed in `targets`.
 - A View can target one or more types. Each target has its own optional `filters` array.
 - Use `source: "cell"` for a type field key, `source: "meta"` for record metadata, and `source: "badge"` for a badge key.
 - Supported operators are `eq`, `neq`, `gt`, `lt`, `gte`, `lte`, `like`, `contains`, `startswith`, `endswith`, `includes`, and `notincludes`.
+- `value` is a native JSON string, number, or boolean. Send numeric and boolean values in their native JSON types; the server does not coerce strings using `fieldType`.
+- `fieldType` is optional and may be `string`, `number`, `boolean`, `date`, or `array`. It is a stored comparison hint, not a conversion instruction. When supplied, match the target field's actual type. Dates remain string values with `fieldType: "date"`; array comparisons use the operator/value shape expected by the stored View engine.
 - Use stable type names and semantic filter fields. Do not provide template IDs, the predefined View template ID, or encoded `LISTING_VIEWS` data; the server resolves and stores those internals.
 - Use `validateOnly: true` to validate scope, parent access, target names, and filters without creating the View.
 - Use `anydb_update_view` with the returned `viewId` to rename a View or change its criteria. `changes.targets` replaces the complete existing target/filter set; include every target and filter that should remain. Omit `changes.targets` for a name-only update.
@@ -137,6 +141,9 @@ Example child View:
 
 Use `anydb_create_share` to share an accessible record or publish a form backed by an existing workspace type. Sharing is a separate artifact created after its target exists.
 
+- Call `anydb_list_shares` before creation and compare `kind`, target, privacy, and name. Reuse an existing compatible share, especially an existing public link, instead of creating duplicates.
+- Use `anydb_get_share` with both `shareId` and `kind` to inspect one record/form facet. One internal share may contain both facets, so `kind` is always explicit.
+- Use `anydb_revoke_share` for cleanup. It revokes only the selected record/form facet and preserves another facet on the same internal share.
 - A record target uses `target: { "kind": "record", "recordId": "..." }`. It can set `role` to `viewer` or `editor` and can opt into `withAttachments`.
 - A form target uses `target: { "kind": "form", "templateName": "..." }`. Use the stable workspace template name, not a template ID. Submissions attach to `parentRecordId` when supplied and otherwise attach to the database root. Form shares do not accept `role` or `withAttachments`.
 - A public share uses `privacy: "public"`, must omit `recipients`, and returns `publicUrl` after persistence. Present that URL as the usable result; do not construct it from the share token.
@@ -247,7 +254,7 @@ Keep the workflow set small and purposeful. Reuse an existing workflow or combin
 6. Create a new type with `anydb_create_type` in define mode only when neither the workspace nor built-in catalog contains a content-compatible type. A matching name, description, icon, or search score is never sufficient evidence, and a different name does not make equivalent content incompatible.
 7. Fix stable type names and field keys.
 8. For a standalone type, reuse, import, or create it now and stop after validating it unless more work was requested.
-9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies. Create requested Views and shares after all target types and parent records exist. Create a required form share before a form-submit workflow that references its name.
+9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies. Call `anydb_list_views` and `anydb_list_shares`, then create only missing requested Views and shares after all target types and parent records exist. Create a required form share before a form-submit workflow that references its name.
 10. Update only where relationships could not be resolved during creation.
 11. Re-check every formula and target. Identify required cross-record or external side effects, discover existing workflows, and prefer formulas/lookups for derived values that do not require mutation. Call the workflow trigger/action catalog tools and create workflows last only when automation is required. If the design reaches five workflows, review it for duplication or safe consolidation before proceeding; exceed five only when distinct behavior justifies it.
 

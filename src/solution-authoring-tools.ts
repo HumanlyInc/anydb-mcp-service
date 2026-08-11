@@ -5,7 +5,9 @@ import type {
   CreateTypeRequest,
   CreateViewRequest,
   CreateWorkflowRequest,
+  DeleteViewRequest,
   ExtApiClient,
+  RevokeShareRequest,
   UpdateViewRequest,
   UpdateWorkflowRequest,
   UpdateTypeRequest,
@@ -23,7 +25,13 @@ const authoringSchema = JSON.parse(
     createTypeInput: Record<string, unknown>;
     createViewInput: Record<string, unknown>;
     updateViewInput: Record<string, unknown>;
+    listViewsInput: Record<string, unknown>;
+    getViewInput: Record<string, unknown>;
+    deleteViewInput: Record<string, unknown>;
     createShareInput: Record<string, unknown>;
+    listSharesInput: Record<string, unknown>;
+    getShareInput: Record<string, unknown>;
+    revokeShareInput: Record<string, unknown>;
     listTeamGroupsInput: Record<string, unknown>;
     updateTypeInput: Record<string, unknown>;
     createWorkflowInput: Record<string, unknown>;
@@ -31,45 +39,68 @@ const authoringSchema = JSON.parse(
   };
 };
 
-const createTypeInputSchema = {
-  ...authoringSchema.$defs.createTypeInput,
-  $defs: authoringSchema.$defs,
-};
+function inlineLocalSchemaRefs(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(inlineLocalSchemaRefs);
+  if (!schema || typeof schema !== "object") return schema;
 
-const updateTypeInputSchema = {
-  ...authoringSchema.$defs.updateTypeInput,
-  $defs: authoringSchema.$defs,
-};
+  const object = schema as Record<string, unknown>;
+  const ref = object.$ref;
+  if (typeof ref === "string" && ref.startsWith("#/$defs/")) {
+    const path = ref.slice("#/$defs/".length).split("/");
+    let resolved: unknown = authoringSchema.$defs;
+    for (const segment of path) {
+      resolved = (resolved as Record<string, unknown>)?.[segment];
+    }
+    if (!resolved)
+      throw new Error(`Unknown authoring schema reference: ${ref}`);
+    const { $ref: _ref, ...siblings } = object;
+    return inlineLocalSchemaRefs({
+      ...(resolved as Record<string, unknown>),
+      ...siblings,
+    });
+  }
 
-const createViewInputSchema = {
-  ...authoringSchema.$defs.createViewInput,
-  $defs: authoringSchema.$defs,
-};
+  return Object.fromEntries(
+    Object.entries(object)
+      .filter(([key]) => key !== "$defs")
+      .map(([key, value]) => [key, inlineLocalSchemaRefs(value)]),
+  );
+}
 
-const updateViewInputSchema = {
-  ...authoringSchema.$defs.updateViewInput,
-  $defs: authoringSchema.$defs,
-};
+function exposedInputSchema(name: string): Record<string, unknown> {
+  return inlineLocalSchemaRefs(authoringSchema.$defs[name]) as Record<
+    string,
+    unknown
+  >;
+}
 
-const createShareInputSchema = {
-  ...authoringSchema.$defs.createShareInput,
-  $defs: authoringSchema.$defs,
-};
+const createTypeInputSchema = exposedInputSchema("createTypeInput");
 
-const listTeamGroupsInputSchema = {
-  ...authoringSchema.$defs.listTeamGroupsInput,
-  $defs: authoringSchema.$defs,
-};
+const updateTypeInputSchema = exposedInputSchema("updateTypeInput");
 
-const createWorkflowInputSchema = {
-  ...authoringSchema.$defs.createWorkflowInput,
-  $defs: authoringSchema.$defs,
-};
+const createViewInputSchema = exposedInputSchema("createViewInput");
 
-const updateWorkflowInputSchema = {
-  ...authoringSchema.$defs.updateWorkflowInput,
-  $defs: authoringSchema.$defs,
-};
+const updateViewInputSchema = exposedInputSchema("updateViewInput");
+
+const listViewsInputSchema = exposedInputSchema("listViewsInput");
+
+const getViewInputSchema = exposedInputSchema("getViewInput");
+
+const deleteViewInputSchema = exposedInputSchema("deleteViewInput");
+
+const createShareInputSchema = exposedInputSchema("createShareInput");
+
+const listSharesInputSchema = exposedInputSchema("listSharesInput");
+
+const getShareInputSchema = exposedInputSchema("getShareInput");
+
+const revokeShareInputSchema = exposedInputSchema("revokeShareInput");
+
+const listTeamGroupsInputSchema = exposedInputSchema("listTeamGroupsInput");
+
+const createWorkflowInputSchema = exposedInputSchema("createWorkflowInput");
+
+const updateWorkflowInputSchema = exposedInputSchema("updateWorkflowInput");
 
 const workflowCatalogInputSchema = {
   type: "object",
@@ -128,7 +159,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_create_view",
     description:
-      "Create a filtered View using stable workspace type names. Use scope workspace to attach the View to the database root and show selected root-level types. Use scope children with parentRecordId to show matching direct children of one record. Each target can define structured cell, meta, or badge filters; the server resolves type IDs and stores the native View criteria.",
+      "Create a filtered View using stable workspace type names. Call anydb_list_views first and reuse or update a compatible View instead of creating a duplicate. Use scope workspace to attach the View to the database root and scope children with parentRecordId for matching direct children.",
     inputSchema: createViewInputSchema as unknown as Tool["inputSchema"],
   },
   {
@@ -136,6 +167,24 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
     description:
       "Update an existing filtered View by viewId. Change its name and/or replace its complete targets and filter set using stable workspace type names. Omit changes.targets to preserve existing criteria. View placement is immutable; create another View to change between workspace and children scope.",
     inputSchema: updateViewInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_list_views",
+    description:
+      "List accessible Views in a database with decoded scope, parent, stable target type names, and structured filters. Call before creating a View to avoid duplicates.",
+    inputSchema: listViewsInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_get_view",
+    description:
+      "Get one accessible View by viewId with its complete decoded targets and filters.",
+    inputSchema: getViewInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_delete_view",
+    description:
+      "Permanently delete a View by viewId through standard record authorization. Use for cleanup only after confirming the exact View with anydb_get_view.",
+    inputSchema: deleteViewInputSchema as unknown as Tool["inputSchema"],
   },
   {
     name: "anydb_list_team_groups",
@@ -146,8 +195,26 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_create_share",
     description:
-      "Create a public or private share for a record or form through standard AnyDB sharing policy. Public shares omit recipients and return publicUrl. Private shares require email addresses and/or stable group names from anydb_list_team_groups. Forms use a stable templateName and default to the database root unless parentRecordId is supplied. role and withAttachments apply only to record shares.",
+      "Create a public or private share for a record or form through standard AnyDB sharing policy. Call anydb_list_shares first to reuse an existing compatible share. Public shares omit recipients and return publicUrl. Private shares require emails and/or stable group names from anydb_list_team_groups. role and withAttachments apply only to records.",
     inputSchema: createShareInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_list_shares",
+    description:
+      "List accessible shares in a database as semantic record/form facets, including target, privacy, recipient counts/groups, and publicUrl where applicable. Call before creating a share to avoid duplicate public links.",
+    inputSchema: listSharesInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_get_share",
+    description:
+      "Get one accessible record or form share facet by shareId and kind. The kind is required because one internal share can contain both facets.",
+    inputSchema: getShareInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_revoke_share",
+    description:
+      "Revoke one record or form share facet by shareId and kind. This removes its access/public link and preserves a different facet on the same internal share. Use after anydb_get_share confirms the exact target.",
+    inputSchema: revokeShareInputSchema as unknown as Tool["inputSchema"],
   },
 ];
 
@@ -221,6 +288,19 @@ export async function callSolutionAuthoringTool(
     result = await client.updateView(
       normalized as unknown as UpdateViewRequest,
     );
+  } else if (name === "anydb_list_views") {
+    result = await client.listViews(
+      String(args.teamid || ""),
+      String(args.adbid || ""),
+    );
+  } else if (name === "anydb_get_view") {
+    result = await client.getView(
+      String(args.teamid || ""),
+      String(args.adbid || ""),
+      String(args.viewId || ""),
+    );
+  } else if (name === "anydb_delete_view") {
+    result = await client.deleteView(args as unknown as DeleteViewRequest);
   } else if (name === "anydb_list_team_groups") {
     result = await client.listTeamGroups(String(args.teamid || ""));
   } else if (name === "anydb_create_share") {
@@ -228,6 +308,20 @@ export async function callSolutionAuthoringTool(
     result = await client.createShare(
       normalized as unknown as CreateShareRequest,
     );
+  } else if (name === "anydb_list_shares") {
+    result = await client.listShares(
+      String(args.teamid || ""),
+      String(args.adbid || ""),
+    );
+  } else if (name === "anydb_get_share") {
+    result = await client.getShare(
+      String(args.teamid || ""),
+      String(args.adbid || ""),
+      String(args.shareId || ""),
+      String(args.kind || "") as "record" | "form",
+    );
+  } else if (name === "anydb_revoke_share") {
+    result = await client.revokeShare(args as unknown as RevokeShareRequest);
   } else if (name === "anydb_list_workflow_triggers") {
     result = await client.listWorkflowTriggers(
       String(args.teamid || ""),

@@ -65,8 +65,11 @@ describe("solution authoring tools", () => {
     expect(tool.description).toContain("position, colspan, and rowspan");
     expect(tool.inputSchema).toMatchObject({
       required: ["teamid", "adbid", "clientRequestId", "mode"],
-      $defs: expect.objectContaining({ field: expect.any(Object) }),
     });
+    expect(
+      (tool.inputSchema as any).properties.type.properties.fields.items,
+    ).toMatchObject({ required: ["key", "valueType", "format", "layout"] });
+    expect(JSON.stringify(tool.inputSchema)).not.toContain('"$ref"');
     expect(isSolutionAuthoringTool("anydb_create_type")).toBe(true);
     expect(SOLUTION_AUTHORING_TOOLS[2]).toMatchObject({
       name: "anydb_update_type",
@@ -234,15 +237,27 @@ describe("solution authoring tools", () => {
     const tool = SOLUTION_AUTHORING_TOOLS.find(
       (candidate) => candidate.name === "anydb_create_view",
     );
-    expect(tool).toMatchObject({
-      inputSchema: expect.objectContaining({
-        required: ["teamid", "adbid", "clientRequestId", "view"],
-        $defs: expect.objectContaining({
-          viewDefinition: expect.any(Object),
-          viewFilter: expect.any(Object),
-        }),
-      }),
-    });
+    const inputSchema = tool?.inputSchema as any;
+    expect(inputSchema.required).toEqual([
+      "teamid",
+      "adbid",
+      "clientRequestId",
+      "view",
+    ]);
+    expect(inputSchema.properties.view.required).toEqual([
+      "name",
+      "scope",
+      "targets",
+    ]);
+    expect(inputSchema.properties.view.properties.scope.enum).toEqual([
+      "workspace",
+      "children",
+    ]);
+    expect(
+      inputSchema.properties.view.properties.targets.items.properties.filters
+        .items.properties.fieldType.enum,
+    ).toEqual(["string", "number", "boolean", "date", "array"]);
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain('"$ref"');
     expect(tool?.description).toContain("database root");
     expect(tool?.description).toContain("direct children");
     expect(isSolutionAuthoringTool("anydb_create_view")).toBe(true);
@@ -305,12 +320,18 @@ describe("solution authoring tools", () => {
     const tool = SOLUTION_AUTHORING_TOOLS.find(
       (candidate) => candidate.name === "anydb_update_view",
     );
-    expect(tool).toMatchObject({
-      inputSchema: expect.objectContaining({
-        required: ["teamid", "adbid", "viewId", "clientRequestId", "changes"],
-        $defs: expect.objectContaining({ viewTarget: expect.any(Object) }),
-      }),
-    });
+    const inputSchema = tool?.inputSchema as any;
+    expect(inputSchema.required).toEqual([
+      "teamid",
+      "adbid",
+      "viewId",
+      "clientRequestId",
+      "changes",
+    ]);
+    expect(
+      inputSchema.properties.changes.properties.targets.items.properties
+        .typeName.type,
+    ).toBe("string");
     expect(tool?.description).toContain("replace its complete targets");
     expect(tool?.description).toContain("placement is immutable");
     expect(isSolutionAuthoringTool("anydb_update_view")).toBe(true);
@@ -402,15 +423,32 @@ describe("solution authoring tools", () => {
     const tool = SOLUTION_AUTHORING_TOOLS.find(
       (candidate) => candidate.name === "anydb_create_share",
     );
-    expect(tool).toMatchObject({
-      inputSchema: expect.objectContaining({
-        required: ["teamid", "adbid", "clientRequestId", "share"],
-        $defs: expect.objectContaining({
-          shareTarget: expect.any(Object),
-          shareRecipients: expect.any(Object),
-        }),
-      }),
-    });
+    const inputSchema = tool?.inputSchema as any;
+    expect(inputSchema.required).toEqual([
+      "teamid",
+      "adbid",
+      "clientRequestId",
+      "share",
+    ]);
+    expect(inputSchema.properties.share.required).toEqual([
+      "privacy",
+      "target",
+    ]);
+    expect(inputSchema.properties.share.properties.privacy.enum).toEqual([
+      "public",
+      "private",
+    ]);
+    expect(inputSchema.properties.share.properties.target.oneOf).toHaveLength(
+      2,
+    );
+    expect(
+      inputSchema.properties.share.properties.recipients.properties.emails.type,
+    ).toBe("array");
+    expect(
+      inputSchema.properties.share.properties.recipients.properties.groupNames
+        .type,
+    ).toBe("array");
+    expect(JSON.stringify(tool?.inputSchema)).not.toContain('"$ref"');
     expect(tool?.description).toContain("Public shares omit recipients");
     expect(tool?.description).toContain("stable group names");
     expect(isSolutionAuthoringTool("anydb_create_share")).toBe(true);
@@ -462,6 +500,162 @@ describe("solution authoring tools", () => {
         publicUrl: "https://workspace.example.com/f/share-token",
       },
     });
+  });
+
+  it("advertises and dispatches View and Share lifecycle tools", async () => {
+    const byName = (name: string) =>
+      SOLUTION_AUTHORING_TOOLS.find((tool) => tool.name === name)!;
+    expect((byName("anydb_list_views").inputSchema as any).required).toEqual([
+      "teamid",
+      "adbid",
+    ]);
+    expect((byName("anydb_get_view").inputSchema as any).required).toEqual([
+      "teamid",
+      "adbid",
+      "viewId",
+    ]);
+    expect((byName("anydb_delete_view").inputSchema as any).required).toEqual([
+      "teamid",
+      "adbid",
+      "viewId",
+      "clientRequestId",
+    ]);
+    expect(
+      (byName("anydb_get_share").inputSchema as any).properties.kind.enum,
+    ).toEqual(["record", "form"]);
+    expect((byName("anydb_revoke_share").inputSchema as any).required).toEqual([
+      "teamid",
+      "adbid",
+      "shareId",
+      "kind",
+      "clientRequestId",
+    ]);
+    for (const name of [
+      "anydb_list_views",
+      "anydb_get_view",
+      "anydb_delete_view",
+      "anydb_list_shares",
+      "anydb_get_share",
+      "anydb_revoke_share",
+    ]) {
+      expect(isSolutionAuthoringTool(name)).toBe(true);
+      expect(JSON.stringify(byName(name).inputSchema)).not.toContain('"$ref"');
+    }
+
+    const listViews = jest
+      .fn<ExtApiClient["listViews"]>()
+      .mockResolvedValue([]);
+    const getView = jest.fn<ExtApiClient["getView"]>().mockResolvedValue({
+      viewId: "507f1f77bcf86cd799439013",
+      name: "Low Stock",
+      scope: "workspace",
+      parentRecordId: "507f1f77bcf86cd799439014",
+      targets: [],
+    });
+    const deleteView = jest.fn<ExtApiClient["deleteView"]>().mockResolvedValue({
+      success: true,
+      operation: "delete_view",
+      requestId: "delete-view-v1",
+      result: { viewId: "507f1f77bcf86cd799439013", deleted: true },
+    });
+    const listShares = jest
+      .fn<ExtApiClient["listShares"]>()
+      .mockResolvedValue([]);
+    const getShare = jest.fn<ExtApiClient["getShare"]>().mockResolvedValue({
+      shareId: "507f1f77bcf86cd799439015",
+      kind: "record",
+      privacy: "public",
+      name: "Incident",
+      target: {
+        kind: "record",
+        recordId: "507f1f77bcf86cd799439016",
+        recordName: "Incident 42",
+      },
+      recipientUserCount: 0,
+      recipientGroupNames: [],
+      createdOn: "1786400000000",
+      publicUrl: "https://workspace.example.com/s/token",
+    });
+    const revokeShare = jest
+      .fn<ExtApiClient["revokeShare"]>()
+      .mockResolvedValue({
+        success: true,
+        operation: "revoke_share",
+        requestId: "revoke-share-v1",
+        result: {
+          shareId: "507f1f77bcf86cd799439015",
+          kind: "record",
+          revoked: true,
+        },
+      });
+    const client = {
+      listViews,
+      getView,
+      deleteView,
+      listShares,
+      getShare,
+      revokeShare,
+    } as unknown as ExtApiClient;
+    const workspace = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+    };
+
+    await callSolutionAuthoringTool("anydb_list_views", workspace, client);
+    await callSolutionAuthoringTool(
+      "anydb_get_view",
+      { ...workspace, viewId: "507f1f77bcf86cd799439013" },
+      client,
+    );
+    await callSolutionAuthoringTool(
+      "anydb_delete_view",
+      {
+        ...workspace,
+        viewId: "507f1f77bcf86cd799439013",
+        clientRequestId: "delete-view-v1",
+      },
+      client,
+    );
+    await callSolutionAuthoringTool("anydb_list_shares", workspace, client);
+    await callSolutionAuthoringTool(
+      "anydb_get_share",
+      {
+        ...workspace,
+        shareId: "507f1f77bcf86cd799439015",
+        kind: "record",
+      },
+      client,
+    );
+    await callSolutionAuthoringTool(
+      "anydb_revoke_share",
+      {
+        ...workspace,
+        shareId: "507f1f77bcf86cd799439015",
+        kind: "record",
+        clientRequestId: "revoke-share-v1",
+      },
+      client,
+    );
+
+    expect(listViews).toHaveBeenCalledWith(workspace.teamid, workspace.adbid);
+    expect(getView).toHaveBeenCalledWith(
+      workspace.teamid,
+      workspace.adbid,
+      "507f1f77bcf86cd799439013",
+    );
+    expect(deleteView).toHaveBeenCalledWith(
+      expect.objectContaining({ clientRequestId: "delete-view-v1" }),
+    );
+    expect(listShares).toHaveBeenCalledWith(workspace.teamid, workspace.adbid);
+    expect(getShare).toHaveBeenCalledWith(
+      workspace.teamid,
+      workspace.adbid,
+      "507f1f77bcf86cd799439015",
+      "record",
+    );
+    expect(revokeShare).toHaveBeenCalledWith(
+      expect.objectContaining({ clientRequestId: "revoke-share-v1" }),
+    );
   });
 
   it("forwards a two-step workflow creation request", async () => {

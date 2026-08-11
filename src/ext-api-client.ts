@@ -228,6 +228,34 @@ export interface UpdateViewResult {
   validation: { valid: true; errors: [] };
 }
 
+export interface ViewDefinition {
+  viewId: string;
+  name: string;
+  scope: "workspace" | "children";
+  parentRecordId: string;
+  targets: Array<{
+    typeName: string;
+    templateId: string;
+    filters: NonNullable<
+      CreateViewRequest["view"]["targets"][number]["filters"]
+    >;
+  }>;
+}
+
+export interface DeleteViewRequest {
+  teamid: string;
+  adbid: string;
+  viewId: string;
+  clientRequestId: string;
+}
+
+export interface DeleteViewResult {
+  success: true;
+  operation: "delete_view";
+  requestId: string;
+  result: { viewId: string; deleted: true };
+}
+
 export interface CreateShareRequest {
   teamid: string;
   adbid: string;
@@ -273,6 +301,40 @@ export interface TeamGroup {
   name: string;
   memberCount: number;
   builtIn: boolean;
+}
+
+export interface ShareDefinition {
+  shareId: string;
+  kind: "record" | "form";
+  privacy: "public" | "private";
+  name: string;
+  target:
+    | { kind: "record"; recordId: string; recordName: string }
+    | {
+        kind: "form";
+        templateName: string;
+        parentRecordId: string;
+        parentRecordName: string;
+      };
+  recipientUserCount: number;
+  recipientGroupNames: string[];
+  createdOn: string;
+  publicUrl?: string;
+}
+
+export interface RevokeShareRequest {
+  teamid: string;
+  adbid: string;
+  shareId: string;
+  kind: "record" | "form";
+  clientRequestId: string;
+}
+
+export interface RevokeShareResult {
+  success: true;
+  operation: "revoke_share";
+  requestId: string;
+  result: { shareId: string; kind: "record" | "form"; revoked: true };
 }
 
 export interface UpdateTypeRequest {
@@ -588,6 +650,35 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async listViews(teamid: string, adbid: string): Promise<ViewDefinition[]> {
+    const response = await this.client.get<ExtApiResponse<ViewDefinition[]>>(
+      "/integrations/ext/views",
+      { params: { teamid, adbid } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getView(
+    teamid: string,
+    adbid: string,
+    viewId: string,
+  ): Promise<ViewDefinition> {
+    const response = await this.client.get<ExtApiResponse<ViewDefinition>>(
+      `/integrations/ext/views/${encodeURIComponent(viewId)}`,
+      { params: { teamid, adbid } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async deleteView(params: DeleteViewRequest): Promise<DeleteViewResult> {
+    const { viewId, ...data } = params;
+    const response = await this.client.delete<ExtApiResponse<DeleteViewResult>>(
+      `/integrations/ext/views/${encodeURIComponent(viewId)}`,
+      { data },
+    );
+    return this.unwrap(response.data);
+  }
+
   async createShare(params: CreateShareRequest): Promise<CreateShareResult> {
     const response = await this.client.post<ExtApiResponse<CreateShareResult>>(
       "/integrations/ext/shares",
@@ -601,6 +692,35 @@ export class ExtApiClient {
       "/integrations/ext/team-groups",
       { params: { teamid } },
     );
+    return this.unwrap(response.data);
+  }
+
+  async listShares(teamid: string, adbid: string): Promise<ShareDefinition[]> {
+    const response = await this.client.get<ExtApiResponse<ShareDefinition[]>>(
+      "/integrations/ext/shares",
+      { params: { teamid, adbid } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getShare(
+    teamid: string,
+    adbid: string,
+    shareId: string,
+    kind: "record" | "form",
+  ): Promise<ShareDefinition> {
+    const response = await this.client.get<ExtApiResponse<ShareDefinition>>(
+      `/integrations/ext/shares/${encodeURIComponent(shareId)}`,
+      { params: { teamid, adbid, kind } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async revokeShare(params: RevokeShareRequest): Promise<RevokeShareResult> {
+    const { shareId, ...data } = params;
+    const response = await this.client.delete<
+      ExtApiResponse<RevokeShareResult>
+    >(`/integrations/ext/shares/${encodeURIComponent(shareId)}`, { data });
     return this.unwrap(response.data);
   }
 
