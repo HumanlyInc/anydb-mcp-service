@@ -47,6 +47,9 @@ npm install -g anydb-mcp-service
 Get your API key from **Profile > Integration** in the
 [AnyDB application](https://app.anydb.com). Keep it private.
 
+For the complete MCP-specific installation and Claude configuration guide, see
+[AnyDB MCP integration](https://www.anydb.com/support/integrations/mcp-claude).
+
 ### Environment Variables
 
 | Variable                   | Required | Default                     | Description                       |
@@ -317,6 +320,7 @@ ANYDB_TEST_FILE_SHA256=optional-expected-sha256
 
 ## Support
 
+- [AnyDB MCP and Claude integration guide](https://www.anydb.com/support/integrations/mcp-claude)
 - [AnyDB documentation](https://www.anydb.com/support)
 - [AnyDB website](https://www.anydb.com)
 - [GitHub issues](https://github.com/HumanlyInc/anydb-mcp-service/issues)
