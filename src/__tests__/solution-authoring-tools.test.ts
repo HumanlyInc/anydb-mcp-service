@@ -448,6 +448,12 @@ describe("solution authoring tools", () => {
       inputSchema.properties.share.properties.recipients.properties.groupNames
         .type,
     ).toBe("array");
+    expect(inputSchema.properties.share.properties.role).not.toHaveProperty(
+      "default",
+    );
+    expect(
+      inputSchema.properties.share.properties.withAttachments,
+    ).not.toHaveProperty("default");
     expect(JSON.stringify(tool?.inputSchema)).not.toContain('"$ref"');
     expect(tool?.description).toContain("Public shares omit recipients");
     expect(tool?.description).toContain("stable group names");

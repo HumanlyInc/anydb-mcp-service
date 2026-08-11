@@ -75,6 +75,12 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       "Form shares do not accept `role` or `withAttachments`",
     );
+    expect(resource.text).toContain(
+      "auto-creates a Folder record under the database root",
+    );
+    expect(resource.text).toContain(
+      "Record shares have no submissions destination and do not create a Folder",
+    );
   });
 
   it("reads a valid machine-readable authoring schema", () => {
@@ -173,10 +179,19 @@ describe("solution resources", () => {
       "share",
     ]);
     expect(schema.$defs.shareTarget.oneOf).toHaveLength(2);
+    expect(
+      schema.$defs.shareTarget.oneOf[1].properties.parentRecordId.description,
+    ).toContain("creates a Folder under the database root");
     expect(schema.$defs.shareRecipients.anyOf).toEqual([
       { required: ["emails"] },
       { required: ["groupNames"] },
     ]);
+    expect(
+      schema.$defs.createShareInput.properties.share.properties.role,
+    ).not.toHaveProperty("default");
+    expect(
+      schema.$defs.createShareInput.properties.share.properties.withAttachments,
+    ).not.toHaveProperty("default");
     expect(schema.$defs.deleteViewInput.required).toContain("clientRequestId");
     expect(schema.$defs.revokeShareInput.required).toContain("clientRequestId");
     expect(schema.$defs.viewFilter.properties.value.description).toContain(

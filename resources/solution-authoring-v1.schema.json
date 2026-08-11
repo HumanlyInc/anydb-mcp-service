@@ -255,7 +255,7 @@
             },
             "parentRecordId": {
               "$ref": "#/$defs/objectId",
-              "description": "Record under which submissions are created. Omit to use the database root."
+              "description": "Record under which form submissions are created. When omitted, the server creates a Folder under the database root and returns that Folder's ID as parentRecordId."
             }
           }
         }
@@ -308,13 +308,11 @@
             "recipients": { "$ref": "#/$defs/shareRecipients" },
             "role": {
               "enum": ["viewer", "editor"],
-              "default": "viewer",
-              "description": "Record shares only."
+              "description": "Optional for record shares; the server uses viewer when omitted. Must be omitted for form shares."
             },
             "withAttachments": {
               "type": "boolean",
-              "default": false,
-              "description": "Record shares only."
+              "description": "Optional for record shares; the server uses false when omitted. Must be omitted for form shares."
             }
           },
           "allOf": [
