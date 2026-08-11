@@ -21,6 +21,13 @@ describe("solution resources", () => {
     const resource = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI);
     expect(resource.mimeType).toBe("text/markdown");
     expect(resource.text).toContain("## Authoring Scope");
+    expect(resource.text).toContain("## Example User Requests");
+    expect(resource.text).toContain(
+      "These prompts illustrate supported tasks and useful scope or verification constraints",
+    );
+    expect(resource.text).toContain(
+      "Create this solution, add representative test records, run the workflow once",
+    );
     expect(resource.text).toContain("## Completion and Eventual Consistency");
     expect(resource.text).toContain(
       "does not guarantee that every derived or background effect is already visible",
@@ -147,6 +154,7 @@ describe("solution resources", () => {
     expect(resource.text).toContain("Do not use `ANYDB_API_BASE_URL`");
     expect(resource.text).toContain("Restart the MCP client");
     expect(resource.text).toContain("List my AnyDB teams");
+    expect(resource.text).not.toContain("## Example User Requests");
   });
 
   it("reads a valid machine-readable authoring schema", () => {

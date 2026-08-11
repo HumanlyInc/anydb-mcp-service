@@ -9,6 +9,43 @@ Read this guide before the first type- or solution-authoring call in a task. An 
 
 For a standalone type, search the workspace first and inspect candidate definitions for the required content and behavior. Treat `anydb_discover_types` as candidate retrieval, not compatibility confirmation: pass one concise concept or a small comma-separated set of related names and synonyms, then call `anydb_get_type_definition` for every plausible candidate before deciding. Reuse a compatible workspace type when one exists. Only when none is compatible, search built-in types and inspect their complete definitions; import a compatible built-in before using it. Create a new type only when neither source contains a compatible definition. Names, descriptions, categories, and search ranking are discovery hints, not compatibility evidence. Decide from the complete definition: field purpose, value type and format, requiredness and options, references and ownership, formulas and lookups, and any keys or outputs consumed by workflows. Do not require child types, relationships, or workflows when the requested type does not need them. A standalone type can later participate in a larger solution without being redesigned.
 
+## Example User Requests
+
+Users can describe the outcome in ordinary language. These prompts illustrate supported tasks and useful scope or verification constraints; they are not special commands and do not require tool names.
+
+### Build Types and Solutions
+
+- "Create an inventory management solution with Inventory, Location, Stock, Stock Level History, Transfer Record, and Stock Adjustment Record types. Reuse compatible existing types before creating new ones."
+- "Set up a solution for tracking IT assets and their assignments to employees. Check the workspace and built-in catalog first."
+- "Create one standalone Meeting Note type with subject, date, attendees, summary, decisions, and follow-ups. Do not add unrelated types or workflows."
+
+### Discover and Reuse Types
+
+- "Before creating anything, check whether compatible Employee, Asset, and Location types already exist. Inspect their fields before deciding."
+- "Import the built-in Employee type, then add a Badge Number field."
+- "Is there already a compatible type in this workspace for vendor invoices, or do I need a new one?"
+
+### Work with Records
+
+- "Add an Asset record with tag LAP-1001, type Laptop, model MacBook Pro 16, and status In Stock."
+- "Show me all Asset records where Status is Repair."
+- "Assign asset LAP-1001 to Alice Johnson starting today."
+
+### Automate Work
+
+- "When a Transfer Record's Status changes to Completed, add a Stock Level entry for the destination. Keep the workflow disabled until it has been tested."
+- "When a new Assignment Record is created for an asset, update that Asset's status."
+- "Run one representative workflow case, then show me its execution status, output, and errors."
+
+### Create Views and Shares
+
+- "Create a View showing all Assets that need repair."
+- "Create a filtered View of active assignments for this specific asset."
+- "Create a public form so people outside the team can submit asset requests."
+- "Share this Employee record privately with the Operations group as view-only."
+
+For non-trivial work, users can request end-to-end verification explicitly: "Create this solution, add representative test records, run the workflow once, and inspect its execution history before calling it complete." Computed values, workflow executions, indexing, and migrations can take time, so verification may require bounded follow-up checks.
+
 ## Completion and Eventual Consistency
 
 A successful mutation response confirms the primary request was accepted and, where reported, persisted. It does not guarantee that every derived or background effect is already visible. Formula dependency propagation, cross-record lookups, workflow execution, search indexing, notifications, and queued type migrations may complete later depending on system load.
