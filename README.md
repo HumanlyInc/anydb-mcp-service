@@ -47,6 +47,9 @@ npm install -g anydb-mcp-service
 Get your API key from **Profile > Integration** in the
 [AnyDB application](https://app.anydb.com). Keep it private.
 
+For the complete MCP-specific installation and Claude configuration guide, see
+[AnyDB MCP integration](https://www.anydb.com/support/integrations/mcp-claude).
+
 ### Environment Variables
 
 | Variable                   | Required | Default                     | Description                       |
@@ -270,41 +273,6 @@ do not expose MCP resource reading directly.
 
 Both prompts require a `goal` and accept optional `constraints`.
 
-## Development
-
-```bash
-git clone https://github.com/HumanlyInc/anydb-mcp-service.git
-cd anydb-mcp-service
-npm install
-npm run build
-npm test
-```
-
-Run the MCP stdio server:
-
-```bash
-npm run start:mcp
-```
-
-Run the optional REST wrapper:
-
-```bash
-npm run start:rest
-```
-
-### Headless Download Integration Test
-
-The opt-in integration test verifies that a returned presigned URL can be
-fetched without AnyDB headers or cookies:
-
-```env
-ANYDB_TEST_TEAM_ID=team-id
-ANYDB_TEST_DATABASE_ID=database-id
-ANYDB_TEST_FILE_RECORD_ID=file-record-id
-ANYDB_TEST_FILE_CELL_POS=A1
-ANYDB_TEST_FILE_SHA256=optional-expected-sha256
-```
-
 ## Troubleshooting
 
 - Confirm `ANYDB_API_URL` points to the AnyDB API and is reachable.
@@ -317,6 +285,7 @@ ANYDB_TEST_FILE_SHA256=optional-expected-sha256
 
 ## Support
 
+- [AnyDB MCP and Claude integration guide](https://www.anydb.com/support/integrations/mcp-claude)
 - [AnyDB documentation](https://www.anydb.com/support)
 - [AnyDB website](https://www.anydb.com)
 - [GitHub issues](https://github.com/HumanlyInc/anydb-mcp-service/issues)
