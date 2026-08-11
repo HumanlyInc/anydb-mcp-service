@@ -501,22 +501,33 @@ export class ExtApiClient {
     const url = baseURL ? `${baseURL}/${route.replace(/^\//, "")}` : route;
     const status = error.response?.status;
     const responseBody = error.response?.data;
-    let detail: string | undefined;
+    const details: string[] = [];
 
     if (typeof responseBody === "string") {
-      detail = responseBody.trim();
+      if (responseBody.trim()) details.push(responseBody.trim());
     } else if (responseBody !== undefined) {
       try {
-        detail = JSON.stringify(responseBody);
+        details.push(JSON.stringify(responseBody));
       } catch {
-        detail = String(responseBody);
+        details.push(String(responseBody));
       }
     }
 
+    if (error.code) details.push(`transport code ${error.code}`);
+    if (error.message && error.message !== "Error") {
+      details.push(error.message);
+    }
+    if (error.cause instanceof Error && error.cause.message) {
+      details.push(`cause: ${error.cause.message}`);
+    }
+
     const context = `${method} ${url}${status ? ` failed (${status})` : " failed"}`;
-    return new Error(`${context}: ${detail || error.message}`, {
-      cause: error,
-    });
+    return new Error(
+      `${context}: ${details.join("; ") || "unknown transport error"}`,
+      {
+        cause: error,
+      },
+    );
   }
 
   private unwrap<T>(response: ExtApiResponse<T>): T {

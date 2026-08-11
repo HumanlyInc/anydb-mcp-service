@@ -414,6 +414,23 @@ describe("ExtApiClient", () => {
     );
   });
 
+  it("includes transport diagnostics when a lifecycle GET receives no response", async () => {
+    const baseURL = await listen((_incoming, response) => response.end());
+    await new Promise<void>((resolve) => server!.close(() => resolve()));
+    server = undefined;
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+
+    await expect(
+      client.listViews(request.teamid, request.adbid),
+    ).rejects.toThrow(
+      /GET http:\/\/127\.0\.0\.1:\d+\/integrations\/ext\/views failed: transport code ECONNREFUSED.*connect ECONNREFUSED/,
+    );
+  });
+
   it("creates a record using a stable template name and nested cell updates", async () => {
     let receivedBody: unknown;
     const baseURL = await listen((incoming, response) => {
