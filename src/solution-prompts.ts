@@ -69,7 +69,7 @@ ${goal}
 ${constraints ? `\nConstraints:\n${constraints}\n` : ""}
 Before mutation:
 1. Read anydb://guides/solution-building/v1 and anydb://schemas/solution-authoring/v1.
-2. Define the stable type name, fields, value types, formats, layout, formulas, badges, and child policy. Identify any requested filtered View as a separate artifact rather than embedding it in the type.
+2. Define the stable type name, fields, value types, formats, layout, formulas, badges, and child policy. Identify any requested filtered View or record/form share as a separate artifact rather than embedding it in the type.
 3. Call anydb_discover_types with source "workspace", then inspect promising definitions with anydb_get_type_definition. Compare semantic content and behavior, not names or descriptions: field purposes, types/formats, requiredness/options, relationships, formulas/lookups, and workflow-facing keys. Reuse content that fulfills the use case.
 4. Only if no content-compatible workspace type exists, search source "builtin" and inspect promising definitions by the same criteria. Import a compatible built-in before using it.
 5. Define a new type only if neither workspace nor built-in content can fulfill the use case. A matching name is insufficient, and a different name does not rule out reuse.
@@ -94,12 +94,13 @@ ${goal}
 ${constraints ? `\nConstraints:\n${constraints}\n` : ""}
 Before any mutation:
 1. Read anydb://guides/solution-building/v1 and anydb://schemas/solution-authoring/v1.
-2. Build an internal implementation checklist covering type roles, stable type and field names, value types and formats, layouts, relationships, formulas, badges, child policies, filtered Views, creation order, and workflows.
+2. Build an internal implementation checklist covering type roles, stable type and field names, value types and formats, layouts, relationships, formulas, badges, child policies, filtered Views, requested record/form shares, creation order, and workflows.
 3. For every proposed type, call anydb_discover_types with source "workspace" and inspect promising definitions with anydb_get_type_definition. Compare semantic content and behavior, not names or descriptions: field purposes, types/formats, requiredness/options, relationships, formulas/lookups, and workflow-facing keys. Reuse content that fulfills the use case.
 4. Only when no content-compatible workspace type exists, search source "builtin" and inspect promising definitions with anydb_get_type_definition by the same criteria. Import a compatible built-in before using it.
 5. Define a new type only when neither source's content can fulfill the use case. A matching name is insufficient, and a different name does not rule out reuse.
 6. Call anydb_list_workflows and identify reusable or conflicting automation.
 7. Add a workflow only when a required event or record change must cause a mutation, notification, or external side effect. Prefer formulas/lookups for derived values, consolidate compatible automation, and treat five or more workflows as a design-review signal rather than a hard limit.
+8. For requested private shares, plan email recipients and discover exact group names with anydb_list_team_groups. For public shares, plan to return the generated publicUrl.
 
 Return a concise implementation blueprint, not chain-of-thought. Include the ordered artifacts, dependencies, reuse decisions, unresolved questions, and validation risks. Do not call mutation tools until the complete blueprint is coherent.`,
         },

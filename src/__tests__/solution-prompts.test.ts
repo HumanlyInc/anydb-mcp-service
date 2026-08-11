@@ -22,6 +22,7 @@ describe("solution prompts", () => {
     expect(text).toContain('source "builtin"');
     expect(text).toContain("Compare semantic content and behavior, not names");
     expect(text).toContain("A matching name is insufficient");
+    expect(text).toContain("record/form share as a separate artifact");
     expect(text).toContain("Do not introduce additional types or workflows");
   });
 
@@ -45,6 +46,8 @@ describe("solution prompts", () => {
     );
     expect(text).toContain("Prefer formulas/lookups for derived values");
     expect(text).toContain("five or more workflows as a design-review signal");
+    expect(text).toContain("anydb_list_team_groups");
+    expect(text).toContain("generated publicUrl");
     expect(text).toContain("Do not call mutation tools");
   });
 

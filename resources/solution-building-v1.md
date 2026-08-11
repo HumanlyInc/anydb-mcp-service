@@ -133,6 +133,59 @@ Example child View:
 }
 ```
 
+## Sharing
+
+Use `anydb_create_share` to share an accessible record or publish a form backed by an existing workspace type. Sharing is a separate artifact created after its target exists.
+
+- A record target uses `target: { "kind": "record", "recordId": "..." }`. It can set `role` to `viewer` or `editor` and can opt into `withAttachments`.
+- A form target uses `target: { "kind": "form", "templateName": "..." }`. Use the stable workspace template name, not a template ID. Submissions attach to `parentRecordId` when supplied and otherwise attach to the database root. Form shares do not accept `role` or `withAttachments`.
+- A public share uses `privacy: "public"`, must omit `recipients`, and returns `publicUrl` after persistence. Present that URL as the usable result; do not construct it from the share token.
+- A private share uses `privacy: "private"` and requires at least one recipient email or team group name. Email recipients are plain email addresses; user IDs are not accepted.
+- Before sharing with a group, call `anydb_list_team_groups` and use an exact returned `name`. Do not guess group names or pass `groupId` as an authoring input.
+- Use `validateOnly: true` to check target access, template resolution, recipient syntax, and group availability without creating the share or sending invitations.
+- If a workflow uses `trigger_on_form_submit`, create the form share first and use the share's stable `name` as the trigger `formName`.
+
+Example public form share:
+
+```json
+{
+  "teamid": "<team id>",
+  "adbid": "<database id>",
+  "clientRequestId": "public-safety-report-form-v1",
+  "share": {
+    "name": "Safety Report Intake",
+    "privacy": "public",
+    "target": {
+      "kind": "form",
+      "templateName": "Safety Report"
+    }
+  }
+}
+```
+
+Example private record share:
+
+```json
+{
+  "teamid": "<team id>",
+  "adbid": "<database id>",
+  "clientRequestId": "incident-review-share-v1",
+  "share": {
+    "privacy": "private",
+    "target": {
+      "kind": "record",
+      "recordId": "<record id>"
+    },
+    "recipients": {
+      "emails": ["reviewer@example.com"],
+      "groupNames": ["Operations"]
+    },
+    "role": "viewer",
+    "withAttachments": true
+  }
+}
+```
+
 ## Formulas
 
 Prefer stable key references:
@@ -188,13 +241,13 @@ Keep the workflow set small and purposeful. Reuse an existing workflow or combin
 
 1. Read this guide and `anydb://schemas/solution-authoring/v1`.
 2. Classify the request as a standalone type or multi-type solution, and do not broaden its scope without user direction.
-3. Privately model the requested types, roles, fields, layouts, and formulas. Include relationships, Views, and workflows only when required.
+3. Privately model the requested types, roles, fields, layouts, and formulas. Include relationships, Views, shares, and workflows only when required.
 4. For each proposed type, call `anydb_discover_types` with `source: "workspace"`. Inspect promising candidates with `anydb_get_type_definition`. Compare semantic content and behavior, not names: field purpose, value type and format, requiredness and options, references and ownership, formulas and lookups, and workflow-facing keys or outputs. If a workspace definition can fulfill the requested use case without changing its meaning, reuse it and do not import or create a duplicate.
 5. Only when no content-compatible workspace type exists, call `anydb_discover_types` with `source: "builtin"` and inspect promising built-in definitions by the same criteria. If one fulfills the requested use case, import it with `anydb_create_type` in import mode before referencing or using it.
 6. Create a new type with `anydb_create_type` in define mode only when neither the workspace nor built-in catalog contains a content-compatible type. A matching name, description, icon, or search score is never sufficient evidence, and a different name does not make equivalent content incompatible.
 7. Fix stable type names and field keys.
 8. For a standalone type, reuse, import, or create it now and stop after validating it unless more work was requested.
-9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies. Create requested Views after all target types and parent records exist.
+9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies. Create requested Views and shares after all target types and parent records exist. Create a required form share before a form-submit workflow that references its name.
 10. Update only where relationships could not be resolved during creation.
 11. Re-check every formula and target. Identify required cross-record or external side effects, discover existing workflows, and prefer formulas/lookups for derived values that do not require mutation. Call the workflow trigger/action catalog tools and create workflows last only when automation is required. If the design reaches five workflows, review it for duplication or safe consolidation before proceeding; exceed five only when distinct behavior justifies it.
 

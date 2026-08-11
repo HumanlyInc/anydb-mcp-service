@@ -194,6 +194,131 @@
         }
       }
     },
+    "shareTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "recordId"],
+          "properties": {
+            "kind": { "const": "record" },
+            "recordId": { "$ref": "#/$defs/objectId" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "templateName"],
+          "properties": {
+            "kind": { "const": "form" },
+            "templateName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "Stable workspace template name used by the form."
+            },
+            "parentRecordId": {
+              "$ref": "#/$defs/objectId",
+              "description": "Record under which submissions are created. Omit to use the database root."
+            }
+          }
+        }
+      ]
+    },
+    "shareRecipients": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "emails": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "format": "email" }
+        },
+        "groupNames": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Stable team group name returned by anydb_list_team_groups."
+          }
+        }
+      },
+      "anyOf": [
+        { "required": ["emails"] },
+        { "required": ["groupNames"] }
+      ]
+    },
+    "createShareInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "clientRequestId", "share"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "share": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["privacy", "target"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "privacy": { "enum": ["public", "private"] },
+            "target": { "$ref": "#/$defs/shareTarget" },
+            "recipients": { "$ref": "#/$defs/shareRecipients" },
+            "role": {
+              "enum": ["viewer", "editor"],
+              "default": "viewer",
+              "description": "Record shares only."
+            },
+            "withAttachments": {
+              "type": "boolean",
+              "default": false,
+              "description": "Record shares only."
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "privacy": { "const": "private" } }, "required": ["privacy"] },
+              "then": { "required": ["recipients"] },
+              "else": { "not": { "required": ["recipients"] } }
+            },
+            {
+              "if": {
+                "properties": {
+                  "target": {
+                    "type": "object",
+                    "properties": { "kind": { "const": "form" } },
+                    "required": ["kind"]
+                  }
+                },
+                "required": ["target"]
+              },
+              "then": {
+                "not": {
+                  "anyOf": [
+                    { "required": ["role"] },
+                    { "required": ["withAttachments"] }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "listTeamGroupsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" }
+      }
+    },
     "typeDefinition": {
       "type": "object",
       "additionalProperties": false,
@@ -394,6 +519,8 @@
     "anydb_update_type": { "$ref": "#/$defs/updateTypeInput" },
     "anydb_create_view": { "$ref": "#/$defs/createViewInput" },
     "anydb_update_view": { "$ref": "#/$defs/updateViewInput" },
+    "anydb_create_share": { "$ref": "#/$defs/createShareInput" },
+    "anydb_list_team_groups": { "$ref": "#/$defs/listTeamGroupsInput" },
     "anydb_create_workflow": { "$ref": "#/$defs/createWorkflowInput" },
     "anydb_update_workflow": { "$ref": "#/$defs/updateWorkflowInput" }
   }

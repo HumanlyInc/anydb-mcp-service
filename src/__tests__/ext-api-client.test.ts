@@ -3,6 +3,7 @@ import { createServer, type RequestListener, type Server } from "node:http";
 
 import {
   ExtApiClient,
+  type CreateShareRequest,
   type CreateTypeRequest,
   type CreateViewRequest,
   type UpdateViewRequest,
@@ -213,6 +214,91 @@ describe("ExtApiClient", () => {
       clientRequestId: updateRequest.clientRequestId,
       changes: updateRequest.changes,
     });
+  });
+
+  it("lists team groups and posts a semantic share unchanged", async () => {
+    const receivedUrls: string[] = [];
+    let receivedShare: unknown;
+    const baseURL = await listen((incoming, response) => {
+      receivedUrls.push(incoming.url || "");
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        response.setHeader("Content-Type", "application/json");
+        if (incoming.method === "GET") {
+          response.end(
+            JSON.stringify({
+              status: "success",
+              data: [
+                {
+                  groupId: "507f1f77bcf86cd799439099",
+                  name: "Operations",
+                  memberCount: 4,
+                  builtIn: false,
+                },
+              ],
+            }),
+          );
+          return;
+        }
+        receivedShare = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: {
+              success: true,
+              operation: "create_share",
+              requestId: "private-record-share-v1",
+              result: {
+                shareId: "507f1f77bcf86cd799439098",
+                targetKind: "record",
+                privacy: "private",
+                name: "Incident",
+                recipientEmails: ["reviewer@example.com"],
+                recipientGroups: ["Operations"],
+                persisted: true,
+              },
+              validation: { valid: true, errors: [] },
+            },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+    const shareRequest: CreateShareRequest = {
+      teamid: request.teamid,
+      adbid: request.adbid,
+      clientRequestId: "private-record-share-v1",
+      share: {
+        privacy: "private",
+        target: {
+          kind: "record",
+          recordId: "507f1f77bcf86cd799439097",
+        },
+        recipients: {
+          emails: ["reviewer@example.com"],
+          groupNames: ["Operations"],
+        },
+        role: "viewer",
+        withAttachments: true,
+      },
+    };
+
+    const groups = await client.listTeamGroups(request.teamid);
+    await client.createShare(shareRequest);
+
+    expect(groups).toEqual([
+      expect.objectContaining({ name: "Operations", memberCount: 4 }),
+    ]);
+    expect(receivedUrls).toEqual([
+      `/integrations/ext/team-groups?teamid=${request.teamid}`,
+      "/integrations/ext/shares",
+    ]);
+    expect(receivedShare).toEqual(shareRequest);
   });
 
   it("includes the backend error body when a request fails", async () => {

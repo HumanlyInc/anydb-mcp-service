@@ -59,6 +59,14 @@ describe("solution resources", () => {
       "Five or more workflows is a design-review signal",
     );
     expect(resource.text).toContain("It is not a hard limit");
+    expect(resource.text).toContain("## Sharing");
+    expect(resource.text).toContain("anydb_list_team_groups");
+    expect(resource.text).toContain(
+      'A public share uses `privacy: "public"`, must omit `recipients`',
+    );
+    expect(resource.text).toContain(
+      "Form shares do not accept `role` or `withAttachments`",
+    );
   });
 
   it("reads a valid machine-readable authoring schema", () => {
@@ -126,6 +134,23 @@ describe("solution resources", () => {
     expect(
       schema.$defs.updateViewInput.properties.changes.properties,
     ).not.toHaveProperty("scope");
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_create_share",
+    );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_list_team_groups",
+    );
+    expect(schema.$defs.createShareInput.required).toEqual([
+      "teamid",
+      "adbid",
+      "clientRequestId",
+      "share",
+    ]);
+    expect(schema.$defs.shareTarget.oneOf).toHaveLength(2);
+    expect(schema.$defs.shareRecipients.anyOf).toEqual([
+      { required: ["emails"] },
+      { required: ["groupNames"] },
+    ]);
   });
 
   it("rejects unknown resources", () => {

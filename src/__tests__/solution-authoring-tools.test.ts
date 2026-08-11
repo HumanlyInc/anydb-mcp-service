@@ -1,6 +1,8 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
 import type {
+  CreateShareRequest,
+  CreateShareResult,
   CreateTypeRequest,
   CreateTypeResult,
   CreateViewRequest,
@@ -361,6 +363,104 @@ describe("solution authoring tools", () => {
     expect(JSON.parse(result.content[0].text)).toMatchObject({
       operation: "update_view",
       result: { name: "Critical Stock", targetTypes: ["Stock"] },
+    });
+  });
+
+  it("lists team groups by team ID for private sharing", async () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_list_team_groups",
+    );
+    expect(tool).toMatchObject({
+      inputSchema: expect.objectContaining({ required: ["teamid"] }),
+    });
+    expect(tool?.description).toContain("stable group names");
+    expect(isSolutionAuthoringTool("anydb_list_team_groups")).toBe(true);
+
+    const listTeamGroups = jest.fn<ExtApiClient["listTeamGroups"]>();
+    listTeamGroups.mockResolvedValue([
+      {
+        groupId: "507f1f77bcf86cd799439099",
+        name: "Operations",
+        memberCount: 4,
+        builtIn: false,
+      },
+    ]);
+    const client = { listTeamGroups } as unknown as ExtApiClient;
+    const result = await callSolutionAuthoringTool(
+      "anydb_list_team_groups",
+      { teamid: "507f1f77bcf86cd799439011" },
+      client,
+    );
+
+    expect(listTeamGroups).toHaveBeenCalledWith("507f1f77bcf86cd799439011");
+    expect(JSON.parse(result.content[0].text)).toEqual([
+      expect.objectContaining({ name: "Operations", memberCount: 4 }),
+    ]);
+  });
+
+  it("advertises and forwards a public form share", async () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_create_share",
+    );
+    expect(tool).toMatchObject({
+      inputSchema: expect.objectContaining({
+        required: ["teamid", "adbid", "clientRequestId", "share"],
+        $defs: expect.objectContaining({
+          shareTarget: expect.any(Object),
+          shareRecipients: expect.any(Object),
+        }),
+      }),
+    });
+    expect(tool?.description).toContain("Public shares omit recipients");
+    expect(tool?.description).toContain("stable group names");
+    expect(isSolutionAuthoringTool("anydb_create_share")).toBe(true);
+
+    const createShare = jest.fn<ExtApiClient["createShare"]>();
+    createShare.mockResolvedValue({
+      success: true,
+      operation: "create_share",
+      requestId: "safety-form-share-v1",
+      result: {
+        shareId: "507f1f77bcf86cd799439099",
+        shareToken: "share-token",
+        publicUrl: "https://workspace.example.com/f/share-token",
+        targetKind: "form",
+        privacy: "public",
+        name: "Safety Intake",
+        parentRecordId: "507f1f77bcf86cd799439013",
+        templateName: "Safety Report",
+        recipientEmails: [],
+        recipientGroups: [],
+        persisted: true,
+      },
+      validation: { valid: true, errors: [] },
+    } as CreateShareResult);
+    const client = { createShare } as unknown as ExtApiClient;
+    const request: CreateShareRequest & Record<string, unknown> = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      clientRequestId: "safety-form-share-v1",
+      share: {
+        name: "Safety Intake",
+        privacy: "public",
+        target: { kind: "form", templateName: "Safety Report" },
+      },
+    };
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_create_share",
+      { ...request, share: JSON.stringify(request.share) },
+      client,
+    );
+
+    expect(createShare).toHaveBeenCalledWith(request);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      operation: "create_share",
+      result: {
+        targetKind: "form",
+        privacy: "public",
+        publicUrl: "https://workspace.example.com/f/share-token",
+      },
     });
   });
 

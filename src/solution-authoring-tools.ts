@@ -1,6 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 import type {
+  CreateShareRequest,
   CreateTypeRequest,
   CreateViewRequest,
   CreateWorkflowRequest,
@@ -22,6 +23,8 @@ const authoringSchema = JSON.parse(
     createTypeInput: Record<string, unknown>;
     createViewInput: Record<string, unknown>;
     updateViewInput: Record<string, unknown>;
+    createShareInput: Record<string, unknown>;
+    listTeamGroupsInput: Record<string, unknown>;
     updateTypeInput: Record<string, unknown>;
     createWorkflowInput: Record<string, unknown>;
     updateWorkflowInput: Record<string, unknown>;
@@ -45,6 +48,16 @@ const createViewInputSchema = {
 
 const updateViewInputSchema = {
   ...authoringSchema.$defs.updateViewInput,
+  $defs: authoringSchema.$defs,
+};
+
+const createShareInputSchema = {
+  ...authoringSchema.$defs.createShareInput,
+  $defs: authoringSchema.$defs,
+};
+
+const listTeamGroupsInputSchema = {
+  ...authoringSchema.$defs.listTeamGroupsInput,
   $defs: authoringSchema.$defs,
 };
 
@@ -124,6 +137,18 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
       "Update an existing filtered View by viewId. Change its name and/or replace its complete targets and filter set using stable workspace type names. Omit changes.targets to preserve existing criteria. View placement is immutable; create another View to change between workspace and children scope.",
     inputSchema: updateViewInputSchema as unknown as Tool["inputSchema"],
   },
+  {
+    name: "anydb_list_team_groups",
+    description:
+      "List team groups available to the authenticated user for private sharing. Use the returned stable group names in anydb_create_share; do not guess names or pass internal group IDs.",
+    inputSchema: listTeamGroupsInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_create_share",
+    description:
+      "Create a public or private share for a record or form through standard AnyDB sharing policy. Public shares omit recipients and return publicUrl. Private shares require email addresses and/or stable group names from anydb_list_team_groups. Forms use a stable templateName and default to the database root unless parentRecordId is supplied. role and withAttachments apply only to record shares.",
+    inputSchema: createShareInputSchema as unknown as Tool["inputSchema"],
+  },
 ];
 
 export function isSolutionAuthoringTool(name: string): boolean {
@@ -132,7 +157,7 @@ export function isSolutionAuthoringTool(name: string): boolean {
 
 function normalizeStructuredArgument(
   args: Record<string, unknown>,
-  field: "type" | "changes" | "workflow" | "view",
+  field: "type" | "changes" | "workflow" | "view" | "share",
   toolName: string,
 ): Record<string, unknown> {
   const value = args[field];
@@ -195,6 +220,13 @@ export async function callSolutionAuthoringTool(
     const normalized = normalizeStructuredArgument(args, "changes", name);
     result = await client.updateView(
       normalized as unknown as UpdateViewRequest,
+    );
+  } else if (name === "anydb_list_team_groups") {
+    result = await client.listTeamGroups(String(args.teamid || ""));
+  } else if (name === "anydb_create_share") {
+    const normalized = normalizeStructuredArgument(args, "share", name);
+    result = await client.createShare(
+      normalized as unknown as CreateShareRequest,
     );
   } else if (name === "anydb_list_workflow_triggers") {
     result = await client.listWorkflowTriggers(

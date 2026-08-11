@@ -228,6 +228,53 @@ export interface UpdateViewResult {
   validation: { valid: true; errors: [] };
 }
 
+export interface CreateShareRequest {
+  teamid: string;
+  adbid: string;
+  clientRequestId: string;
+  validateOnly?: boolean;
+  share: {
+    name?: string;
+    privacy: "public" | "private";
+    target:
+      | { kind: "record"; recordId: string }
+      | { kind: "form"; templateName: string; parentRecordId?: string };
+    recipients?: {
+      emails?: string[];
+      groupNames?: string[];
+    };
+    role?: "viewer" | "editor";
+    withAttachments?: boolean;
+  };
+}
+
+export interface CreateShareResult {
+  success: true;
+  operation: "create_share";
+  requestId: string;
+  result: {
+    shareId?: string;
+    shareToken?: string;
+    publicUrl?: string;
+    targetKind: "record" | "form";
+    privacy: "public" | "private";
+    name: string;
+    parentRecordId?: string;
+    templateName?: string;
+    recipientEmails: string[];
+    recipientGroups: string[];
+    persisted: boolean;
+  };
+  validation: { valid: true; errors: [] };
+}
+
+export interface TeamGroup {
+  groupId: string;
+  name: string;
+  memberCount: number;
+  builtIn: boolean;
+}
+
 export interface UpdateTypeRequest {
   teamid: string;
   adbid: string;
@@ -537,6 +584,22 @@ export class ExtApiClient {
     const response = await this.client.put<ExtApiResponse<UpdateViewResult>>(
       `/integrations/ext/views/${encodeURIComponent(viewId)}`,
       body,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async createShare(params: CreateShareRequest): Promise<CreateShareResult> {
+    const response = await this.client.post<ExtApiResponse<CreateShareResult>>(
+      "/integrations/ext/shares",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listTeamGroups(teamid: string): Promise<TeamGroup[]> {
+    const response = await this.client.get<ExtApiResponse<TeamGroup[]>>(
+      "/integrations/ext/team-groups",
+      { params: { teamid } },
     );
     return this.unwrap(response.data);
   }
