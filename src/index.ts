@@ -82,7 +82,11 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
   ListToolsRequestSchema,
+  ReadResourceRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import { AnyDBClient, PredefinedTemplateAdoIds } from "anydb-api-sdk-ts";
@@ -90,7 +94,22 @@ import { lookup as lookupMimeType } from "mime-types";
 import { config } from "./config.js";
 import { ExtApiClient } from "./ext-api-client.js";
 import { normalizeRecordContent } from "./record-update.js";
-import { schemaReader } from "./schema-reader.js";
+import {
+  callSolutionAuthoringTool,
+  isSolutionAuthoringTool,
+  SOLUTION_AUTHORING_TOOLS,
+} from "./solution-authoring-tools.js";
+import {
+  callSolutionDiscoveryTool,
+  isSolutionDiscoveryTool,
+  SOLUTION_DISCOVERY_TOOLS,
+} from "./solution-discovery-tools.js";
+import { getSolutionPrompt, listSolutionPrompts } from "./solution-prompts.js";
+import {
+  listSolutionResources,
+  readSolutionResource,
+  SOLUTION_BUILDING_GUIDE_URI,
+} from "./solution-resources.js";
 import type { TemplateStructure } from "./types.js";
 
 // Initialize AnyDB client with credentials from environment
@@ -114,6 +133,8 @@ const extApiClient = new ExtApiClient({
 
 // Define available tools
 const TOOLS: Tool[] = [
+  ...SOLUTION_AUTHORING_TOOLS,
+  ...SOLUTION_DISCOVERY_TOOLS,
   {
     name: "list_templates",
     description:
@@ -207,7 +228,7 @@ const TOOLS: Tool[] = [
   {
     name: "list_records",
     description:
-      "List all ADOs (records) in a database. Optionally filter by parent record ID to get child records, by template to get records of a specific type, and use pagination for large result sets.",
+      "List ADOs (records) in a database. Use parentid with a normal record ID to list its children, or with a View ADO ID returned by anydb_create_view to apply that View's stored type and filter criteria. You can also filter directly by template and use pagination for large result sets.",
     inputSchema: {
       type: "object",
       properties: {
@@ -222,17 +243,12 @@ const TOOLS: Tool[] = [
         parentid: {
           type: "string",
           description:
-            "Optional parent record ID to filter child records (MongoDB ObjectId). If not provided, then the root database records are returned.",
-        },
-        templateid: {
-          type: "string",
-          description:
-            "Optional template ID to filter records by type (MongoDB ObjectId). Only returns records created from this template.",
+            "Optional parent record or View ADO ID (MongoDB ObjectId). A record ID lists direct children. A View ID applies the View's stored criteria; omit templatename and filter in that case. If not provided, root database records are returned.",
         },
         templatename: {
           type: "string",
           description:
-            "Optional template name to filter records by type. Alternative to templateid - provide one or the other, not both.",
+            "Optional stable template name to filter records by type. The backend resolves it to the latest template version.",
         },
         pagesize: {
           type: "string",
@@ -307,14 +323,18 @@ const TOOLS: Tool[] = [
           description:
             "Optional parent record ID to attach this record to (MongoDB ObjectId)",
         },
-        template: {
+        templatename: {
           type: "string",
           description:
-            "Optional template ID to use for creating the record (MongoDB ObjectId)",
+            "Optional stable template/type name. Use the exact workspace type name returned by list_templates or anydb_get_type_definition; do not provide a template ID.",
         },
         content: {
           type: "object",
-          description: "Optional content data for the record (key-value pairs)",
+          description:
+            'Optional cell updates keyed by grid position. Each value must be an object, for example {"A1": {"value": "Main Warehouse"}, "D3": {"value": true}}. Existing key, type, format, and props are preserved from the selected template.',
+          additionalProperties: {
+            type: "object",
+          },
         },
       },
       required: ["adbid", "teamid", "name"],
@@ -785,8 +805,27 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
+      resources: {},
+      prompts: {},
     },
+    instructions: `Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read.`,
   },
+);
+
+server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+  resources: listSolutionResources(),
+}));
+
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => ({
+  contents: [readSolutionResource(request.params.uri)],
+}));
+
+server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+  prompts: listSolutionPrompts(),
+}));
+
+server.setRequestHandler(GetPromptRequestSchema, async (request) =>
+  getSolutionPrompt(request.params.name, request.params.arguments),
 );
 
 // Handle list tools request
@@ -805,6 +844,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   console.error(`======================================\n`);
 
   try {
+    if (isSolutionAuthoringTool(name)) {
+      return await callSolutionAuthoringTool(name, args, extApiClient);
+    }
+
+    if (isSolutionDiscoveryTool(name)) {
+      return await callSolutionDiscoveryTool(name, args, extApiClient);
+    }
+
     switch (name) {
       case "list_templates": {
         const teamid = args?.teamid as string;
@@ -888,7 +935,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("teamid and adbid are required");
         }
         const parentid = args?.parentid as string | undefined;
-        const templateid = args?.templateid as string | undefined;
         const templatename = args?.templatename as string | undefined;
         const pagesize = args?.pagesize as string | undefined;
         const lastmarker = args?.lastmarker as string | undefined;
@@ -917,7 +963,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               teamid,
               adbid,
               parentid,
-              templateid,
               templatename,
               pagesize,
               lastmarker,
@@ -927,7 +972,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               teamid,
               adbid,
               parentid,
-              templateid,
+              undefined,
               templatename,
               pagesize,
               lastmarker,
@@ -954,10 +999,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           teamid,
           name,
           attach: args?.attach as string | undefined,
-          template: args?.template as string | undefined,
+          templatename: args?.templatename as string | undefined,
           content: args?.content as Record<string, any> | undefined,
         };
-        const record = await anydbClient.createRecord(params);
+        const record = await extApiClient.createRecord(params);
         return {
           content: [
             {

@@ -1,0 +1,605 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anydb://schemas/solution-authoring/v1",
+  "title": "AnyDB Solution Authoring Contract v1",
+  "description": "Semantic schemas for AnyDB solution-authoring mutation tools.",
+  "type": "object",
+  "$defs": {
+    "objectId": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{24}$"
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "colspan", "rowspan"],
+      "properties": {
+        "position": { "type": "string", "pattern": "^[A-Z]+[1-9][0-9]*$" },
+        "colspan": { "type": "integer", "minimum": 1 },
+        "rowspan": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "valueType", "format", "layout"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "valueType": {
+          "enum": ["string", "number", "boolean", "array", "void", "file", "object", "ref", "user"]
+        },
+        "format": {
+          "enum": ["general", "number", "currency", "percentage", "date", "datetime", "time", "ref", "signature", "file", "checkbox", "user", "users", "select", "multi-select", "rich-text", "attachments", "comments", "ai", "barcode", "qrcode", "chart", "report", "lookup", "button", "timeline", "dynamic", "heading"]
+        },
+        "formula": { "type": "string", "minLength": 1 },
+        "targetType": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "lookup": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fromField", "targetField"],
+          "properties": {
+            "fromField": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Key of the local ref field through which the target record is selected."
+            },
+            "targetField": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Key of the field to read from the referenced record."
+            },
+            "mode": {
+              "enum": ["snapshot", "live"],
+              "default": "snapshot",
+              "description": "Use snapshot to copy the target value when the ref is selected without later target-change ripple; use live when target changes must update referencing records."
+            }
+          }
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "required": { "type": "boolean", "default": false },
+        "locked": { "type": "boolean", "default": false },
+        "layout": { "$ref": "#/$defs/layout" }
+      }
+    },
+    "badge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "formula"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "formula": { "type": "string", "minLength": 1 }
+      }
+    },
+    "childPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowOnly", "autoCreate"],
+      "properties": {
+        "allowOnly": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "autoCreate": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["typeName", "minimum"],
+            "properties": {
+              "typeName": { "type": "string", "minLength": 1 },
+              "minimum": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "viewFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "field", "operator", "value"],
+      "properties": {
+        "source": { "enum": ["cell", "meta", "badge"] },
+        "field": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "operator": {
+          "enum": ["eq", "neq", "gt", "lt", "gte", "lte", "like", "contains", "startswith", "endswith", "includes", "notincludes"]
+        },
+        "value": {
+          "type": ["string", "number", "boolean"],
+          "description": "Native JSON filter value. Numbers and booleans must not be stringified; the server does not coerce based on fieldType."
+        },
+        "fieldType": {
+          "enum": ["string", "number", "boolean", "date", "array"],
+          "description": "Optional stored comparison-type hint. Match the target field's actual type; it does not coerce value and is not required."
+        }
+      }
+    },
+    "viewTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["typeName"],
+      "properties": {
+        "typeName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Stable workspace type name whose records the View can display."
+        },
+        "filters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/viewFilter" }
+        }
+      }
+    },
+    "viewDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "scope", "targets"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "scope": {
+          "enum": ["workspace", "children"],
+          "description": "workspace attaches the View to the database root; children attaches it to one parent record and lists matching direct children."
+        },
+        "parentRecordId": { "$ref": "#/$defs/objectId" },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/viewTarget" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "scope": { "const": "children" } }, "required": ["scope"] },
+          "then": { "required": ["parentRecordId"] },
+          "else": { "not": { "required": ["parentRecordId"] } }
+        }
+      ]
+    },
+    "createViewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "clientRequestId", "view"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "view": { "$ref": "#/$defs/viewDefinition" }
+      }
+    },
+    "updateViewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "viewId", "clientRequestId", "changes"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "viewId": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "changes": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "targets": {
+              "type": "array",
+              "minItems": 1,
+              "description": "Complete replacement target and filter set. Omit to preserve existing View criteria.",
+              "items": { "$ref": "#/$defs/viewTarget" }
+            }
+          }
+        }
+      }
+    },
+    "listViewsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" }
+      }
+    },
+    "getViewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "viewId"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "viewId": { "$ref": "#/$defs/objectId" }
+      }
+    },
+    "deleteViewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "viewId", "clientRequestId"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "viewId": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
+    "shareTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "recordId"],
+          "properties": {
+            "kind": { "const": "record" },
+            "recordId": { "$ref": "#/$defs/objectId" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "templateName"],
+          "properties": {
+            "kind": { "const": "form" },
+            "templateName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "Stable workspace template name used by the form."
+            },
+            "parentRecordId": {
+              "$ref": "#/$defs/objectId",
+              "description": "Record under which form submissions are created. When omitted, the server creates a Folder under the database root and returns that Folder's ID as parentRecordId."
+            }
+          }
+        }
+      ]
+    },
+    "shareRecipients": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "emails": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "format": "email" }
+        },
+        "groupNames": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Stable team group name returned by anydb_list_team_groups."
+          }
+        }
+      },
+      "anyOf": [
+        { "required": ["emails"] },
+        { "required": ["groupNames"] }
+      ]
+    },
+    "createShareInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "clientRequestId", "share"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "share": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["privacy", "target"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "privacy": { "enum": ["public", "private"] },
+            "target": { "$ref": "#/$defs/shareTarget" },
+            "recipients": { "$ref": "#/$defs/shareRecipients" },
+            "role": {
+              "enum": ["viewer", "editor"],
+              "description": "Optional for record shares; the server uses viewer when omitted. Must be omitted for form shares."
+            },
+            "withAttachments": {
+              "type": "boolean",
+              "description": "Optional for record shares; the server uses false when omitted. Must be omitted for form shares."
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "privacy": { "const": "private" } }, "required": ["privacy"] },
+              "then": { "required": ["recipients"] },
+              "else": { "not": { "required": ["recipients"] } }
+            },
+            {
+              "if": {
+                "properties": {
+                  "target": {
+                    "type": "object",
+                    "properties": { "kind": { "const": "form" } },
+                    "required": ["kind"]
+                  }
+                },
+                "required": ["target"]
+              },
+              "then": {
+                "not": {
+                  "anyOf": [
+                    { "required": ["role"] },
+                    { "required": ["withAttachments"] }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "listTeamGroupsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" }
+      }
+    },
+    "listSharesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" }
+      }
+    },
+    "getShareInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "shareId", "kind"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "shareId": { "$ref": "#/$defs/objectId" },
+        "kind": {
+          "enum": ["record", "form"],
+          "description": "Share facet to retrieve; one internal share may contain both facets."
+        }
+      }
+    },
+    "revokeShareInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "shareId", "kind", "clientRequestId"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "shareId": { "$ref": "#/$defs/objectId" },
+        "kind": {
+          "enum": ["record", "form"],
+          "description": "Share facet to revoke without affecting a different facet on the same internal share."
+        },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
+    "typeDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "fields"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "icon": { "type": "string" },
+        "titleFormula": { "type": "string", "minLength": 1 },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/field" }
+        },
+        "badges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/badge" }
+        },
+        "childPolicy": { "$ref": "#/$defs/childPolicy" }
+      }
+    },
+    "createTypeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "clientRequestId", "mode"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "mode": { "enum": ["define", "import_builtin"] },
+        "type": { "$ref": "#/$defs/typeDefinition" },
+        "builtInTemplateName": { "type": "string", "minLength": 1, "maxLength": 120 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "define" } } },
+          "then": { "required": ["type"] },
+          "else": { "required": ["builtInTemplateName"] }
+        }
+      ]
+    },
+    "fieldUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "newKey": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "valueType": { "$ref": "#/$defs/field/properties/valueType" },
+        "format": { "$ref": "#/$defs/field/properties/format" },
+        "formula": { "type": "string" },
+        "targetType": { "type": "string", "minLength": 1 },
+        "lookup": { "$ref": "#/$defs/field/properties/lookup" },
+        "options": { "$ref": "#/$defs/field/properties/options" },
+        "required": { "type": "boolean" },
+        "locked": { "type": "boolean" },
+        "layout": { "$ref": "#/$defs/layout" }
+      }
+    },
+    "updateTypeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "templateName", "clientRequestId", "expectedRevision", "changes", "confirmDataLoss"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "templateName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "expectedRevision": { "type": "string", "minLength": 1 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "changes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "description": { "type": "string" },
+            "addFields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
+            "updateFields": { "type": "array", "items": { "$ref": "#/$defs/fieldUpdate" } },
+            "removeFields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+            "replaceBadges": { "type": ["array", "null"], "items": { "$ref": "#/$defs/badge" } },
+            "replaceChildPolicy": { "oneOf": [{ "$ref": "#/$defs/childPolicy" }, { "type": "null" }] }
+          }
+        },
+        "confirmDataLoss": { "type": "boolean", "default": false }
+      }
+    },
+    "workflowTriggerConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "formName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "templateName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "fieldNames": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "parentRecordId": { "$ref": "#/$defs/objectId" },
+        "filter": { "type": "string", "minLength": 1 },
+        "interval": { "type": "string", "minLength": 1 },
+        "specificTime": { "type": "string", "minLength": 1 },
+        "daysOfWeek": { "type": "string", "minLength": 1 },
+        "daysOfMonth": { "type": "string", "minLength": 1 },
+        "startTime": { "type": "string", "minLength": 1 },
+        "endTime": { "type": "string", "minLength": 1 }
+      }
+    },
+    "createWorkflowInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "clientRequestId", "workflow"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "workflow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "trigger"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "description": { "type": "string", "maxLength": 2000 },
+            "enabled": { "type": "boolean", "default": false },
+            "trigger": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "config"],
+              "properties": {
+                "type": { "enum": ["trigger_on_form_submit", "trigger_on_record_create", "trigger_on_record_update", "trigger_on_schedule", "trigger_manual"] },
+                "config": { "$ref": "#/$defs/workflowTriggerConfig" }
+              }
+            },
+            "script": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["source"],
+              "properties": {
+                "source": { "type": "string", "minLength": 1 },
+                "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 30000 }
+              }
+            },
+            "actions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["key", "type", "config"],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^(?!trigger$)[A-Za-z][A-Za-z0-9_-]{0,79}$",
+                    "description": "Client-local action key used by later symbolic bindings."
+                  },
+                  "type": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Registered action type returned by anydb_list_workflow_actions."
+                  },
+                  "description": { "type": "string", "maxLength": 1000 },
+                  "config": {
+                    "type": "object",
+                    "description": "Action input matching its catalog inputSchema. Use {{trigger.outputName}} or {{priorActionKey.outputName}} for artifact output bindings."
+                  }
+                }
+              }
+            }
+          },
+          "oneOf": [
+            { "required": ["actions"], "not": { "required": ["script"] } },
+            { "required": ["script"], "not": { "required": ["actions"] } }
+          ]
+        }
+      }
+    },
+    "updateWorkflowInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "workflowId", "clientRequestId", "changes"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "workflowId": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "changes": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "description": { "type": "string", "maxLength": 2000 },
+            "enabled": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  },
+  "x-anydb-tool-input-schemas": {
+    "anydb_create_type": { "$ref": "#/$defs/createTypeInput" },
+    "anydb_update_type": { "$ref": "#/$defs/updateTypeInput" },
+    "anydb_create_view": { "$ref": "#/$defs/createViewInput" },
+    "anydb_update_view": { "$ref": "#/$defs/updateViewInput" },
+    "anydb_list_views": { "$ref": "#/$defs/listViewsInput" },
+    "anydb_get_view": { "$ref": "#/$defs/getViewInput" },
+    "anydb_delete_view": { "$ref": "#/$defs/deleteViewInput" },
+    "anydb_create_share": { "$ref": "#/$defs/createShareInput" },
+    "anydb_list_shares": { "$ref": "#/$defs/listSharesInput" },
+    "anydb_get_share": { "$ref": "#/$defs/getShareInput" },
+    "anydb_revoke_share": { "$ref": "#/$defs/revokeShareInput" },
+    "anydb_list_team_groups": { "$ref": "#/$defs/listTeamGroupsInput" },
+    "anydb_create_workflow": { "$ref": "#/$defs/createWorkflowInput" },
+    "anydb_update_workflow": { "$ref": "#/$defs/updateWorkflowInput" }
+  }
+}
