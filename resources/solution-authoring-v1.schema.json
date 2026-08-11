@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "anydb://schemas/solution-authoring/v1",
   "title": "AnyDB Solution Authoring Contract v1",
-  "description": "Semantic schemas for AnyDB cells and the three solution-authoring mutation tools.",
+  "description": "Semantic schemas for AnyDB solution-authoring mutation tools.",
   "type": "object",
   "$defs": {
     "objectId": {
@@ -95,6 +95,100 @@
             "properties": {
               "typeName": { "type": "string", "minLength": 1 },
               "minimum": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "viewFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "field", "operator", "value"],
+      "properties": {
+        "source": { "enum": ["cell", "meta", "badge"] },
+        "field": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "operator": {
+          "enum": ["eq", "neq", "gt", "lt", "gte", "lte", "like", "contains", "startswith", "endswith", "includes", "notincludes"]
+        },
+        "value": { "type": ["string", "number", "boolean"] },
+        "fieldType": { "enum": ["string", "number", "boolean", "date", "array"] }
+      }
+    },
+    "viewTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["typeName"],
+      "properties": {
+        "typeName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Stable workspace type name whose records the View can display."
+        },
+        "filters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/viewFilter" }
+        }
+      }
+    },
+    "viewDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "scope", "targets"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "scope": {
+          "enum": ["workspace", "children"],
+          "description": "workspace attaches the View to the database root; children attaches it to one parent record and lists matching direct children."
+        },
+        "parentRecordId": { "$ref": "#/$defs/objectId" },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/viewTarget" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "scope": { "const": "children" } }, "required": ["scope"] },
+          "then": { "required": ["parentRecordId"] },
+          "else": { "not": { "required": ["parentRecordId"] } }
+        }
+      ]
+    },
+    "createViewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "clientRequestId", "view"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "view": { "$ref": "#/$defs/viewDefinition" }
+      }
+    },
+    "updateViewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "viewId", "clientRequestId", "changes"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "viewId": { "$ref": "#/$defs/objectId" },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "validateOnly": { "type": "boolean", "default": false },
+        "changes": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "targets": {
+              "type": "array",
+              "minItems": 1,
+              "description": "Complete replacement target and filter set. Omit to preserve existing View criteria.",
+              "items": { "$ref": "#/$defs/viewTarget" }
             }
           }
         }
@@ -298,6 +392,8 @@
   "x-anydb-tool-input-schemas": {
     "anydb_create_type": { "$ref": "#/$defs/createTypeInput" },
     "anydb_update_type": { "$ref": "#/$defs/updateTypeInput" },
+    "anydb_create_view": { "$ref": "#/$defs/createViewInput" },
+    "anydb_update_view": { "$ref": "#/$defs/updateViewInput" },
     "anydb_create_workflow": { "$ref": "#/$defs/createWorkflowInput" },
     "anydb_update_workflow": { "$ref": "#/$defs/updateWorkflowInput" }
   }

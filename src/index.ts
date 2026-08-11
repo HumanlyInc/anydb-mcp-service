@@ -228,7 +228,7 @@ const TOOLS: Tool[] = [
   {
     name: "list_records",
     description:
-      "List all ADOs (records) in a database. Optionally filter by parent record ID to get child records, by template to get records of a specific type, and use pagination for large result sets.",
+      "List ADOs (records) in a database. Use parentid with a normal record ID to list its children, or with a View ADO ID returned by anydb_create_view to apply that View's stored type and filter criteria. You can also filter directly by template and use pagination for large result sets.",
     inputSchema: {
       type: "object",
       properties: {
@@ -243,7 +243,7 @@ const TOOLS: Tool[] = [
         parentid: {
           type: "string",
           description:
-            "Optional parent record ID to filter child records (MongoDB ObjectId). If not provided, then the root database records are returned.",
+            "Optional parent record or View ADO ID (MongoDB ObjectId). A record ID lists direct children. A View ID applies the View's stored criteria; omit templatename and filter in that case. If not provided, root database records are returned.",
         },
         templatename: {
           type: "string",

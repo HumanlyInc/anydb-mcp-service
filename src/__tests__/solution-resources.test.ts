@@ -96,6 +96,36 @@ describe("solution resources", () => {
     expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_update_workflow",
     );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_create_view",
+    );
+    expect(schema.$defs.createViewInput.properties.view.$ref).toBe(
+      "#/$defs/viewDefinition",
+    );
+    expect(schema.$defs.viewDefinition.properties.scope.enum).toEqual([
+      "workspace",
+      "children",
+    ]);
+    expect(schema.$defs.viewDefinition.allOf[0].then.required).toContain(
+      "parentRecordId",
+    );
+    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+      "anydb_update_view",
+    );
+    expect(schema.$defs.updateViewInput.required).toEqual([
+      "teamid",
+      "adbid",
+      "viewId",
+      "clientRequestId",
+      "changes",
+    ]);
+    expect(
+      schema.$defs.updateViewInput.properties.changes.properties.targets.items
+        .$ref,
+    ).toBe("#/$defs/viewTarget");
+    expect(
+      schema.$defs.updateViewInput.properties.changes.properties,
+    ).not.toHaveProperty("scope");
   });
 
   it("rejects unknown resources", () => {

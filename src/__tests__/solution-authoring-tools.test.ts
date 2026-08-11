@@ -3,11 +3,15 @@ import { describe, expect, it, jest } from "@jest/globals";
 import type {
   CreateTypeRequest,
   CreateTypeResult,
+  CreateViewRequest,
+  CreateViewResult,
   CreateWorkflowRequest,
   CreateWorkflowResult,
   ExtApiClient,
   UpdateTypeRequest,
   UpdateTypeResult,
+  UpdateViewRequest,
+  UpdateViewResult,
   UpdateWorkflowRequest,
   UpdateWorkflowResult,
 } from "../ext-api-client.js";
@@ -221,6 +225,142 @@ describe("solution authoring tools", () => {
     expect(JSON.parse(result.content[0].text)).toMatchObject({
       operation: "update_type",
       migration: { status: "queued" },
+    });
+  });
+
+  it("advertises and forwards a semantic child View request", async () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_create_view",
+    );
+    expect(tool).toMatchObject({
+      inputSchema: expect.objectContaining({
+        required: ["teamid", "adbid", "clientRequestId", "view"],
+        $defs: expect.objectContaining({
+          viewDefinition: expect.any(Object),
+          viewFilter: expect.any(Object),
+        }),
+      }),
+    });
+    expect(tool?.description).toContain("database root");
+    expect(tool?.description).toContain("direct children");
+    expect(isSolutionAuthoringTool("anydb_create_view")).toBe(true);
+
+    const createView = jest.fn<ExtApiClient["createView"]>();
+    createView.mockResolvedValue({
+      success: true,
+      operation: "create_view",
+      requestId: "low-stock-view-v1",
+      result: {
+        viewId: "507f1f77bcf86cd799439099",
+        name: "Low Stock",
+        scope: "children",
+        parentRecordId: "507f1f77bcf86cd799439013",
+        targetTypes: ["Stock"],
+        persisted: true,
+      },
+      validation: { valid: true, errors: [] },
+    } as CreateViewResult);
+    const client = { createView } as unknown as ExtApiClient;
+    const request: CreateViewRequest & Record<string, unknown> = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      clientRequestId: "low-stock-view-v1",
+      view: {
+        name: "Low Stock",
+        scope: "children",
+        parentRecordId: "507f1f77bcf86cd799439013",
+        targets: [
+          {
+            typeName: "Stock",
+            filters: [
+              {
+                source: "cell",
+                field: "Quantity",
+                operator: "lt",
+                value: 10,
+                fieldType: "number",
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_create_view",
+      { ...request, view: JSON.stringify(request.view) },
+      client,
+    );
+
+    expect(createView).toHaveBeenCalledWith(request);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      operation: "create_view",
+      result: { scope: "children", targetTypes: ["Stock"] },
+    });
+  });
+
+  it("advertises and forwards a complete View filter replacement", async () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_update_view",
+    );
+    expect(tool).toMatchObject({
+      inputSchema: expect.objectContaining({
+        required: ["teamid", "adbid", "viewId", "clientRequestId", "changes"],
+        $defs: expect.objectContaining({ viewTarget: expect.any(Object) }),
+      }),
+    });
+    expect(tool?.description).toContain("replace its complete targets");
+    expect(tool?.description).toContain("placement is immutable");
+    expect(isSolutionAuthoringTool("anydb_update_view")).toBe(true);
+
+    const updateView = jest.fn<ExtApiClient["updateView"]>();
+    updateView.mockResolvedValue({
+      success: true,
+      operation: "update_view",
+      requestId: "low-stock-view-v2",
+      result: {
+        viewId: "507f1f77bcf86cd799439099",
+        name: "Critical Stock",
+        targetTypes: ["Stock"],
+        persisted: true,
+      },
+      validation: { valid: true, errors: [] },
+    } as UpdateViewResult);
+    const client = { updateView } as unknown as ExtApiClient;
+    const request: UpdateViewRequest & Record<string, unknown> = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      viewId: "507f1f77bcf86cd799439099",
+      clientRequestId: "low-stock-view-v2",
+      changes: {
+        name: "Critical Stock",
+        targets: [
+          {
+            typeName: "Stock",
+            filters: [
+              {
+                source: "cell",
+                field: "Quantity",
+                operator: "lte",
+                value: 5,
+                fieldType: "number",
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_update_view",
+      { ...request, changes: JSON.stringify(request.changes) },
+      client,
+    );
+
+    expect(updateView).toHaveBeenCalledWith(request);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      operation: "update_view",
+      result: { name: "Critical Stock", targetTypes: ["Stock"] },
     });
   });
 

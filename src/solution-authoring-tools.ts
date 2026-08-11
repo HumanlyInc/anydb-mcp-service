@@ -2,8 +2,10 @@ import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 import type {
   CreateTypeRequest,
+  CreateViewRequest,
   CreateWorkflowRequest,
   ExtApiClient,
+  UpdateViewRequest,
   UpdateWorkflowRequest,
   UpdateTypeRequest,
 } from "./ext-api-client.js";
@@ -18,6 +20,8 @@ const authoringSchema = JSON.parse(
 ) as {
   $defs: Record<string, unknown> & {
     createTypeInput: Record<string, unknown>;
+    createViewInput: Record<string, unknown>;
+    updateViewInput: Record<string, unknown>;
     updateTypeInput: Record<string, unknown>;
     createWorkflowInput: Record<string, unknown>;
     updateWorkflowInput: Record<string, unknown>;
@@ -31,6 +35,16 @@ const createTypeInputSchema = {
 
 const updateTypeInputSchema = {
   ...authoringSchema.$defs.updateTypeInput,
+  $defs: authoringSchema.$defs,
+};
+
+const createViewInputSchema = {
+  ...authoringSchema.$defs.createViewInput,
+  $defs: authoringSchema.$defs,
+};
+
+const updateViewInputSchema = {
+  ...authoringSchema.$defs.updateViewInput,
   $defs: authoringSchema.$defs,
 };
 
@@ -98,6 +112,18 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
       "List registered workflow actions with descriptions, exact input/output schemas, trigger compatibility, and whether each action is accepted by anydb_create_workflow. The action_script entry includes authoritative script runtime APIs and authoring rules.",
     inputSchema: workflowCatalogInputSchema as Tool["inputSchema"],
   },
+  {
+    name: "anydb_create_view",
+    description:
+      "Create a filtered View using stable workspace type names. Use scope workspace to attach the View to the database root and show selected root-level types. Use scope children with parentRecordId to show matching direct children of one record. Each target can define structured cell, meta, or badge filters; the server resolves type IDs and stores the native View criteria.",
+    inputSchema: createViewInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_update_view",
+    description:
+      "Update an existing filtered View by viewId. Change its name and/or replace its complete targets and filter set using stable workspace type names. Omit changes.targets to preserve existing criteria. View placement is immutable; create another View to change between workspace and children scope.",
+    inputSchema: updateViewInputSchema as unknown as Tool["inputSchema"],
+  },
 ];
 
 export function isSolutionAuthoringTool(name: string): boolean {
@@ -106,7 +132,7 @@ export function isSolutionAuthoringTool(name: string): boolean {
 
 function normalizeStructuredArgument(
   args: Record<string, unknown>,
-  field: "type" | "changes" | "workflow",
+  field: "type" | "changes" | "workflow" | "view",
   toolName: string,
 ): Record<string, unknown> {
   const value = args[field];
@@ -159,6 +185,16 @@ export async function callSolutionAuthoringTool(
     const normalized = normalizeStructuredArgument(args, "changes", name);
     result = await client.updateWorkflow(
       normalized as unknown as UpdateWorkflowRequest,
+    );
+  } else if (name === "anydb_create_view") {
+    const normalized = normalizeStructuredArgument(args, "view", name);
+    result = await client.createView(
+      normalized as unknown as CreateViewRequest,
+    );
+  } else if (name === "anydb_update_view") {
+    const normalized = normalizeStructuredArgument(args, "changes", name);
+    result = await client.updateView(
+      normalized as unknown as UpdateViewRequest,
     );
   } else if (name === "anydb_list_workflow_triggers") {
     result = await client.listWorkflowTriggers(

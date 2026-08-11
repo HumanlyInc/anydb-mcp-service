@@ -4,6 +4,8 @@ import { createServer, type RequestListener, type Server } from "node:http";
 import {
   ExtApiClient,
   type CreateTypeRequest,
+  type CreateViewRequest,
+  type UpdateViewRequest,
   type UpdateWorkflowRequest,
 } from "../ext-api-client.js";
 
@@ -85,6 +87,132 @@ describe("ExtApiClient", () => {
     await client.createType(request);
 
     expect(receivedBody).toEqual(request);
+  });
+
+  it("posts a workspace View request unchanged", async () => {
+    let receivedBody: unknown;
+    let receivedUrl = "";
+    const baseURL = await listen((incoming, response) => {
+      receivedUrl = incoming.url || "";
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        receivedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: {
+              success: true,
+              operation: "create_view",
+              requestId: "workspace-inventory-view-v1",
+              result: {
+                viewId: "507f1f77bcf86cd799439099",
+                name: "Inventory Attention",
+                scope: "workspace",
+                parentRecordId: "507f1f77bcf86cd799439010",
+                targetTypes: ["Stock", "Asset"],
+                persisted: true,
+              },
+              validation: { valid: true, errors: [] },
+            },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+    const viewRequest: CreateViewRequest = {
+      teamid: request.teamid,
+      adbid: request.adbid,
+      clientRequestId: "workspace-inventory-view-v1",
+      view: {
+        name: "Inventory Attention",
+        scope: "workspace",
+        targets: [{ typeName: "Stock" }, { typeName: "Asset" }],
+      },
+    };
+
+    await client.createView(viewRequest);
+
+    expect(receivedUrl).toBe("/integrations/ext/views");
+    expect(receivedBody).toEqual(viewRequest);
+  });
+
+  it("puts View filter changes to the View ID route", async () => {
+    let receivedBody: unknown;
+    let receivedUrl = "";
+    let receivedMethod = "";
+    const baseURL = await listen((incoming, response) => {
+      receivedUrl = incoming.url || "";
+      receivedMethod = incoming.method || "";
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        receivedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: {
+              success: true,
+              operation: "update_view",
+              requestId: "workspace-inventory-view-v2",
+              result: {
+                viewId: "507f1f77bcf86cd799439099",
+                name: "Critical Inventory",
+                targetTypes: ["Stock"],
+                persisted: true,
+              },
+              validation: { valid: true, errors: [] },
+            },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+    const updateRequest: UpdateViewRequest = {
+      teamid: request.teamid,
+      adbid: request.adbid,
+      viewId: "507f1f77bcf86cd799439099",
+      clientRequestId: "workspace-inventory-view-v2",
+      changes: {
+        name: "Critical Inventory",
+        targets: [
+          {
+            typeName: "Stock",
+            filters: [
+              {
+                source: "cell",
+                field: "Quantity",
+                operator: "lte",
+                value: 5,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    await client.updateView(updateRequest);
+
+    expect(receivedMethod).toBe("PUT");
+    expect(receivedUrl).toBe(
+      "/integrations/ext/views/507f1f77bcf86cd799439099",
+    );
+    expect(receivedBody).toEqual({
+      teamid: updateRequest.teamid,
+      adbid: updateRequest.adbid,
+      clientRequestId: updateRequest.clientRequestId,
+      changes: updateRequest.changes,
+    });
   });
 
   it("includes the backend error body when a request fails", async () => {

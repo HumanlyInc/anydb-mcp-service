@@ -154,6 +154,80 @@ export interface CreateTypeResult {
   validation: { valid: true; errors: [] };
 }
 
+export interface CreateViewRequest {
+  teamid: string;
+  adbid: string;
+  clientRequestId: string;
+  validateOnly?: boolean;
+  view: {
+    name: string;
+    scope: "workspace" | "children";
+    parentRecordId?: string;
+    targets: Array<{
+      typeName: string;
+      filters?: Array<{
+        source: "cell" | "meta" | "badge";
+        field: string;
+        operator:
+          | "eq"
+          | "neq"
+          | "gt"
+          | "lt"
+          | "gte"
+          | "lte"
+          | "like"
+          | "contains"
+          | "startswith"
+          | "endswith"
+          | "includes"
+          | "notincludes";
+        value: string | number | boolean;
+        fieldType?: "string" | "number" | "boolean" | "date" | "array";
+      }>;
+    }>;
+  };
+}
+
+export interface CreateViewResult {
+  success: true;
+  operation: "create_view";
+  requestId: string;
+  result: {
+    viewId?: string;
+    name: string;
+    scope: "workspace" | "children";
+    parentRecordId: string;
+    targetTypes: string[];
+    persisted: boolean;
+  };
+  validation: { valid: true; errors: [] };
+}
+
+export interface UpdateViewRequest {
+  teamid: string;
+  adbid: string;
+  viewId: string;
+  clientRequestId: string;
+  validateOnly?: boolean;
+  changes: {
+    name?: string;
+    targets?: CreateViewRequest["view"]["targets"];
+  };
+}
+
+export interface UpdateViewResult {
+  success: true;
+  operation: "update_view";
+  requestId: string;
+  result: {
+    viewId: string;
+    name: string;
+    targetTypes?: string[];
+    persisted: boolean;
+  };
+  validation: { valid: true; errors: [] };
+}
+
 export interface UpdateTypeRequest {
   teamid: string;
   adbid: string;
@@ -446,6 +520,23 @@ export class ExtApiClient {
     const response = await this.client.post<ExtApiResponse<CreateTypeResult>>(
       "/integrations/ext/templates",
       params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async createView(params: CreateViewRequest): Promise<CreateViewResult> {
+    const response = await this.client.post<ExtApiResponse<CreateViewResult>>(
+      "/integrations/ext/views",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async updateView(params: UpdateViewRequest): Promise<UpdateViewResult> {
+    const { viewId, ...body } = params;
+    const response = await this.client.put<ExtApiResponse<UpdateViewResult>>(
+      `/integrations/ext/views/${encodeURIComponent(viewId)}`,
+      body,
     );
     return this.unwrap(response.data);
   }

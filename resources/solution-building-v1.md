@@ -84,6 +84,55 @@ Keep these concerns separate:
 
 Use a reference for shared master data. Use a child for a detail that belongs to the parent's lifecycle. A child may have multiple parents when the same detail legitimately participates in more than one aggregate.
 
+## Views
+
+Use `anydb_create_view` to create a saved filtered listing after its target types exist. A View is a separate object, not part of a type definition.
+
+- `scope: "workspace"` attaches the View to the database root. It displays matching root-level records from the stable type names listed in `targets`.
+- `scope: "children"` requires `parentRecordId`. It displays matching direct children of that record from the stable type names listed in `targets`.
+- A View can target one or more types. Each target has its own optional `filters` array.
+- Use `source: "cell"` for a type field key, `source: "meta"` for record metadata, and `source: "badge"` for a badge key.
+- Supported operators are `eq`, `neq`, `gt`, `lt`, `gte`, `lte`, `like`, `contains`, `startswith`, `endswith`, `includes`, and `notincludes`.
+- Use stable type names and semantic filter fields. Do not provide template IDs, the predefined View template ID, or encoded `LISTING_VIEWS` data; the server resolves and stores those internals.
+- Use `validateOnly: true` to validate scope, parent access, target names, and filters without creating the View.
+- Use `anydb_update_view` with the returned `viewId` to rename a View or change its criteria. `changes.targets` replaces the complete existing target/filter set; include every target and filter that should remain. Omit `changes.targets` for a name-only update.
+- View placement is immutable during update. To change between workspace and children scope, create a new View in the desired location.
+
+Example child View:
+
+```json
+{
+  "teamid": "<team id>",
+  "adbid": "<database id>",
+  "clientRequestId": "location-low-stock-view-v1",
+  "view": {
+    "name": "Inventory Attention",
+    "scope": "children",
+    "parentRecordId": "<location record id>",
+    "targets": [
+      {
+        "typeName": "Stock",
+        "filters": [
+          {
+            "source": "cell",
+            "field": "Quantity",
+            "operator": "lt",
+            "value": 10,
+            "fieldType": "number"
+          },
+          {
+            "source": "cell",
+            "field": "Status",
+            "operator": "eq",
+            "value": "BROKEN"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
 ## Formulas
 
 Prefer stable key references:
@@ -139,13 +188,13 @@ Keep the workflow set small and purposeful. Reuse an existing workflow or combin
 
 1. Read this guide and `anydb://schemas/solution-authoring/v1`.
 2. Classify the request as a standalone type or multi-type solution, and do not broaden its scope without user direction.
-3. Privately model the requested types, roles, fields, layouts, and formulas. Include relationships and workflows only when required.
+3. Privately model the requested types, roles, fields, layouts, and formulas. Include relationships, Views, and workflows only when required.
 4. For each proposed type, call `anydb_discover_types` with `source: "workspace"`. Inspect promising candidates with `anydb_get_type_definition`. Compare semantic content and behavior, not names: field purpose, value type and format, requiredness and options, references and ownership, formulas and lookups, and workflow-facing keys or outputs. If a workspace definition can fulfill the requested use case without changing its meaning, reuse it and do not import or create a duplicate.
 5. Only when no content-compatible workspace type exists, call `anydb_discover_types` with `source: "builtin"` and inspect promising built-in definitions by the same criteria. If one fulfills the requested use case, import it with `anydb_create_type` in import mode before referencing or using it.
 6. Create a new type with `anydb_create_type` in define mode only when neither the workspace nor built-in catalog contains a content-compatible type. A matching name, description, icon, or search score is never sufficient evidence, and a different name does not make equivalent content incompatible.
 7. Fix stable type names and field keys.
 8. For a standalone type, reuse, import, or create it now and stop after validating it unless more work was requested.
-9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies.
+9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies. Create requested Views after all target types and parent records exist.
 10. Update only where relationships could not be resolved during creation.
 11. Re-check every formula and target. Identify required cross-record or external side effects, discover existing workflows, and prefer formulas/lookups for derived values that do not require mutation. Call the workflow trigger/action catalog tools and create workflows last only when automation is required. If the design reaches five workflows, review it for duplication or safe consolidation before proceeding; exceed five only when distinct behavior justifies it.
 
