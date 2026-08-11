@@ -26,6 +26,8 @@ and inspect each result.
 
 ## Installation
 
+[View `anydb-mcp-service` on npm](https://www.npmjs.com/package/anydb-mcp-service).
+
 ```bash
 npm install anydb-mcp-service
 ```
