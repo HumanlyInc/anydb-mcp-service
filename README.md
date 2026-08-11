@@ -3,39 +3,26 @@
 [![npm version](https://img.shields.io/npm/v/anydb-mcp-service.svg)](https://www.npmjs.com/package/anydb-mcp-service)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Model Context Protocol (MCP) server that enables AI agents to interact with [AnyDB](https://www.anydb.com) for database and record management through natural language conversations.
+An MCP server that lets AI clients work with AnyDB records and build complete
+AnyDB solutions. It supports record and file operations, semantic type
+authoring, filtered Views, record and form sharing, and event-driven workflows.
 
-## Overview
+## Capabilities
 
-This MCP service provides seamless integration between AI assistants (like Claude) and AnyDB, allowing you to:
+- Discover, create, inspect, update, search, copy, move, and delete records.
+- Discover reusable workspace and built-in types before creating new ones.
+- Define or import types with fields, layouts, formulas, badges, and child policies.
+- Create and manage filtered workspace or child Views.
+- Create public or private record and form shares.
+- Discover workflow capabilities and create or manage workflow graphs.
+- Upload small files inline or large files through presigned URLs.
+- Design a standalone type or coordinated multi-type solution with packaged
+  MCP prompts, a canonical guide, and machine-readable authoring schemas.
 
-- Create, read, update, and search database records
-- Manage teams and databases
-- Upload and download files
-- Build complex data workflows through natural language
-
-Perfect for automating AnyDB operations, building AI-powered data assistants, and integrating AnyDB with AI workflows.
-
-## About AnyDB
-
-[AnyDB](https://www.anydb.com) is an object-based platform for managing custom business operations.
-
-Most software forces work into rigid tables, fixed modules, or predefined workflows. Real operations do not work that way. They are made up of things that belong together and things that relate to each other.
-
-AnyDB lets you model your business the way it actually runs.
-
-### The Problem AnyDB Solves
-
-Operational data is usually fragmented:
-
-- Information spread across spreadsheets, tools, folders, and emails
-- Records split across multiple tables that only make sense when joined
-- Files and notes disconnected from the data they belong to
-- Systems that break when workflows evolve
-
-AnyDB replaces this with complete, connected business records.
-
-Visit [www.anydb.com](https://www.anydb.com) to learn more.
+Solution creation is intentionally composed from focused tools rather than one
+opaque `create_solution` operation. This lets clients discover and reuse
+existing artifacts, validate mutations, resume safely after partial failure,
+and inspect each result.
 
 ## Installation
 
@@ -43,55 +30,37 @@ Visit [www.anydb.com](https://www.anydb.com) to learn more.
 npm install anydb-mcp-service
 ```
 
-Or install globally:
+For a global installation:
 
 ```bash
 npm install -g anydb-mcp-service
 ```
 
-## Prerequisites
-
-- Node.js 16 or higher
-- An [AnyDB](https://www.anydb.com) account
-- API credentials from your AnyDB account
-
 ## Configuration
+
+### Prerequisites
+
+- Node.js 16 or later
+- An [AnyDB](https://www.anydb.com) account
+- An AnyDB API key and its associated email address
+
+Get your API key from **Profile > Integration** in the
+[AnyDB application](https://app.anydb.com). Keep it private.
 
 ### Environment Variables
 
-Set the following environment variables:
+| Variable | Required | Default | Description |
+|---|---:|---|---|
+| `ANYDB_DEFAULT_API_KEY` | Yes | - | AnyDB integration API key |
+| `ANYDB_DEFAULT_USER_EMAIL` | Yes | - | Email associated with the API key |
+| `ANYDB_API_URL` | No | `https://app.anydb.com/api` | AnyDB API base URL |
 
-```env
-ANYDB_DEFAULT_API_KEY=your_api_key_here
-ANYDB_DEFAULT_USER_EMAIL=your_email@example.com
-ANYDB_API_URL=https://app.anydb.com/api
-```
+### Claude Desktop
 
-You can set these in:
+Add the server to the Claude Desktop configuration:
 
-- A `.env` file in your project directory
-- Your system environment variables
-- Claude Desktop configuration (for MCP usage)
-
-## Getting Your API Key
-
-Before using the SDK, you'll need to obtain your API key from [AnyDB](https://www.anydb.com):
-
-1. Log in to your AnyDB account at [app.anydb.com](https://app.anydb.com)
-2. Click on the **user icon** in the bottom right corner of the browser UI
-3. In the Profile Dialog that opens, navigate to the **Integration** tab
-4. Copy your API key from the Integration settings
-
-Your API key is unique to your account and should be kept secure. Never commit it to version control or share it publicly.
-
-## Usage
-
-### With Claude Desktop (MCP Protocol)
-
-Add to your Claude Desktop configuration file:
-
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
@@ -109,75 +78,137 @@ Add to your Claude Desktop configuration file:
 }
 ```
 
-Restart Claude Desktop to activate the integration.
+Restart Claude Desktop after changing its configuration.
 
-### With ChatGPT (REST API)
+### Other MCP Clients
 
-The REST API provides HTTP endpoints for all tools, making it compatible with ChatGPT Actions and other HTTP-based integrations.
-
-### With Other MCP Clients
-
-The server uses stdio transport and can be integrated with any MCP-compatible client. If installed globally:
+Run the stdio server with:
 
 ```bash
-anydb-mcp-service
+npx -y anydb-mcp-service
 ```
 
-Or if installed locally:
+Configure environment variables in the MCP host rather than passing credentials
+through a conversation.
 
-````bash
-npx anydb-mcp-serviceRATION.md](CHATGPT_INTEGRATION.md) for detailed setup instructions.
+## Solution Building
 
-### With Other MCP Clients
+The server supports either one standalone type or a coordinated solution with
+multiple types, relationships, Views, shares, and workflows.
 
-The server uses stdio transport and can be integrated with any MCP-compatible client:
+Recommended sequence:
 
-This service provides 19 tools for comprehensive AnyDB integration:
+1. Read `anydb://guides/solution-building/v1` and the authoring schema.
+2. Search workspace types with `anydb_discover_types` and inspect promising
+   definitions with `anydb_get_type_definition`.
+3. Search built-in types only when no compatible workspace type exists.
+4. Reuse, import, or define each required type. Create dependencies first.
+5. List existing Views, shares, and workflows before creating duplicates.
+6. Create requested Views and shares after their targets exist.
+7. Create workflows last, only when an event must cause a side effect.
+8. Validate results and inspect representative workflow execution history.
 
-### Record Operations
+Mutation tools accept a stable `clientRequestId`. Reuse the same value when
+retrying the same intended mutation. Most authoring mutations also support
+`validateOnly: true` for validation without persistence.
+
+Use stable type names and field keys in authoring inputs. Template IDs are
+version-specific implementation details, not semantic identifiers.
+
+## MCP Tools
+
+The service exposes 41 tools.
+
+### Solution Discovery
 
 | Tool | Description |
-|------|-------------|
-| `list_teams` | List all teams accessible with your credentials |
-| `list_databases_for_team` | Get all databases within a team |
-| `list_records` | List records with pagination and structured field filters |
-| `get_record` | Get a specific record with all cell data |
-| `list_templates` | List templates/types available in a database |
-| `get_template` | Get a template schema by `templatename` |
-| `create_record` | Create a new record in a database |
-| `bulk_create_records` | Create up to 100 records with per-record results |
-| `update_record` | Update an existing record's metadata and content |
-| `bulk_update_records` | Update up to 100 records with per-record results |
-| `delete_record` | Delete an existing record permanently |
-| `copy_record` | Copy a record with control over file attachment handling |
-| `move_record` | Move a record to a new parent location |
-| `search_records` | Search for records by keyword across database |
-| `search_team_records` | Search each accessible database in a team sequentially |
+|---|---|
+| `anydb_get_authoring_guide` | Return the canonical solution-building guide before authoring |
+| `anydb_discover_types` | Search reusable workspace, built-in, or all type catalogs |
+| `anydb_get_type_definition` | Get a complete type definition by stable name and source |
+| `anydb_list_workflows` | List normalized workflow graphs in a database |
+| `anydb_get_workflow` | Get one workflow graph and retained execution details |
+| `anydb_get_workflow_execution_history` | Get retained executions for one workflow |
+| `anydb_list_workflow_triggers` | List supported triggers and exact schemas |
+| `anydb_list_workflow_actions` | List available actions, schemas, compatibility, and license availability |
 
-### File Operations
+### Type Authoring
 
 | Tool | Description |
-|------|-------------|
-| `download_file` | Download or get URL for files attached to record cells |
-| `upload_file` | Upload small files inline through a supported single-call child File workflow |
-| `prepare_file_upload` | Create a file record and get a presigned upload URL |
-| `complete_file_upload` | Finalize a successful presigned upload |
+|---|---|
+| `anydb_create_type` | Define a new type or import a compatible built-in type |
+| `anydb_update_type` | Patch the latest revision of a workspace type and migrate records |
 
-`upload_file` is retained for backward compatibility and is not deprecated. It
-creates a separate child File record attached to the supplied parent `adoid`,
-then prepares, uploads, and completes the file against that child. It does not
-write file metadata into the parent record's content. Its optional `cellpos`
-identifies a cell on the child File record, not on the parent.
+`anydb_create_type` supports semantic fields, a six-column form layout,
+formulas, lookups, badges, and child policies. Destructive type updates require
+explicit data-loss confirmation and an expected revision.
 
-Use `upload_file` for small inline payloads. Use `prepare_file_upload`, upload
-the bytes directly to its returned presigned URL, and then call
-`complete_file_upload` for large files. Both workflows use the same child File
-record architecture.
+### Views
 
-### Structured Record Filters
+| Tool | Description |
+|---|---|
+| `anydb_list_views` | List Views with decoded scope, targets, and filters |
+| `anydb_get_view` | Get one View's complete definition |
+| `anydb_create_view` | Create a filtered workspace or direct-child View |
+| `anydb_update_view` | Rename a View or replace its targets and filters |
+| `anydb_delete_view` | Permanently delete a confirmed View |
 
-Use `list_records` with `templatename` and a `filter` array. Field names wrapped
-as `{{Field Name}}` are resolved against the template schema.
+A workspace View is attached to the database root. A children View is attached
+to a specific parent and lists matching direct children. Targets use stable type
+names; filters can address cell fields, metadata, or badges.
+
+### Sharing
+
+| Tool | Description |
+|---|---|
+| `anydb_list_team_groups` | List stable team group names available for private sharing |
+| `anydb_list_shares` | List semantic record and form share facets |
+| `anydb_get_share` | Get one share facet by `shareId` and `kind` |
+| `anydb_create_share` | Create a public or private record or form share |
+| `anydb_revoke_share` | Revoke one facet while preserving another facet |
+
+Public shares omit recipients and return a usable `publicUrl`. Private shares
+require recipient emails and/or exact group names. Record shares may specify a
+`viewer` or `editor` role and include attachments. Form shares use a stable
+template name and may specify the parent that receives submissions.
+
+### Workflows
+
+| Tool | Description |
+|---|---|
+| `anydb_create_workflow` | Create one trigger followed by an ordered action chain |
+| `anydb_update_workflow` | Change a workflow's name, description, or enabled state |
+
+Always query the trigger and action catalogs before creating automation. They
+contain authoritative schemas, compatibility rules, script runtime guidance,
+and current-team license availability. Create workflows disabled by default,
+run a representative case, and inspect its execution history before enabling it.
+
+### Records and Templates
+
+| Tool | Description |
+|---|---|
+| `list_teams` | List accessible teams |
+| `list_databases_for_team` | List databases in a team |
+| `list_templates` | List workspace templates/types |
+| `get_template` | Get a template schema by stable `templatename` |
+| `list_records` | List records with pagination and structured filters |
+| `get_record` | Get one complete record |
+| `create_record` | Create a record, optionally from a template or under a parent |
+| `bulk_create_records` | Create up to 100 records with per-item results |
+| `update_record` | Update record metadata and partial cell content |
+| `bulk_update_records` | Update up to 100 records with per-item results |
+| `delete_record` | Permanently delete a record |
+| `copy_record` | Copy a record with configurable attachment handling |
+| `move_record` | Move a record to another parent |
+| `search_records` | Search records in one database |
+| `search_team_records` | Search each accessible database in a team |
+
+Bulk operations use bounded concurrency and partial-failure semantics. A
+successful item is not rolled back when another item fails. Use `clientref` to
+correlate results.
+
+Structured `list_records` filters support metadata, badges, and template fields:
 
 ```json
 {
@@ -190,19 +221,71 @@ as `{{Field Name}}` are resolved against the template schema.
 }
 ```
 
-Bulk create and update accept at most 100 records. They use bounded concurrency
-and return one ordered result per input. Successful operations are not rolled
-back when another item fails; use `clientref` to correlate results.
+### Files
 
-### Headless Download Check
+| Tool | Description |
+|---|---|
+| `download_file` | Return a temporary download or preview URL |
+| `upload_file` | Upload a small inline payload in one call |
+| `prepare_file_upload` | Create a child File record and return a presigned PUT URL |
+| `complete_file_upload` | Finalize a successful presigned upload |
 
-`download_file` returns a presigned URL that can be fetched without AnyDB
-headers or cookies. Normal file URLs expire after approximately **60 seconds**.
-Callers must fetch them immediately and must not cache or reuse them; request a
-new URL for every later download attempt.
+Both upload workflows create a separate child File record attached to the
+supplied parent. They do not overwrite the parent's content. The optional
+`cellpos` identifies the file cell on the child File record.
 
-The integration test verifies this headless fetch path.
-Set the following variables to enable it:
+Use `upload_file` for small base64 or UTF-8 payloads. For large files, call
+`prepare_file_upload`, PUT the exact bytes to its URL, and then call
+`complete_file_upload` with the returned child File ID and exact size.
+
+Normal download URLs expire after approximately 60 seconds. Fetch them
+immediately and request a new URL instead of caching an expired one.
+
+## MCP Resources
+
+| URI | Content |
+|---|---|
+| `anydb://guides/solution-building/v1` | Design and construction rules for types, relationships, formulas, Views, shares, and workflows |
+| `anydb://schemas/solution-authoring/v1` | JSON Schema contracts used by solution-authoring tools |
+
+The guide is also available through `anydb_get_authoring_guide` for clients that
+do not expose MCP resource reading directly.
+
+## MCP Prompts
+
+| Prompt | Purpose |
+|---|---|
+| `design_anydb_type` | Plan one standalone type without inventing a larger solution |
+| `design_anydb_solution` | Plan a coordinated multi-type solution before mutation |
+
+Both prompts require a `goal` and accept optional `constraints`.
+
+## Development
+
+```bash
+git clone https://github.com/HumanlyInc/anydb-mcp-service.git
+cd anydb-mcp-service
+npm install
+npm run build
+npm test
+```
+
+Run the MCP stdio server:
+
+```bash
+npm run start:mcp
+```
+
+Run the optional REST wrapper:
+
+```bash
+npm run start:rest
+```
+
+### Headless Download Integration Test
+
+The opt-in integration test verifies that a returned presigned URL can be
+fetched without AnyDB headers or cookies:
 
 ```env
 ANYDB_TEST_TEAM_ID=team-id
@@ -212,208 +295,22 @@ ANYDB_TEST_FILE_CELL_POS=A1
 ANYDB_TEST_FILE_SHA256=optional-expected-sha256
 ```
 
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/anydb-mcp-service.git
-cd anydb-mcp-service
-
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Run tests
-npm test
-
-# Development mode (watch)
-npm run dev
-
-# Start MCP server
-npmSupported AI Platforms
-
-| Platform | Protocol | Status | Notes |
-|----------|----------|--------|-------|
-| Claude Desktop | MCP | ✅ Supported | Native MCP protocol support via stdio |
-| ChatGPT Custom GPT | REST API | ✅ Supported | Requires REST server and public URL |
-| Other MCP Clients | MCP | ✅ Supported | Any MCP-compatible client |
-
-## API Documentation
-
-For detailed API documentation and usage examples, visit the [AnyDB Documentation](https://www.anydb.com/support).
-# Watch mode
-npm test:watch
-
-# Coverage report
-npmExamples
-
-### Basic Usage with Claude
-
-Once configured, you can interact with AnyDB through natural language:
-
-````
-
-"List all my teams"
-"Show me databases in team XYZ"
-"Create a new record in database ABC with name 'Project Plan'"
-"Search for records containing 'budget' in database ABC"
-"Copy this record with all file attachments duplicated"
-"Move record XYZ under parent ABC"
-"Upload this file to record XYZ"
-
-````
-
-### Understanding copy_record Attachment Modes
-
-When copying records, you have three options for handling file attachments:
-
-1. **`noattachments`** - Copy the record without any files
-   - Use when you want a clean copy without attachments
-   - Fastest option, no file operations needed
-   - Example: "Copy this record template without files"
-
-2. **`link`** (default) - Copy with linked attachments
-   - Files reference the same storage location as the original
-   - Quick operation, minimal storage used
-   - Changes to original files affect the copy
-   - Use for related records that should share the same files
-   - Example: "Copy this record and link to the same attachments"
-
-3. **`duplicate`** - Copy with fully duplicated attachments
-   - Creates independent copies of all files
-   - Slowest option but creates true independent records
-   - Changes to original files don't affect the copy
-   - Use when you need completely separate file copies
-   - Example: "Copy this record and duplicate all file attachments"
-
-Choose the mode based on your use case:
-- Need independent files? Use `duplicate`
-- Want to share files between records? Use `link`
-- Don't need files at all? Use `noattachments`
-
-### Programmatic Usage
-
-You can also use the SDK directly in your Node.js applications:
-
-```typescript
-import { AnyDBClient } from 'anydb-api-sdk-ts';
-
-const client = new AnyDBClient({
-  apiKey: 'your-api-key',
-  userEmail: 'your-email@example.com'
-});
-
-// List teams
-const teams = await client.listTeams();
-
-// Create a record
-const record = await client.createRecord({
-  teamid: 'team-id',
-  adbid: 'database-id',
-  name: 'New Record'
-});
-
-// Copy a record with duplicated attachments
-const copiedRecord = await client.copyRecord({
-  teamid: 'team-id',
-  adbid: 'database-id',
-  adoid: 'record-id',
-  attachmentsmode: 'duplicate'
-});
-
-// Move a record to a new parent
-const movedRecord = await client.moveRecord({
-  teamid: 'team-id',
-  adbid: 'database-id',
-  adoid: 'record-id',
-  parentid: 'new-parent-id'
-});
-````
-
 ## Troubleshooting
 
-### Common Issues
-
-**Connection Issues**
-
-- Verify `ANYDB_API_URL` is set correctly (default: `https://app.anydb.com/api`)
-- Check that your API key and email are valid
-- Ensure network access to AnyDB API
-
-**Authentication Errors**
-
-- Confirm your API key has not expired
-- Verify the email associated with your API key
-- Check API key permissions in your AnyDB account settings
-
-**File Upload Issues**
-
-- Ensure files are within size limits
-- Check file permissions and access
-- Verify the target record and cell position exist
-
-For more help, visit [AnyDB Support](https://www.anydb.com/support).
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Related Projects
-
-- [anydb-api-sdk-ts](https://github.com/HumanlyInc/anydb-api-sdk-ts) - TypeScript SDK for AnyDB API
-- [AnyDB](https://www.anydb.com) - Build powerful databases and workflows
+- Confirm `ANYDB_API_URL` points to the AnyDB API and is reachable.
+- Confirm the API key belongs to `ANYDB_DEFAULT_USER_EMAIL`.
+- Restart the MCP host after changing environment variables or package version.
+- Read the guide before diagnosing rejected authoring requests; these tools
+  enforce semantic validation and authorization.
+- Use `validateOnly: true` to diagnose authoring requests without persistence.
+- Inspect workflow execution history when automation does not appear to run.
 
 ## Support
 
-- 📖 [Documentation](https://www.anydb.com/support)
-- 🌐 [Website](https://www.anydb.com)
-- 💬 [Community Support](https://www.anydb.com/support)
+- [AnyDB documentation](https://www.anydb.com/support)
+- [AnyDB website](https://www.anydb.com)
+- [GitHub issues](https://github.com/HumanlyInc/anydb-mcp-service/issues)
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## About AnyDB
-
-[AnyDB](https://www.anydb.com) is a powerful database platform that combines the flexibility of spreadsheets with the power of databases. Build custom workflows, manage data, and integrate with AI assistants through natural language.
-
-Learn more at [www.anydb.com](https://www.anydb.com)
-
-### ChatGPT (REST API)
-
-- ✅ Custom GPT Actions
-- ✅ Requires REST API wrapper (included)
-- ✅ Requires public URL or deployment
-- 📖 See [CHATGPT_INTEGRATION.md](CHATGPT_INTEGRATION.md)
-
-## Troubleshooting
-
-### Connection Issues
-
-- Ensure `ANYDB_API_URL` points to your internal API
-- Check that the API is accessible from the server
-- Verify authentication token if required
-
-## License
-
-MIT
-
-## Next Steps
-
-1. **For Claude Desktop (MCP)**:
-   - Build: `npm run build`
-   - Configure Claude Desktop config file
-   - Start: `npm run start:mcp`
-2. **For ChatGPT (REST API)**:
-   - Install dependencies: `npm install`
-   - Build: `npm run build`
-   - Start REST server: `npm run start:rest`
-   - Follow [CHATGPT_INTEGRATION.md](CHATGPT_INTEGRATION.md) for Custom GPT setup
-
-3. **Implement Backend API Endpoints**: See [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md)
-
-4. **Test**: Try creating templates with natural language prompts
-
-5. **Deploy**: For ChatGPT, deploy REST server to cloud platform
+MIT. See [LICENSE](LICENSE).
