@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 
 import {
+  ANYDB_SETUP_GUIDE_URI,
   listSolutionResources,
   readSolutionResource,
   SOLUTION_AUTHORING_SCHEMA_URI,
@@ -11,6 +12,7 @@ describe("solution resources", () => {
   it("lists and reads the solution-building guide", () => {
     expect(listSolutionResources()).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({ uri: ANYDB_SETUP_GUIDE_URI }),
         expect.objectContaining({ uri: SOLUTION_BUILDING_GUIDE_URI }),
         expect.objectContaining({ uri: SOLUTION_AUTHORING_SCHEMA_URI }),
       ]),
@@ -132,6 +134,19 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       "Record shares have no submissions destination and do not create a Folder",
     );
+  });
+
+  it("lists and reads the MCP setup guide", () => {
+    const resource = readSolutionResource(ANYDB_SETUP_GUIDE_URI);
+
+    expect(resource.mimeType).toBe("text/markdown");
+    expect(resource.text).toContain("Profile dialog");
+    expect(resource.text).toContain("Integration");
+    expect(resource.text).toContain("anydb-mcp-service@latest");
+    expect(resource.text).toContain("ANYDB_API_URL");
+    expect(resource.text).toContain("Do not use `ANYDB_API_BASE_URL`");
+    expect(resource.text).toContain("Restart the MCP client");
+    expect(resource.text).toContain("List my AnyDB teams");
   });
 
   it("reads a valid machine-readable authoring schema", () => {

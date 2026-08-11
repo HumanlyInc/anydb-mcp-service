@@ -105,34 +105,30 @@ import {
   SOLUTION_DISCOVERY_TOOLS,
 } from "./solution-discovery-tools.js";
 import { getSolutionPrompt, listSolutionPrompts } from "./solution-prompts.js";
+import { callSetupTool, isSetupTool, SETUP_TOOLS } from "./setup-tools.js";
 import {
+  ANYDB_SETUP_GUIDE_URI,
   listSolutionResources,
   readSolutionResource,
   SOLUTION_BUILDING_GUIDE_URI,
 } from "./solution-resources.js";
 import type { TemplateStructure } from "./types.js";
 
-// Initialize AnyDB client with credentials from environment
-if (!config.defaultApiKey || !config.defaultUserEmail) {
-  throw new Error(
-    "ANYDB_DEFAULT_API_KEY and ANYDB_DEFAULT_USER_EMAIL must be set in environment variables",
-  );
-}
-
 const anydbClient = new AnyDBClient({
-  apiKey: config.defaultApiKey,
-  userEmail: config.defaultUserEmail,
+  apiKey: config.defaultApiKey || "",
+  userEmail: config.defaultUserEmail || "",
   baseURL: config.anydbApiBaseUrl,
 });
 
 const extApiClient = new ExtApiClient({
-  apiKey: config.defaultApiKey,
-  userEmail: config.defaultUserEmail,
+  apiKey: config.defaultApiKey || "",
+  userEmail: config.defaultUserEmail || "",
   baseURL: config.anydbApiBaseUrl,
 });
 
 // Define available tools
 const TOOLS: Tool[] = [
+  ...SETUP_TOOLS,
   ...SOLUTION_AUTHORING_TOOLS,
   ...SOLUTION_DISCOVERY_TOOLS,
   {
@@ -808,7 +804,7 @@ const server = new Server(
       resources: {},
       prompts: {},
     },
-    instructions: `Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read.`,
+    instructions: `For installation, credentials, client configuration, or connection troubleshooting, read ${ANYDB_SETUP_GUIDE_URI} or call anydb_get_setup_guide. Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read.`,
   },
 );
 
@@ -844,6 +840,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   console.error(`======================================\n`);
 
   try {
+    if (isSetupTool(name)) {
+      return callSetupTool(name);
+    }
+
+    if (!config.defaultApiKey || !config.defaultUserEmail) {
+      throw new Error(
+        "AnyDB credentials are not configured. Call anydb_get_setup_guide, then set ANYDB_DEFAULT_API_KEY and ANYDB_DEFAULT_USER_EMAIL in the MCP client environment and restart the client.",
+      );
+    }
+
     if (isSolutionAuthoringTool(name)) {
       return await callSolutionAuthoringTool(name, args, extApiClient);
     }
