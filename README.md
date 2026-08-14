@@ -10,6 +10,7 @@ authoring, filtered Views, record and form sharing, and event-driven workflows.
 ## Capabilities
 
 - Discover, create, inspect, update, search, copy, move, and delete records.
+- Search record content by meaning with authorized hybrid semantic search.
 - Discover reusable workspace and built-in types before creating new ones.
 - Define or import types with fields, layouts, formulas, badges, and child policies.
 - Create and manage filtered workspace or child Views.
@@ -25,6 +26,8 @@ existing artifacts, validate mutations, resume safely after partial failure,
 and inspect each result.
 
 ## Installation
+
+[View `anydb-mcp-service` on npm](https://www.npmjs.com/package/anydb-mcp-service).
 
 ```bash
 npm install anydb-mcp-service
@@ -123,7 +126,7 @@ version-specific implementation details, not semantic identifiers.
 
 ## MCP Tools
 
-The service exposes 42 tools.
+The service exposes 44 tools.
 
 ### Setup
 
@@ -146,10 +149,11 @@ The service exposes 42 tools.
 
 ### Type Authoring
 
-| Tool                | Description                                                       |
-| ------------------- | ----------------------------------------------------------------- |
-| `anydb_create_type` | Define a new type or import a compatible built-in type            |
-| `anydb_update_type` | Patch the latest revision of a workspace type and migrate records |
+| Tool                     | Description                                                       |
+| ------------------------ | ----------------------------------------------------------------- |
+| `anydb_create_workspace` | Create a new empty AnyDB workspace                                |
+| `anydb_create_type`      | Define a new type or import a compatible built-in type            |
+| `anydb_update_type`      | Patch the latest revision of a workspace type and migrate records |
 
 `anydb_create_type` supports semantic fields, a six-column form layout,
 formulas, lookups, badges, and child policies. Destructive type updates require
@@ -200,6 +204,7 @@ run a representative case, and inspect its execution history before enabling it.
 
 | Tool                      | Description                                                   |
 | ------------------------- | ------------------------------------------------------------- |
+| `anydb_semantic_search`   | Search authorized records by content meaning                  |
 | `list_teams`              | List accessible teams                                         |
 | `list_databases_for_team` | List databases in a team                                      |
 | `list_templates`          | List workspace templates/types                                |
