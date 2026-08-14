@@ -22,7 +22,8 @@
     "url": "https://www.anydb.com/support"
   },
   "scripts": {
-    "build": "tsc",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc",
     "dev": "tsc --watch",
     "prepare": "npm run build",
     "start": "npm run build && node dist/index.js",
@@ -49,7 +50,6 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
-    "anydb-api-sdk-ts": "^1.0.5",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

@@ -1,4 +1,18 @@
 import axios, { AxiosInstance } from "axios";
+import type {
+  ADB,
+  ADORecord,
+  CompleteUploadParams,
+  DeleteRecordParams,
+  DownloadFileParams,
+  DownloadFileResponse,
+  GetUploadUrlParams,
+  SearchRecordsParams,
+  Team,
+  UpdateRecordParams,
+} from "./types.js";
+
+export const FILE_TEMPLATE_ADOID = "222222222222222222222222";
 
 interface ExtApiClientConfig {
   apiKey: string;
@@ -63,6 +77,32 @@ export interface DiscoverTypesParams {
   search: string;
   source?: "workspace" | "builtin" | "all";
   limit?: number;
+}
+
+export interface SemanticSearchParams {
+  teamid: string;
+  adbid: string;
+  query: string;
+  limit?: number;
+}
+
+export interface SemanticSearchResponse {
+  mode: "hybrid" | "lexical_only" | "dense_only" | "unavailable";
+  warnings: string[];
+  results: Array<{
+    adoid: string;
+    teamid: string;
+    adbid: string;
+    name: string;
+    url: string | null;
+    rank: number;
+    score: number;
+    chunks: Array<{
+      chunkId: string;
+      content: string;
+      score: number;
+    }>;
+  }>;
 }
 
 export interface TemplateDiscoveryCandidate {
@@ -474,8 +514,27 @@ export interface CreateRecordRequest {
   adbid: string;
   name: string;
   attach?: string;
+  template?: string;
   templatename?: string;
   content?: Record<string, unknown>;
+}
+
+export interface CopyRecordRequest {
+  adoid: string;
+  adbid: string;
+  teamid: string;
+  attachto?: string;
+  attachmentsmode?: "noattachments" | "link" | "duplicate";
+}
+
+export interface UploadFileRequest {
+  filename: string;
+  fileContent: Buffer | string;
+  teamid: string;
+  adbid: string;
+  adoid: string;
+  cellpos?: string;
+  contentType?: string;
 }
 
 export interface BulkUpdateRecordInput {
@@ -578,6 +637,15 @@ export class ExtApiClient {
     const response = await this.client.get<
       ExtApiResponse<TemplateDiscoveryResult>
     >("/integrations/ext/templates/discover", { params });
+    return this.unwrap(response.data);
+  }
+
+  async semanticSearch(
+    params: SemanticSearchParams,
+  ): Promise<SemanticSearchResponse> {
+    const response = await this.client.post<
+      ExtApiResponse<SemanticSearchResponse>
+    >("/integrations/ext/semantic-search", params);
     return this.unwrap(response.data);
   }
 
@@ -789,12 +857,186 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
-  async createRecord(params: CreateRecordRequest): Promise<unknown> {
-    const response = await this.client.post<ExtApiResponse<unknown>>(
+  async createRecord(params: CreateRecordRequest): Promise<ADORecord> {
+    const response = await this.client.post<ExtApiResponse<ADORecord>>(
       "/integrations/ext/createrecord",
       params,
     );
     return this.unwrap(response.data);
+  }
+
+  async getRecord(
+    teamid: string,
+    adbid: string,
+    adoid: string,
+  ): Promise<ADORecord> {
+    const response = await this.client.get<ExtApiResponse<ADORecord>>(
+      "/integrations/ext/record",
+      { params: { teamid, adbid, adoid } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listTeams(): Promise<Team[]> {
+    const response = await this.client.get<ExtApiResponse<Team[]>>(
+      "/integrations/ext/listteams",
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listDatabasesForTeam(teamid: string): Promise<ADB[]> {
+    const response = await this.client.get<ExtApiResponse<ADB[]>>(
+      "/integrations/ext/listdbsforteam",
+      { params: { teamid } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async updateRecord(params: UpdateRecordParams): Promise<ADORecord> {
+    const response = await this.client.put<ExtApiResponse<ADORecord>>(
+      "/integrations/ext/updaterecord",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async removeRecord(params: DeleteRecordParams): Promise<boolean> {
+    const response = await this.client.delete<ExtApiResponse<unknown>>(
+      "/integrations/ext/remove",
+      { data: params },
+    );
+    this.unwrap(response.data);
+    return true;
+  }
+
+  async copyRecord(params: CopyRecordRequest): Promise<ADORecord> {
+    const response = await this.client.post<ExtApiResponse<ADORecord>>(
+      "/integrations/ext/copyrecord",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async moveRecord(params: {
+    adoid: string;
+    adbid: string;
+    teamid: string;
+    parentid: string;
+  }): Promise<ADORecord> {
+    return this.updateRecord({
+      meta: {
+        adoid: params.adoid,
+        adbid: params.adbid,
+        teamid: params.teamid,
+        attach: params.parentid,
+      },
+    });
+  }
+
+  async searchRecords(params: SearchRecordsParams): Promise<ADORecord[]> {
+    const response = await this.client.get<ExtApiResponse<ADORecord[]>>(
+      "/integrations/ext/search",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async downloadFile(
+    params: DownloadFileParams,
+  ): Promise<DownloadFileResponse> {
+    const response = await this.client.get<DownloadFileResponse>(
+      "/integrations/ext/download",
+      {
+        params: {
+          teamid: params.teamid,
+          adbid: params.adbid,
+          adoid: params.adoid,
+          cellpos: params.cellpos,
+          redirect:
+            params.redirect === undefined
+              ? undefined
+              : params.redirect
+                ? "1"
+                : "0",
+          preview:
+            params.preview === undefined
+              ? undefined
+              : params.preview
+                ? "1"
+                : "0",
+        },
+        maxRedirects: 0,
+        validateStatus: (status) => status >= 200 && status < 400,
+      },
+    );
+    if (response.status === 302 && response.headers.location) {
+      return { url: response.headers.location, redirect: true };
+    }
+    return response.data;
+  }
+
+  async getUploadUrl(params: GetUploadUrlParams): Promise<string> {
+    const response = await this.client.get<ExtApiResponse<{ url: string }>>(
+      "/integrations/ext/getuploadurl",
+      { params },
+    );
+    return this.unwrap(response.data).url;
+  }
+
+  async uploadFileToUrl(
+    uploadUrl: string,
+    fileContent: Buffer | string,
+    contentType?: string,
+  ): Promise<void> {
+    await axios.put(uploadUrl, fileContent, {
+      headers: {
+        "Content-Type": contentType || "application/octet-stream",
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+  }
+
+  async completeUpload(params: CompleteUploadParams): Promise<boolean> {
+    const response = await this.client.put<ExtApiResponse<unknown>>(
+      "/integrations/ext/completeupload",
+      params,
+    );
+    this.unwrap(response.data);
+    return true;
+  }
+
+  async uploadFile(params: UploadFileRequest): Promise<string> {
+    const cellpos = params.cellpos || "A1";
+    const fileRecord = await this.createRecord({
+      teamid: params.teamid,
+      adbid: params.adbid,
+      name: params.filename,
+      attach: params.adoid,
+      template: FILE_TEMPLATE_ADOID,
+    });
+    const fileAdoid = fileRecord.meta.adoid;
+    const fileContent = Buffer.isBuffer(params.fileContent)
+      ? params.fileContent
+      : Buffer.from(params.fileContent);
+    const filesize = fileContent.length.toString();
+    const uploadUrl = await this.getUploadUrl({
+      filename: params.filename,
+      teamid: params.teamid,
+      adbid: params.adbid,
+      adoid: fileAdoid,
+      filesize,
+      cellpos,
+    });
+    await this.uploadFileToUrl(uploadUrl, fileContent, params.contentType);
+    await this.completeUpload({
+      filesize,
+      teamid: params.teamid,
+      adbid: params.adbid,
+      adoid: fileAdoid,
+      cellpos,
+    });
+    return fileAdoid;
   }
 
   async listRecords(params: ListRecordsParams): Promise<unknown> {

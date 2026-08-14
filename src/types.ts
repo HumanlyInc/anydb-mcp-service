@@ -63,12 +63,16 @@ export interface ADORecord {
   adbid: string;
   teamid: string;
   meta: {
+    adoid: string;
+    adbid: string;
+    teamid: string;
     name: string;
     description?: string;
     icon?: string;
     followup?: number;
     locked?: boolean;
     status?: string;
+    attach?: string;
     assignees?: {
       users?: string[];
       groups?: string[];
@@ -111,6 +115,7 @@ export interface UpdateRecordParams {
     followup?: number;
     locked?: boolean;
     status?: string;
+    attach?: string;
     assignees?: {
       users?: string[];
       groups?: string[];

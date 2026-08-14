@@ -89,10 +89,9 @@ import {
   ReadResourceRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { AnyDBClient, PredefinedTemplateAdoIds } from "anydb-api-sdk-ts";
 import { lookup as lookupMimeType } from "mime-types";
 import { config } from "./config.js";
-import { ExtApiClient } from "./ext-api-client.js";
+import { ExtApiClient, FILE_TEMPLATE_ADOID } from "./ext-api-client.js";
 import { normalizeRecordContent } from "./record-update.js";
 import {
   callSolutionAuthoringTool,
@@ -107,18 +106,17 @@ import {
 import { getSolutionPrompt, listSolutionPrompts } from "./solution-prompts.js";
 import { callSetupTool, isSetupTool, SETUP_TOOLS } from "./setup-tools.js";
 import {
+  callSemanticSearchTool,
+  isSemanticSearchTool,
+  SEMANTIC_SEARCH_TOOLS,
+} from "./semantic-search-tools.js";
+import {
   ANYDB_SETUP_GUIDE_URI,
   listSolutionResources,
   readSolutionResource,
   SOLUTION_BUILDING_GUIDE_URI,
 } from "./solution-resources.js";
 import type { TemplateStructure } from "./types.js";
-
-const anydbClient = new AnyDBClient({
-  apiKey: config.defaultApiKey || "",
-  userEmail: config.defaultUserEmail || "",
-  baseURL: config.anydbApiBaseUrl,
-});
 
 const extApiClient = new ExtApiClient({
   apiKey: config.defaultApiKey || "",
@@ -131,6 +129,7 @@ const TOOLS: Tool[] = [
   ...SETUP_TOOLS,
   ...SOLUTION_AUTHORING_TOOLS,
   ...SOLUTION_DISCOVERY_TOOLS,
+  ...SEMANTIC_SEARCH_TOOLS,
   {
     name: "list_templates",
     description:
@@ -834,9 +833,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   // Log incoming MCP request
+  const loggedArgs = isSemanticSearchTool(name)
+    ? { ...args, query: args?.query ? "[REDACTED]" : undefined }
+    : args;
   console.error(`\n========== MCP Tool Request ==========`);
   console.error(`Tool: ${name}`);
-  console.error(`Arguments:`, JSON.stringify(args, null, 2));
+  console.error(`Arguments:`, JSON.stringify(loggedArgs, null, 2));
   console.error(`======================================\n`);
 
   try {
@@ -856,6 +858,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (isSolutionDiscoveryTool(name)) {
       return await callSolutionDiscoveryTool(name, args, extApiClient);
+    }
+
+    if (isSemanticSearchTool(name)) {
+      return await callSemanticSearchTool(args, extApiClient);
     }
 
     switch (name) {
@@ -895,7 +901,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!teamid || !adbid || !adoid) {
           throw new Error("teamid, adbid, and adoid are required");
         }
-        const record = await anydbClient.getRecord(teamid, adbid, adoid);
+        const record = await extApiClient.getRecord(teamid, adbid, adoid);
         return {
           content: [
             {
@@ -907,7 +913,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "list_teams": {
-        const teams = await anydbClient.listTeams();
+        const teams = await extApiClient.listTeams();
         return {
           content: [
             {
@@ -923,7 +929,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!teamid) {
           throw new Error("teamid is required");
         }
-        const databases = await anydbClient.listDatabasesForTeam(teamid);
+        const databases = await extApiClient.listDatabasesForTeam(teamid);
         return {
           content: [
             {
@@ -964,25 +970,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               value: unknown;
             }>
           | undefined;
-        const records = filter
-          ? await extApiClient.listRecords({
-              teamid,
-              adbid,
-              parentid,
-              templatename,
-              pagesize,
-              lastmarker,
-              filter,
-            })
-          : await anydbClient.listRecords(
-              teamid,
-              adbid,
-              parentid,
-              undefined,
-              templatename,
-              pagesize,
-              lastmarker,
-            );
+        const records = await extApiClient.listRecords({
+          teamid,
+          adbid,
+          parentid,
+          templatename,
+          pagesize,
+          lastmarker,
+          filter,
+        });
         return {
           content: [
             {
@@ -1053,7 +1049,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!meta || !meta.adoid || !meta.adbid || !meta.teamid) {
           throw new Error("meta with adoid, adbid, and teamid are required");
         }
-        const current = await anydbClient.getRecord(
+        const current = await extApiClient.getRecord(
           meta.teamid,
           meta.adbid,
           meta.adoid,
@@ -1065,7 +1061,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             args?.content as Record<string, unknown> | undefined,
           ),
         };
-        const record = await anydbClient.updateRecord(params);
+        const record = await extApiClient.updateRecord(params);
         return {
           content: [
             {
@@ -1094,7 +1090,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
         const normalizedRecords = [];
         for (const record of records) {
-          const current = await anydbClient.getRecord(
+          const current = await extApiClient.getRecord(
             record.meta.teamid,
             record.meta.adbid,
             record.meta.adoid,
@@ -1124,7 +1120,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           removefromids:
             (args?.removefromids as string) || "000000000000000000000000", // NULL_OBJECTID for permanent deletion
         };
-        const result = await anydbClient.removeRecord(params);
+        const result = await extApiClient.removeRecord(params);
         return {
           content: [
             {
@@ -1153,7 +1149,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             (args?.attachmentsmode as "noattachments" | "link" | "duplicate") ||
             "link",
         };
-        const result = await anydbClient.copyRecord(params);
+        const result = await extApiClient.copyRecord(params);
         return {
           content: [
             {
@@ -1178,7 +1174,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           teamid,
           parentid,
         };
-        const result = await anydbClient.moveRecord(params);
+        const result = await extApiClient.moveRecord(params);
         return {
           content: [
             {
@@ -1204,7 +1200,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           start: args?.start as string | undefined,
           limit: args?.limit as string | undefined,
         };
-        const results = await anydbClient.searchRecords(params);
+        const results = await extApiClient.searchRecords(params);
         return {
           content: [
             {
@@ -1223,7 +1219,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           throw new Error("teamid and search are required");
         }
 
-        const databases = await anydbClient.listDatabasesForTeam(teamid);
+        const databases = await extApiClient.listDatabasesForTeam(teamid);
         const results: Array<{
           database: { adbid: string; name: string };
           records: unknown;
@@ -1239,7 +1235,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             name: database.name,
           };
           try {
-            const records = await anydbClient.searchRecords({
+            const records = await extApiClient.searchRecords({
               teamid,
               adbid: database.adbid,
               search,
@@ -1283,7 +1279,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
         const redirect = args?.redirect as boolean | undefined;
         const preview = args?.preview as boolean | undefined;
-        const result = await anydbClient.downloadFile({
+        const result = await extApiClient.downloadFile({
           teamid,
           adbid,
           adoid,
@@ -1324,7 +1320,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const content = Buffer.from(fileContent, contentEncoding);
 
-        const result = await anydbClient.uploadFile({
+        const result = await extApiClient.uploadFile({
           filename,
           fileContent: content,
           teamid,
@@ -1361,15 +1357,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           );
         }
 
-        const fileRecord = await anydbClient.createRecord({
+        const fileRecord = await extApiClient.createRecord({
           name: filename,
           teamid,
           adbid,
           attach: parentAdoid,
-          template: PredefinedTemplateAdoIds.FILE_TEMPLATE_ADOID,
+          template: FILE_TEMPLATE_ADOID,
         });
         const fileAdoid = fileRecord.meta.adoid;
-        const url = await anydbClient.getUploadUrl({
+        const url = await extApiClient.getUploadUrl({
           filename,
           filesize,
           teamid,
@@ -1400,7 +1396,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!filesize || !teamid || !adbid || !adoid) {
           throw new Error("filesize, teamid, adbid, and adoid are required");
         }
-        const completed = await anydbClient.completeUpload({
+        const completed = await extApiClient.completeUpload({
           filesize,
           teamid,
           adbid,

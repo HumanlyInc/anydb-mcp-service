@@ -184,7 +184,12 @@
       "properties": {
         "teamid": { "$ref": "#/$defs/objectId" },
         "adbid": { "$ref": "#/$defs/objectId" },
-        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "clientRequestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Required idempotency key for this create request. Reuse only when retrying the identical request."
+        },
         "validateOnly": { "type": "boolean", "default": false },
         "view": { "$ref": "#/$defs/viewDefinition" }
       }
@@ -246,8 +251,11 @@
       }
     },
     "shareTarget": {
+      "description": "Share target. For a record use {\"kind\":\"record\",\"recordId\":\"<adoid>\"}; for a form use {\"kind\":\"form\",\"templateName\":\"<stable type name>\"} with optional parentRecordId.",
       "oneOf": [
         {
+          "title": "Record target",
+          "description": "Share an existing record: {\"kind\":\"record\",\"recordId\":\"<adoid>\"}.",
           "type": "object",
           "additionalProperties": false,
           "required": ["kind", "recordId"],
@@ -257,6 +265,8 @@
           }
         },
         {
+          "title": "Form target",
+          "description": "Share a form for a stable workspace type: {\"kind\":\"form\",\"templateName\":\"Safety Report\"}.",
           "type": "object",
           "additionalProperties": false,
           "required": ["kind", "templateName"],

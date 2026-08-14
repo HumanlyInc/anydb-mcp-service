@@ -9,6 +9,7 @@ import {
   type CreateWorkspaceRequest,
   type DeleteViewRequest,
   type RevokeShareRequest,
+  type SemanticSearchParams,
   type UpdateViewRequest,
   type UpdateWorkflowRequest,
 } from "../ext-api-client.js";
@@ -55,6 +56,46 @@ describe("ExtApiClient", () => {
       ],
     },
   };
+
+  it("posts semantic search directly to the external controller route", async () => {
+    let receivedBody: unknown;
+    let receivedMethod = "";
+    let receivedUrl = "";
+    const baseURL = await listen((incoming, response) => {
+      receivedMethod = incoming.method || "";
+      receivedUrl = incoming.url || "";
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        receivedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: { mode: "hybrid", warnings: [], results: [] },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+      baseURL,
+    });
+    const params: SemanticSearchParams = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      query: "compressor maintenance",
+      limit: 5,
+    };
+
+    const result = await client.semanticSearch(params);
+
+    expect(receivedMethod).toBe("POST");
+    expect(receivedUrl).toBe("/integrations/ext/semantic-search");
+    expect(receivedBody).toEqual(params);
+    expect(result).toEqual({ mode: "hybrid", warnings: [], results: [] });
+  });
 
   it("posts an empty workspace request to the external workspace route", async () => {
     let receivedBody: unknown;
@@ -430,6 +471,135 @@ describe("ExtApiClient", () => {
           kind: "form",
           clientRequestId: "revoke-form-v1",
         },
+      },
+    ]);
+  });
+
+  it("uses direct external routes for core record operations", async () => {
+    const received: Array<{ method: string; url: string; body?: unknown }> = [];
+    const baseURL = await listen((incoming, response) => {
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        const bodyText = Buffer.concat(chunks).toString("utf8");
+        received.push({
+          method: incoming.method || "",
+          url: incoming.url || "",
+          ...(bodyText ? { body: JSON.parse(bodyText) } : {}),
+        });
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: incoming.url?.includes("getuploadurl")
+              ? { url: "https://uploads.example.com/file" }
+              : [],
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+    const teamid = request.teamid;
+    const adbid = request.adbid;
+    const adoid = "507f1f77bcf86cd799439099";
+
+    await client.listTeams();
+    await client.listDatabasesForTeam(teamid);
+    await client.getRecord(teamid, adbid, adoid);
+    await client.listRecords({ teamid, adbid, parentid: adoid });
+    await client.updateRecord({ meta: { teamid, adbid, adoid, name: "New" } });
+    await client.moveRecord({ teamid, adbid, adoid, parentid: "parent-id" });
+    await client.removeRecord({
+      teamid,
+      adbid,
+      adoid,
+      removefromids: "000000000000000000000000",
+    });
+    await client.copyRecord({ teamid, adbid, adoid, attachmentsmode: "link" });
+    await client.searchRecords({ teamid, adbid, search: "incident" });
+    await client.downloadFile({
+      teamid,
+      adbid,
+      adoid,
+      cellpos: "A1",
+      redirect: false,
+      preview: true,
+    });
+    await client.getUploadUrl({
+      teamid,
+      adbid,
+      adoid,
+      filename: "report.pdf",
+      filesize: "42",
+      cellpos: "A1",
+    });
+    await client.completeUpload({
+      teamid,
+      adbid,
+      adoid,
+      filesize: "42",
+      cellpos: "A1",
+    });
+
+    expect(received).toEqual([
+      { method: "GET", url: "/integrations/ext/listteams" },
+      {
+        method: "GET",
+        url: `/integrations/ext/listdbsforteam?teamid=${teamid}`,
+      },
+      {
+        method: "GET",
+        url: `/integrations/ext/record?teamid=${teamid}&adbid=${adbid}&adoid=${adoid}`,
+      },
+      {
+        method: "GET",
+        url: `/integrations/ext/list?teamid=${teamid}&adbid=${adbid}&parentid=${adoid}`,
+      },
+      {
+        method: "PUT",
+        url: "/integrations/ext/updaterecord",
+        body: { meta: { teamid, adbid, adoid, name: "New" } },
+      },
+      {
+        method: "PUT",
+        url: "/integrations/ext/updaterecord",
+        body: { meta: { teamid, adbid, adoid, attach: "parent-id" } },
+      },
+      {
+        method: "DELETE",
+        url: "/integrations/ext/remove",
+        body: {
+          teamid,
+          adbid,
+          adoid,
+          removefromids: "000000000000000000000000",
+        },
+      },
+      {
+        method: "POST",
+        url: "/integrations/ext/copyrecord",
+        body: { teamid, adbid, adoid, attachmentsmode: "link" },
+      },
+      {
+        method: "GET",
+        url: `/integrations/ext/search?teamid=${teamid}&adbid=${adbid}&search=incident`,
+      },
+      {
+        method: "GET",
+        url: `/integrations/ext/download?teamid=${teamid}&adbid=${adbid}&adoid=${adoid}&cellpos=A1&redirect=0&preview=1`,
+      },
+      {
+        method: "GET",
+        url: `/integrations/ext/getuploadurl?teamid=${teamid}&adbid=${adbid}&adoid=${adoid}&filename=report.pdf&filesize=42&cellpos=A1`,
+      },
+      {
+        method: "PUT",
+        url: "/integrations/ext/completeupload",
+        body: { teamid, adbid, adoid, filesize: "42", cellpos: "A1" },
       },
     ]);
   });

@@ -9,8 +9,8 @@ import "dotenv/config";
 
 import express, { Request, Response } from "express";
 import cors from "cors";
-import { AnyDBClient } from "anydb-api-sdk-ts";
 import { config } from "./config.js";
+import { ExtApiClient } from "./ext-api-client.js";
 
 const app = express();
 
@@ -48,7 +48,7 @@ function extractUserEmail(req: Request): string | undefined {
  * Get an AnyDB client instance with credentials from request headers
  * Creates a new client for each request to support multi-tenant authentication
  */
-function getAnyDBClient(req: Request): AnyDBClient {
+function getExtApiClient(req: Request): ExtApiClient {
   const apiKey = extractApiKey(req);
   const userEmail = extractUserEmail(req);
 
@@ -59,7 +59,7 @@ function getAnyDBClient(req: Request): AnyDBClient {
     throw new Error("User email required. Provide x-anydb-email header.");
   }
 
-  return new AnyDBClient({
+  return new ExtApiClient({
     apiKey,
     userEmail,
     baseURL: config.anydbApiBaseUrl,
@@ -102,7 +102,7 @@ app.get(
           error: "teamid, adbid, and adoid are required",
         });
       }
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const record = await client.getRecord(
         teamid as string,
         adbid as string,
@@ -124,7 +124,7 @@ app.get(
   authenticate,
   async (req: Request, res: Response) => {
     try {
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const teams = await client.listTeams();
       res.json({ success: true, data: teams });
     } catch (error) {
@@ -149,7 +149,7 @@ app.get(
           error: "teamid is required",
         });
       }
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const databases = await client.listDatabasesForTeam(teamid as string);
       res.json({ success: true, data: databases });
     } catch (error) {
@@ -182,16 +182,16 @@ app.get(
           error: "teamid and adbid are required",
         });
       }
-      const client = getAnyDBClient(req);
-      const records = await client.listRecords(
-        teamid as string,
-        adbid as string,
-        parentid as string | undefined,
-        templateid as string | undefined,
-        templatename as string | undefined,
-        pagesize as string | undefined,
-        lastmarker as string | undefined,
-      );
+      const client = getExtApiClient(req);
+      const records = await client.listRecords({
+        teamid: teamid as string,
+        adbid: adbid as string,
+        parentid: parentid as string | undefined,
+        templateid: templateid as string | undefined,
+        templatename: templatename as string | undefined,
+        pagesize: pagesize as string | undefined,
+        lastmarker: lastmarker as string | undefined,
+      });
       res.json({ success: true, data: records });
     } catch (error) {
       res.status(500).json({
@@ -216,7 +216,7 @@ app.post(
         });
       }
       const params = { adbid, teamid, name, attach, template, content };
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const record = await client.createRecord(params);
       res.json({ success: true, data: record });
     } catch (error) {
@@ -242,7 +242,7 @@ app.put(
         });
       }
       const params = { meta, content };
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const record = await client.updateRecord(params);
       res.json({ success: true, data: record });
     } catch (error) {
@@ -273,7 +273,7 @@ app.delete(
         teamid,
         removefromids: removefromids || "000000000000000000000000", // NULL_OBJECTID
       };
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const result = await client.removeRecord(params);
       res.json({ success: true, data: result });
     } catch (error) {
@@ -306,7 +306,7 @@ app.get(
         start: start as string | undefined,
         limit: limit as string | undefined,
       };
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const results = await client.searchRecords(params);
       res.json({ success: true, data: results });
     } catch (error) {
@@ -339,7 +339,7 @@ app.get(
         redirect: redirect === "true" || redirect === "1",
         preview: preview === "true" || preview === "1",
       };
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const result = await client.downloadFile(params);
       res.json({ success: true, data: result });
     } catch (error) {
@@ -372,7 +372,7 @@ app.get(
         filesize: filesize as string,
         cellpos: cellpos as string | undefined,
       };
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const result = await client.getUploadUrl(params);
       res.json({ success: true, data: result });
     } catch (error) {
@@ -406,7 +406,7 @@ app.put(
         content = fileContent;
       }
 
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       await client.uploadFileToUrl(uploadUrl, content, contentType);
       res.json({ success: true, message: "File uploaded successfully" });
     } catch (error) {
@@ -438,7 +438,7 @@ app.put(
         adoid: adoid as string | undefined,
         cellpos: cellpos as string | undefined,
       };
-      const client = getAnyDBClient(req);
+      const client = getExtApiClient(req);
       const result = await client.completeUpload(params);
       res.json({ success: true, data: result });
     } catch (error) {

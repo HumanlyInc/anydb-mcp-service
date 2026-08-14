@@ -206,6 +206,9 @@ describe("solution resources", () => {
     expect(schema.$defs.createViewInput.properties.view.$ref).toBe(
       "#/$defs/viewDefinition",
     );
+    expect(
+      schema.$defs.createViewInput.properties.clientRequestId.description,
+    ).toContain("Required idempotency key");
     expect(schema.$defs.viewDefinition.properties.scope.enum).toEqual([
       "workspace",
       "children",
@@ -261,6 +264,7 @@ describe("solution resources", () => {
       "share",
     ]);
     expect(schema.$defs.shareTarget.oneOf).toHaveLength(2);
+    expect(schema.$defs.shareTarget.description).toContain('"kind":"record"');
     expect(
       schema.$defs.shareTarget.oneOf[1].properties.parentRecordId.description,
     ).toContain("creates a Folder under the database root");

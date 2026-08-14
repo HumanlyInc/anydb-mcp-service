@@ -4,10 +4,9 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
-import { ADOCellValueType } from "anydb-api-sdk-ts";
 
 // Mock the AnyDB client - we define our own type since it has additional methods beyond the SDK
-const mockAnyDBClient: any = {
+const mockExtApiClient: any = {
   listTeams: jest.fn(),
   listDatabasesForTeam: jest.fn(),
   listRecords: jest.fn(),
@@ -30,12 +29,12 @@ describe("MCP Tool Validation", () => {
       const mockTeams = [
         { teamid: "6966569a6dfb26607e99ac63", name: "Test Team" },
       ];
-      mockAnyDBClient.listTeams.mockResolvedValue(mockTeams);
+      mockExtApiClient.listTeams.mockResolvedValue(mockTeams);
 
-      const result = await mockAnyDBClient.listTeams();
+      const result = await mockExtApiClient.listTeams();
 
       expect(result).toEqual(mockTeams);
-      expect(mockAnyDBClient.listTeams).toHaveBeenCalledTimes(1);
+      expect(mockExtApiClient.listTeams).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -45,20 +44,22 @@ describe("MCP Tool Validation", () => {
       const mockDatabases = [
         { adbid: "6966569a6dfb26607e99ac70", teamid, name: "Test DB" },
       ];
-      mockAnyDBClient.listDatabasesForTeam.mockResolvedValue(mockDatabases);
+      mockExtApiClient.listDatabasesForTeam.mockResolvedValue(mockDatabases);
 
-      const result = await mockAnyDBClient.listDatabasesForTeam(teamid);
+      const result = await mockExtApiClient.listDatabasesForTeam(teamid);
 
       expect(result).toEqual(mockDatabases);
-      expect(mockAnyDBClient.listDatabasesForTeam).toHaveBeenCalledWith(teamid);
+      expect(mockExtApiClient.listDatabasesForTeam).toHaveBeenCalledWith(
+        teamid,
+      );
     });
 
     it("should throw error when teamid is missing", async () => {
-      mockAnyDBClient.listDatabasesForTeam.mockRejectedValue(
+      mockExtApiClient.listDatabasesForTeam.mockRejectedValue(
         new Error("teamid is required"),
       );
 
-      await expect(mockAnyDBClient.listDatabasesForTeam("")).rejects.toThrow(
+      await expect(mockExtApiClient.listDatabasesForTeam("")).rejects.toThrow(
         "teamid is required",
       );
     });
@@ -81,13 +82,13 @@ describe("MCP Tool Validation", () => {
         hasmore: false,
         total: 1,
       };
-      mockAnyDBClient.listRecords.mockResolvedValue(mockResponse);
+      mockExtApiClient.listRecords.mockResolvedValue(mockResponse);
 
-      const result = await mockAnyDBClient.listRecords(teamid, adbid);
+      const result = await mockExtApiClient.listRecords(teamid, adbid);
 
       expect(result).toEqual(mockResponse);
       expect(result.items).toHaveLength(1);
-      expect(mockAnyDBClient.listRecords).toHaveBeenCalledWith(teamid, adbid);
+      expect(mockExtApiClient.listRecords).toHaveBeenCalledWith(teamid, adbid);
     });
 
     it("should return records with pagination", async () => {
@@ -102,9 +103,9 @@ describe("MCP Tool Validation", () => {
         lastmarker: "marker123",
         total: 100,
       };
-      mockAnyDBClient.listRecords.mockResolvedValue(mockResponse);
+      mockExtApiClient.listRecords.mockResolvedValue(mockResponse);
 
-      const result = await mockAnyDBClient.listRecords(
+      const result = await mockExtApiClient.listRecords(
         teamid,
         adbid,
         undefined,
@@ -133,9 +134,9 @@ describe("MCP Tool Validation", () => {
         hasmore: false,
         total: 1,
       };
-      mockAnyDBClient.listRecords.mockResolvedValue(mockResponse);
+      mockExtApiClient.listRecords.mockResolvedValue(mockResponse);
 
-      const result = await mockAnyDBClient.listRecords(
+      const result = await mockExtApiClient.listRecords(
         teamid,
         adbid,
         undefined,
@@ -143,7 +144,7 @@ describe("MCP Tool Validation", () => {
       );
 
       expect(result).toEqual(mockResponse);
-      expect(mockAnyDBClient.listRecords).toHaveBeenCalledWith(
+      expect(mockExtApiClient.listRecords).toHaveBeenCalledWith(
         teamid,
         adbid,
         undefined,
@@ -165,12 +166,16 @@ describe("MCP Tool Validation", () => {
         hasmore: false,
         total: 1,
       };
-      mockAnyDBClient.listRecords.mockResolvedValue(mockResponse);
+      mockExtApiClient.listRecords.mockResolvedValue(mockResponse);
 
-      const result = await mockAnyDBClient.listRecords(teamid, adbid, parentid);
+      const result = await mockExtApiClient.listRecords(
+        teamid,
+        adbid,
+        parentid,
+      );
 
       expect(result).toEqual(mockResponse);
-      expect(mockAnyDBClient.listRecords).toHaveBeenCalledWith(
+      expect(mockExtApiClient.listRecords).toHaveBeenCalledWith(
         teamid,
         adbid,
         parentid,
@@ -192,12 +197,12 @@ describe("MCP Tool Validation", () => {
           description: "Test description",
         },
         content: {
-          A1: { pos: "A1", value: "Hello", type: ADOCellValueType.STRING },
+          A1: { pos: "A1", value: "Hello", type: "string" },
         },
       };
-      mockAnyDBClient.getRecord.mockResolvedValue(mockRecord);
+      mockExtApiClient.getRecord.mockResolvedValue(mockRecord);
 
-      const result = await mockAnyDBClient.getRecord(teamid, adbid, adoid);
+      const result = await mockExtApiClient.getRecord(teamid, adbid, adoid);
 
       expect(result).toEqual(mockRecord);
       expect(result.meta.name).toBe("Test Record");
@@ -224,13 +229,13 @@ describe("MCP Tool Validation", () => {
         },
         content: params.content,
       };
-      mockAnyDBClient.createRecord.mockResolvedValue(mockRecord);
+      mockExtApiClient.createRecord.mockResolvedValue(mockRecord);
 
-      const result = await mockAnyDBClient.createRecord(params);
+      const result = await mockExtApiClient.createRecord(params);
 
       expect(result).toEqual(mockRecord);
       expect(result.meta.name).toBe("New Record");
-      expect(mockAnyDBClient.createRecord).toHaveBeenCalledWith(params);
+      expect(mockExtApiClient.createRecord).toHaveBeenCalledWith(params);
     });
 
     it("should create a record with a template", async () => {
@@ -248,12 +253,12 @@ describe("MCP Tool Validation", () => {
           name: params.name,
         },
       };
-      mockAnyDBClient.createRecord.mockResolvedValue(mockRecord);
+      mockExtApiClient.createRecord.mockResolvedValue(mockRecord);
 
-      const result = await mockAnyDBClient.createRecord(params);
+      const result = await mockExtApiClient.createRecord(params);
 
       expect(result).toEqual(mockRecord);
-      expect(mockAnyDBClient.createRecord).toHaveBeenCalledWith(params);
+      expect(mockExtApiClient.createRecord).toHaveBeenCalledWith(params);
     });
   });
 
@@ -274,9 +279,9 @@ describe("MCP Tool Validation", () => {
         meta: params.meta,
         content: params.content,
       };
-      mockAnyDBClient.updateRecord.mockResolvedValue(mockRecord);
+      mockExtApiClient.updateRecord.mockResolvedValue(mockRecord);
 
-      const result = await mockAnyDBClient.updateRecord(params);
+      const result = await mockExtApiClient.updateRecord(params);
 
       expect(result).toEqual(mockRecord);
       expect(result.meta.name).toBe("Updated Name");
@@ -292,9 +297,9 @@ describe("MCP Tool Validation", () => {
         removefromids: "000000000000000000000000",
       };
       const mockResult = true;
-      mockAnyDBClient.removeRecord.mockResolvedValue(mockResult);
+      mockExtApiClient.removeRecord.mockResolvedValue(mockResult);
 
-      const result = await mockAnyDBClient.removeRecord(params);
+      const result = await mockExtApiClient.removeRecord(params);
 
       expect(result).toEqual(mockResult);
       expect(result).toBe(true);
@@ -326,13 +331,13 @@ describe("MCP Tool Validation", () => {
           },
         },
       ];
-      mockAnyDBClient.searchRecords.mockResolvedValue(mockResults);
+      mockExtApiClient.searchRecords.mockResolvedValue(mockResults);
 
-      const result = await mockAnyDBClient.searchRecords(params);
+      const result = await mockExtApiClient.searchRecords(params);
 
       expect(result).toEqual(mockResults);
       expect(result).toHaveLength(2);
-      expect(mockAnyDBClient.searchRecords).toHaveBeenCalledWith(params);
+      expect(mockExtApiClient.searchRecords).toHaveBeenCalledWith(params);
     });
 
     it("should search with pagination", async () => {
@@ -351,9 +356,9 @@ describe("MCP Tool Validation", () => {
           name: "Test Record",
         },
       });
-      mockAnyDBClient.searchRecords.mockResolvedValue(mockResults);
+      mockExtApiClient.searchRecords.mockResolvedValue(mockResults);
 
-      const result = await mockAnyDBClient.searchRecords(params);
+      const result = await mockExtApiClient.searchRecords(params);
 
       expect(result).toHaveLength(10);
     });
@@ -371,9 +376,9 @@ describe("MCP Tool Validation", () => {
         url: "https://storage.example.com/file.pdf",
         redirect: false,
       };
-      mockAnyDBClient.downloadFile.mockResolvedValue(mockResponse);
+      mockExtApiClient.downloadFile.mockResolvedValue(mockResponse);
 
-      const result = await mockAnyDBClient.downloadFile(params);
+      const result = await mockExtApiClient.downloadFile(params);
 
       expect(result).toEqual(mockResponse);
       expect(result.url).toContain("https://");
@@ -391,9 +396,9 @@ describe("MCP Tool Validation", () => {
         url: "https://storage.example.com/file.pdf?preview=true",
         redirect: false,
       };
-      mockAnyDBClient.downloadFile.mockResolvedValue(mockResponse);
+      mockExtApiClient.downloadFile.mockResolvedValue(mockResponse);
 
-      const result = await mockAnyDBClient.downloadFile(params);
+      const result = await mockExtApiClient.downloadFile(params);
 
       expect(result.url).toContain("preview=true");
     });
@@ -411,13 +416,13 @@ describe("MCP Tool Validation", () => {
         contentType: "text/plain",
       };
       const mockAdoid = "6966c97ea9a78803df3aa496";
-      mockAnyDBClient.uploadFile.mockResolvedValue(mockAdoid);
+      mockExtApiClient.uploadFile.mockResolvedValue(mockAdoid);
 
-      const result = await mockAnyDBClient.uploadFile(params);
+      const result = await mockExtApiClient.uploadFile(params);
 
       expect(result).toBe(mockAdoid);
       expect(result).toMatch(/^[0-9a-f]{24}$/i);
-      expect(mockAnyDBClient.uploadFile).toHaveBeenCalledWith(params);
+      expect(mockExtApiClient.uploadFile).toHaveBeenCalledWith(params);
     });
 
     it("should throw error when required params are missing", async () => {
@@ -428,11 +433,11 @@ describe("MCP Tool Validation", () => {
         adbid: "6966569a6dfb26607e99ac70",
         adoid: "",
       };
-      mockAnyDBClient.uploadFile.mockRejectedValue(
+      mockExtApiClient.uploadFile.mockRejectedValue(
         new Error("adoid is required"),
       );
 
-      await expect(mockAnyDBClient.uploadFile(params)).rejects.toThrow(
+      await expect(mockExtApiClient.uploadFile(params)).rejects.toThrow(
         "adoid is required",
       );
     });
