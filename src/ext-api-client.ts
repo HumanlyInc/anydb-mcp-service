@@ -65,6 +65,32 @@ export interface DiscoverTypesParams {
   limit?: number;
 }
 
+export interface SemanticSearchParams {
+  teamid: string;
+  adbid: string;
+  query: string;
+  limit?: number;
+}
+
+export interface SemanticSearchResponse {
+  mode: "hybrid" | "lexical_only" | "dense_only" | "unavailable";
+  warnings: string[];
+  results: Array<{
+    adoid: string;
+    teamid: string;
+    adbid: string;
+    name: string;
+    url: string | null;
+    rank: number;
+    score: number;
+    chunks: Array<{
+      chunkId: string;
+      content: string;
+      score: number;
+    }>;
+  }>;
+}
+
 export interface TemplateDiscoveryCandidate {
   source: "workspace" | "builtin";
   templateId: string;
@@ -578,6 +604,15 @@ export class ExtApiClient {
     const response = await this.client.get<
       ExtApiResponse<TemplateDiscoveryResult>
     >("/integrations/ext/templates/discover", { params });
+    return this.unwrap(response.data);
+  }
+
+  async semanticSearch(
+    params: SemanticSearchParams,
+  ): Promise<SemanticSearchResponse> {
+    const response = await this.client.post<
+      ExtApiResponse<SemanticSearchResponse>
+    >("/integrations/ext/semantic-search", params);
     return this.unwrap(response.data);
   }
 

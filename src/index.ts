@@ -107,6 +107,11 @@ import {
 import { getSolutionPrompt, listSolutionPrompts } from "./solution-prompts.js";
 import { callSetupTool, isSetupTool, SETUP_TOOLS } from "./setup-tools.js";
 import {
+  callSemanticSearchTool,
+  isSemanticSearchTool,
+  SEMANTIC_SEARCH_TOOLS,
+} from "./semantic-search-tools.js";
+import {
   ANYDB_SETUP_GUIDE_URI,
   listSolutionResources,
   readSolutionResource,
@@ -131,6 +136,7 @@ const TOOLS: Tool[] = [
   ...SETUP_TOOLS,
   ...SOLUTION_AUTHORING_TOOLS,
   ...SOLUTION_DISCOVERY_TOOLS,
+  ...SEMANTIC_SEARCH_TOOLS,
   {
     name: "list_templates",
     description:
@@ -834,9 +840,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   // Log incoming MCP request
+  const loggedArgs = isSemanticSearchTool(name)
+    ? { ...args, query: args?.query ? "[REDACTED]" : undefined }
+    : args;
   console.error(`\n========== MCP Tool Request ==========`);
   console.error(`Tool: ${name}`);
-  console.error(`Arguments:`, JSON.stringify(args, null, 2));
+  console.error(`Arguments:`, JSON.stringify(loggedArgs, null, 2));
   console.error(`======================================\n`);
 
   try {
@@ -856,6 +865,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (isSolutionDiscoveryTool(name)) {
       return await callSolutionDiscoveryTool(name, args, extApiClient);
+    }
+
+    if (isSemanticSearchTool(name)) {
+      return await callSemanticSearchTool(args, extApiClient);
     }
 
     switch (name) {

@@ -9,6 +9,7 @@ import {
   type CreateWorkspaceRequest,
   type DeleteViewRequest,
   type RevokeShareRequest,
+  type SemanticSearchParams,
   type UpdateViewRequest,
   type UpdateWorkflowRequest,
 } from "../ext-api-client.js";
@@ -55,6 +56,46 @@ describe("ExtApiClient", () => {
       ],
     },
   };
+
+  it("posts semantic search directly to the external controller route", async () => {
+    let receivedBody: unknown;
+    let receivedMethod = "";
+    let receivedUrl = "";
+    const baseURL = await listen((incoming, response) => {
+      receivedMethod = incoming.method || "";
+      receivedUrl = incoming.url || "";
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        receivedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: { mode: "hybrid", warnings: [], results: [] },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+      baseURL,
+    });
+    const params: SemanticSearchParams = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      query: "compressor maintenance",
+      limit: 5,
+    };
+
+    const result = await client.semanticSearch(params);
+
+    expect(receivedMethod).toBe("POST");
+    expect(receivedUrl).toBe("/integrations/ext/semantic-search");
+    expect(receivedBody).toEqual(params);
+    expect(result).toEqual({ mode: "hybrid", warnings: [], results: [] });
+  });
 
   it("posts an empty workspace request to the external workspace route", async () => {
     let receivedBody: unknown;
