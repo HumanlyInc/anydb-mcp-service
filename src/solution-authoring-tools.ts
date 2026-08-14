@@ -199,7 +199,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_create_share",
     description:
-      "Create a public or private share for a record or form through standard AnyDB sharing policy. Call anydb_list_shares first to reuse an existing compatible share. Public shares omit recipients and return publicUrl. Private shares require emails and/or stable group names from anydb_list_team_groups. role and withAttachments apply only to records.",
+      'Create a public or private share for a record or form through standard AnyDB sharing policy. Use target {kind: "record", recordId: "<adoid>"} for an existing record, or {kind: "form", templateName: "<stable type name>"} for a form (optionally with parentRecordId). Call anydb_list_shares first to reuse an existing compatible share. Public shares omit recipients and return publicUrl. Private shares require emails and/or stable group names from anydb_list_team_groups. role and withAttachments apply only to records.',
     inputSchema: createShareInputSchema as unknown as Tool["inputSchema"],
   },
   {

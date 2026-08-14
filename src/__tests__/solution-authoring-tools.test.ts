@@ -290,6 +290,9 @@ describe("solution authoring tools", () => {
       "clientRequestId",
       "view",
     ]);
+    expect(inputSchema.properties.clientRequestId.description).toContain(
+      "Required idempotency key",
+    );
     expect(inputSchema.properties.view.required).toEqual([
       "name",
       "scope",
@@ -487,6 +490,11 @@ describe("solution authoring tools", () => {
     expect(inputSchema.properties.share.properties.target.oneOf).toHaveLength(
       2,
     );
+    expect(
+      inputSchema.properties.share.properties.target.description,
+    ).toContain('"kind":"record"');
+    expect(tool?.description).toContain('kind: "record"');
+    expect(tool?.description).toContain('kind: "form"');
     expect(
       inputSchema.properties.share.properties.recipients.properties.emails.type,
     ).toBe("array");
