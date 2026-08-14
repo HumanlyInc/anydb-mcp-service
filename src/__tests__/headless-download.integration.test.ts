@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "@jest/globals";
 import axios from "axios";
-import { AnyDBClient } from "anydb-api-sdk-ts";
+import { ExtApiClient } from "../ext-api-client.js";
 
 const fixture = {
   apiKey: process.env.ANYDB_DEFAULT_API_KEY,
@@ -25,7 +25,7 @@ const canRun = Boolean(
 
 (canRun ? describe : describe.skip)("headless file download", () => {
   it("fetches a presigned URL without AnyDB authentication headers", async () => {
-    const client = new AnyDBClient({
+    const client = new ExtApiClient({
       apiKey: fixture.apiKey!,
       userEmail: fixture.userEmail!,
       baseURL: fixture.baseURL,
