@@ -1364,8 +1364,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           attach: parentAdoid,
           template: FILE_TEMPLATE_ADOID,
         });
-        const fileAdoid = (fileRecord as { meta: { adoid: string } }).meta
-          .adoid;
+        const fileAdoid = fileRecord.meta.adoid;
         const url = await extApiClient.getUploadUrl({
           filename,
           filesize,

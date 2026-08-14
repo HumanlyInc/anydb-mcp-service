@@ -857,8 +857,8 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
-  async createRecord(params: CreateRecordRequest): Promise<unknown> {
-    const response = await this.client.post<ExtApiResponse<unknown>>(
+  async createRecord(params: CreateRecordRequest): Promise<ADORecord> {
+    const response = await this.client.post<ExtApiResponse<ADORecord>>(
       "/integrations/ext/createrecord",
       params,
     );
@@ -1015,7 +1015,7 @@ export class ExtApiClient {
       attach: params.adoid,
       template: FILE_TEMPLATE_ADOID,
     });
-    const fileAdoid = (fileRecord as ADORecord).meta.adoid;
+    const fileAdoid = fileRecord.meta.adoid;
     const fileContent = Buffer.isBuffer(params.fileContent)
       ? params.fileContent
       : Buffer.from(params.fileContent);

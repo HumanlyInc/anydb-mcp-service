@@ -512,6 +512,7 @@ describe("ExtApiClient", () => {
     await client.getRecord(teamid, adbid, adoid);
     await client.listRecords({ teamid, adbid, parentid: adoid });
     await client.updateRecord({ meta: { teamid, adbid, adoid, name: "New" } });
+    await client.moveRecord({ teamid, adbid, adoid, parentid: "parent-id" });
     await client.removeRecord({
       teamid,
       adbid,
@@ -520,6 +521,14 @@ describe("ExtApiClient", () => {
     });
     await client.copyRecord({ teamid, adbid, adoid, attachmentsmode: "link" });
     await client.searchRecords({ teamid, adbid, search: "incident" });
+    await client.downloadFile({
+      teamid,
+      adbid,
+      adoid,
+      cellpos: "A1",
+      redirect: false,
+      preview: true,
+    });
     await client.getUploadUrl({
       teamid,
       adbid,
@@ -556,6 +565,11 @@ describe("ExtApiClient", () => {
         body: { meta: { teamid, adbid, adoid, name: "New" } },
       },
       {
+        method: "PUT",
+        url: "/integrations/ext/updaterecord",
+        body: { meta: { teamid, adbid, adoid, attach: "parent-id" } },
+      },
+      {
         method: "DELETE",
         url: "/integrations/ext/remove",
         body: {
@@ -573,6 +587,10 @@ describe("ExtApiClient", () => {
       {
         method: "GET",
         url: `/integrations/ext/search?teamid=${teamid}&adbid=${adbid}&search=incident`,
+      },
+      {
+        method: "GET",
+        url: `/integrations/ext/download?teamid=${teamid}&adbid=${adbid}&adoid=${adoid}&cellpos=A1&redirect=0&preview=1`,
       },
       {
         method: "GET",
