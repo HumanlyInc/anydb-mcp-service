@@ -8,6 +8,7 @@ import {
   type CreateViewRequest,
   type CreateWorkspaceRequest,
   type DeleteViewRequest,
+  type ExecuteWorkflowRequest,
   type RevokeShareRequest,
   type SemanticSearchParams,
   type UpdateViewRequest,
@@ -177,6 +178,47 @@ describe("ExtApiClient", () => {
     await client.createType(request);
 
     expect(receivedBody).toEqual(request);
+  });
+
+  it("polls type migration status through the external route", async () => {
+    let receivedMethod = "";
+    let receivedUrl = "";
+    const baseURL = await listen((incoming, response) => {
+      receivedMethod = incoming.method || "";
+      receivedUrl = incoming.url || "";
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({
+          status: "success",
+          data: {
+            jobId: 12345678,
+            status: "IN_PROGRESS",
+            progress: 44,
+            recordsProcessed: 12,
+            recordsToMigrate: 27,
+            recordsRemaining: 15,
+            errors: 0,
+          },
+        }),
+      );
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+
+    const result = await client.getTypeMigrationStatus(
+      request.teamid,
+      request.adbid,
+      12345678,
+    );
+
+    expect(receivedMethod).toBe("GET");
+    expect(receivedUrl).toBe(
+      `/integrations/ext/type-migrations/12345678?teamid=${request.teamid}&adbid=${request.adbid}`,
+    );
+    expect(result.recordsRemaining).toBe(15);
   });
 
   it("posts a workspace View request unchanged", async () => {
@@ -857,6 +899,61 @@ describe("ExtApiClient", () => {
       adbid: update.adbid,
       clientRequestId: update.clientRequestId,
       changes: update.changes,
+    });
+  });
+
+  it("executes a workflow at its exact external API path", async () => {
+    let receivedMethod = "";
+    let receivedUrl = "";
+    let receivedBody: unknown;
+    const baseURL = await listen((incoming, response) => {
+      receivedMethod = incoming.method || "";
+      receivedUrl = incoming.url || "";
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        receivedBody = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: {
+              success: true,
+              operation: "execute_workflow",
+              result: {
+                workflowId: "507f1f77bcf86cd799439091",
+                simulated: true,
+                execution: { executionId: "run-1", status: "success" },
+              },
+            },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      baseURL,
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+    const execution: ExecuteWorkflowRequest = {
+      teamid: request.teamid,
+      adbid: request.adbid,
+      workflowId: "507f1f77bcf86cd799439091",
+      adoid: "507f1f77bcf86cd799439092",
+      simulate: true,
+    };
+
+    await client.executeWorkflow(execution);
+
+    expect(receivedMethod).toBe("POST");
+    expect(receivedUrl).toBe(
+      "/integrations/ext/workflows/507f1f77bcf86cd799439091/execute",
+    );
+    expect(receivedBody).toEqual({
+      teamid: execution.teamid,
+      adbid: execution.adbid,
+      adoid: execution.adoid,
+      simulate: true,
     });
   });
 });
