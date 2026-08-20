@@ -503,6 +503,16 @@
         "confirmDataLoss": { "type": "boolean", "default": false }
       }
     },
+    "getTypeMigrationStatusInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "jobId"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "jobId": { "type": "integer", "minimum": 1 }
+      }
+    },
     "workflowTriggerConfig": {
       "type": "object",
       "additionalProperties": false,
@@ -518,6 +528,28 @@
         "daysOfMonth": { "type": "string", "minLength": 1 },
         "startTime": { "type": "string", "minLength": 1 },
         "endTime": { "type": "string", "minLength": 1 }
+      }
+    },
+    "workflowAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "type", "config"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^(?!trigger$)[A-Za-z][A-Za-z0-9_-]{0,79}$",
+          "description": "Client-local action key used by later symbolic bindings."
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Registered action type returned by anydb_list_workflow_actions."
+        },
+        "description": { "type": "string", "maxLength": 1000 },
+        "config": {
+          "type": "object",
+          "description": "Action input matching its catalog inputSchema. Use {{trigger.outputName}} or {{priorActionKey.outputName}} for artifact output bindings."
+        }
       }
     },
     "createWorkflowInput": {
@@ -558,28 +590,7 @@
             "actions": {
               "type": "array",
               "minItems": 1,
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["key", "type", "config"],
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^(?!trigger$)[A-Za-z][A-Za-z0-9_-]{0,79}$",
-                    "description": "Client-local action key used by later symbolic bindings."
-                  },
-                  "type": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Registered action type returned by anydb_list_workflow_actions."
-                  },
-                  "description": { "type": "string", "maxLength": 1000 },
-                  "config": {
-                    "type": "object",
-                    "description": "Action input matching its catalog inputSchema. Use {{trigger.outputName}} or {{priorActionKey.outputName}} for artifact output bindings."
-                  }
-                }
-              }
+              "items": { "$ref": "#/$defs/workflowAction" }
             }
           },
           "oneOf": [
@@ -605,8 +616,32 @@
           "properties": {
             "name": { "type": "string", "minLength": 1, "maxLength": 200 },
             "description": { "type": "string", "maxLength": 2000 },
-            "enabled": { "type": "boolean" }
+            "enabled": { "type": "boolean" },
+            "actions": {
+              "type": "array",
+              "minItems": 1,
+              "description": "Complete ordered replacement action chain. Omit to preserve existing actions; include the desired final chain to add, update, remove, or reorder actions.",
+              "items": { "$ref": "#/$defs/workflowAction" }
+            }
           }
+        }
+      }
+    },
+    "executeWorkflowInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teamid", "adbid", "workflowId", "simulate"],
+      "properties": {
+        "teamid": { "$ref": "#/$defs/objectId" },
+        "adbid": { "$ref": "#/$defs/objectId" },
+        "workflowId": { "$ref": "#/$defs/objectId" },
+        "adoid": {
+          "$ref": "#/$defs/objectId",
+          "description": "Optional record context for record-based workflow triggers."
+        },
+        "simulate": {
+          "type": "boolean",
+          "description": "Use true for dry-run simulation and false for normal execution with side effects."
         }
       }
     }
@@ -615,6 +650,7 @@
     "anydb_create_workspace": { "$ref": "#/$defs/createWorkspaceInput" },
     "anydb_create_type": { "$ref": "#/$defs/createTypeInput" },
     "anydb_update_type": { "$ref": "#/$defs/updateTypeInput" },
+    "anydb_get_type_migration_status": { "$ref": "#/$defs/getTypeMigrationStatusInput" },
     "anydb_create_view": { "$ref": "#/$defs/createViewInput" },
     "anydb_update_view": { "$ref": "#/$defs/updateViewInput" },
     "anydb_list_views": { "$ref": "#/$defs/listViewsInput" },
@@ -626,6 +662,7 @@
     "anydb_revoke_share": { "$ref": "#/$defs/revokeShareInput" },
     "anydb_list_team_groups": { "$ref": "#/$defs/listTeamGroupsInput" },
     "anydb_create_workflow": { "$ref": "#/$defs/createWorkflowInput" },
-    "anydb_update_workflow": { "$ref": "#/$defs/updateWorkflowInput" }
+    "anydb_update_workflow": { "$ref": "#/$defs/updateWorkflowInput" },
+    "anydb_execute_workflow": { "$ref": "#/$defs/executeWorkflowInput" }
   }
 }
