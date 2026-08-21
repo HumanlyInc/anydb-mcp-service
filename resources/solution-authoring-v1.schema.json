@@ -423,7 +423,10 @@
       "properties": {
         "name": { "type": "string", "minLength": 1, "maxLength": 120 },
         "description": { "type": "string", "maxLength": 2000 },
-        "icon": { "type": "string" },
+        "icon": {
+          "type": "string",
+          "description": "Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>, for example icon::clipboard-check::#1565C0::#FFFFFF."
+        },
         "titleFormula": { "type": "string", "minLength": 1 },
         "fields": {
           "type": "array",
@@ -493,6 +496,10 @@
           "additionalProperties": false,
           "properties": {
             "description": { "type": "string" },
+            "icon": {
+              "type": "string",
+              "description": "Replacement Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>."
+            },
             "addFields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
             "updateFields": { "type": "array", "items": { "$ref": "#/$defs/fieldUpdate" } },
             "removeFields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },

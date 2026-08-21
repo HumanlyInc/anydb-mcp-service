@@ -143,7 +143,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   },
   {
     name: "anydb_update_type",
-    description: `Read the authoring guide (call anydb_get_authoring_guide) before the first authoring call in a task. Patch the latest revision of one workspace type by stable template name. Existing records are migrated automatically after persistence; destructive changes require explicit data-loss confirmation.`,
+    description: `Read the authoring guide (call anydb_get_authoring_guide) before the first authoring call in a task. Patch the latest revision of one workspace type by stable template name, including its description, icon, fields, badges, or child policy. Existing records are migrated automatically after persistence; destructive changes require explicit data-loss confirmation.`,
     inputSchema: updateTypeInputSchema as unknown as Tool["inputSchema"],
   },
   {
