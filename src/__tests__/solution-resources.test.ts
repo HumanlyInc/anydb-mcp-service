@@ -193,7 +193,10 @@ describe("solution resources", () => {
     );
     expect(
       schema.$defs.updateTypeInput.properties.changes.properties,
-    ).toHaveProperty("icon", { type: "string" });
+    ).toHaveProperty("icon");
+    expect(
+      schema.$defs.updateTypeInput.properties.changes.properties.icon,
+    ).toMatchObject({ type: "string" });
     expect(
       schema.$defs.createWorkflowInput.properties.workflow.properties,
     ).toHaveProperty("actions");
