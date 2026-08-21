@@ -7,6 +7,7 @@ import type {
   CreateWorkspaceRequest,
   CreateWorkflowRequest,
   DeleteViewRequest,
+  ExecuteWorkflowRequest,
   ExtApiClient,
   RevokeShareRequest,
   UpdateViewRequest,
@@ -36,8 +37,10 @@ const authoringSchema = JSON.parse(
     revokeShareInput: Record<string, unknown>;
     listTeamGroupsInput: Record<string, unknown>;
     updateTypeInput: Record<string, unknown>;
+    getTypeMigrationStatusInput: Record<string, unknown>;
     createWorkflowInput: Record<string, unknown>;
     updateWorkflowInput: Record<string, unknown>;
+    executeWorkflowInput: Record<string, unknown>;
   };
 };
 
@@ -82,6 +85,10 @@ const createWorkspaceInputSchema = exposedInputSchema("createWorkspaceInput");
 
 const updateTypeInputSchema = exposedInputSchema("updateTypeInput");
 
+const getTypeMigrationStatusInputSchema = exposedInputSchema(
+  "getTypeMigrationStatusInput",
+);
+
 const createViewInputSchema = exposedInputSchema("createViewInput");
 
 const updateViewInputSchema = exposedInputSchema("updateViewInput");
@@ -105,6 +112,8 @@ const listTeamGroupsInputSchema = exposedInputSchema("listTeamGroupsInput");
 const createWorkflowInputSchema = exposedInputSchema("createWorkflowInput");
 
 const updateWorkflowInputSchema = exposedInputSchema("updateWorkflowInput");
+
+const executeWorkflowInputSchema = exposedInputSchema("executeWorkflowInput");
 
 const workflowCatalogInputSchema = {
   type: "object",
@@ -134,8 +143,15 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   },
   {
     name: "anydb_update_type",
-    description: `Read the authoring guide (call anydb_get_authoring_guide) before the first authoring call in a task. Patch the latest revision of one workspace type by stable template name. Existing records are migrated automatically after persistence; destructive changes require explicit data-loss confirmation.`,
+    description: `Read the authoring guide (call anydb_get_authoring_guide) before the first authoring call in a task. Patch the latest revision of one workspace type by stable template name, including its description, icon, fields, badges, or child policy. Existing records are migrated automatically after persistence; destructive changes require explicit data-loss confirmation.`,
     inputSchema: updateTypeInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_get_type_migration_status",
+    description:
+      "Poll a queued type migration by the jobId returned from anydb_update_type. Returns processed, total, and remaining record counts from cached job progress without rescanning workspace records.",
+    inputSchema:
+      getTypeMigrationStatusInputSchema as unknown as Tool["inputSchema"],
   },
   {
     name: "anydb_create_workflow",
@@ -145,8 +161,14 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_update_workflow",
     description:
-      "Update an existing workflow's name, description, or enabled state through the standard workflow service. Use the workflowId returned by workflow discovery or creation.",
+      "Update an existing workflow's metadata and/or replace its complete ordered action chain. Call anydb_list_workflow_actions first and follow each action inputSchema.required list plus its contextual guidance. Omit changes.actions to preserve actions. To add, update, remove, or reorder actions, provide the desired final chain using registered action types and symbolic bindings, then execute a simulation to verify it.",
     inputSchema: updateWorkflowInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_execute_workflow",
+    description:
+      "Execute an existing workflow. Set simulate=true to dry-run without side effects, or simulate=false for normal execution. Supply adoid when the workflow requires record context. Inspect the returned latest execution for artifact outputs and errors.",
+    inputSchema: executeWorkflowInputSchema as unknown as Tool["inputSchema"],
   },
   {
     name: "anydb_list_workflow_triggers",
@@ -163,13 +185,13 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_create_view",
     description:
-      "Create a filtered View using stable workspace type names. Call anydb_list_views first and reuse or update a compatible View instead of creating a duplicate. Use scope workspace to attach the View to the database root and scope children with parentRecordId for matching direct children.",
+      "Create a filtered View using stable workspace type names that remain valid across type revisions. Each target's filters apply only to records of that type. Call anydb_list_views first and reuse or update a compatible View instead of creating a duplicate. Use scope workspace to attach the View to the database root for workspace-level type filtering, or scope children with parentRecordId to filter matching direct children of that record.",
     inputSchema: createViewInputSchema as unknown as Tool["inputSchema"],
   },
   {
     name: "anydb_update_view",
     description:
-      "Update an existing filtered View by viewId. Change its name and/or replace its complete targets and filter set using stable workspace type names. Omit changes.targets to preserve existing criteria. View placement is immutable; create another View to change between workspace and children scope.",
+      "Update an existing filtered View by viewId. Change its name and/or replace its complete targets and per-type filter sets using stable workspace type names that remain valid across type revisions. Omit changes.targets to preserve existing criteria. View placement is immutable; create another View to change between workspace and children scope.",
     inputSchema: updateViewInputSchema as unknown as Tool["inputSchema"],
   },
   {
@@ -282,6 +304,12 @@ export async function callSolutionAuthoringTool(
     result = await client.updateType(
       normalized as unknown as UpdateTypeRequest,
     );
+  } else if (name === "anydb_get_type_migration_status") {
+    result = await client.getTypeMigrationStatus(
+      String(args.teamid || ""),
+      String(args.adbid || ""),
+      Number(args.jobId),
+    );
   } else if (name === "anydb_create_workflow") {
     const normalized = normalizeStructuredArgument(args, "workflow", name);
     result = await client.createWorkflow(
@@ -291,6 +319,10 @@ export async function callSolutionAuthoringTool(
     const normalized = normalizeStructuredArgument(args, "changes", name);
     result = await client.updateWorkflow(
       normalized as unknown as UpdateWorkflowRequest,
+    );
+  } else if (name === "anydb_execute_workflow") {
+    result = await client.executeWorkflow(
+      args as unknown as ExecuteWorkflowRequest,
     );
   } else if (name === "anydb_create_view") {
     const normalized = normalizeStructuredArgument(args, "view", name);

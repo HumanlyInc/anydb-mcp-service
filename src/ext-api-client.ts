@@ -421,9 +421,25 @@ export interface UpdateTypeResult {
   migration: {
     status: "not_started" | "queued" | "completed" | "enqueue_failed";
     jobId?: number;
+    recordsToMigrate: number;
   };
   warnings: string[];
   validation: { valid: true; errors: [] };
+}
+
+export interface TypeMigrationStatus {
+  jobId: number;
+  status: string;
+  progress: number;
+  recordsProcessed: number;
+  recordsToMigrate?: number;
+  recordsRemaining?: number;
+  errors: number;
+  success?: boolean;
+  message?: string;
+  templateName?: string;
+  previousTemplateId?: string;
+  templateId?: string;
 }
 
 export interface CreateWorkflowRequest {
@@ -485,6 +501,12 @@ export interface UpdateWorkflowRequest {
     name?: string;
     description?: string;
     enabled?: boolean;
+    actions?: Array<{
+      key: string;
+      type: string;
+      description?: string;
+      config: Record<string, unknown>;
+    }>;
   };
 }
 
@@ -497,6 +519,27 @@ export interface UpdateWorkflowResult {
     name: string;
     description: string;
     enabled: boolean;
+  };
+  graph?: {
+    actions: Array<{ key: string; type: string; actionId: string }>;
+  };
+}
+
+export interface ExecuteWorkflowRequest {
+  teamid: string;
+  adbid: string;
+  workflowId: string;
+  adoid?: string;
+  simulate: boolean;
+}
+
+export interface ExecuteWorkflowResult {
+  success: true;
+  operation: "execute_workflow";
+  result: {
+    workflowId: string;
+    simulated: boolean;
+    execution: unknown;
   };
 }
 
@@ -838,6 +881,20 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async getTypeMigrationStatus(
+    teamid: string,
+    adbid: string,
+    jobId: number,
+  ): Promise<TypeMigrationStatus> {
+    const response = await this.client.get<ExtApiResponse<TypeMigrationStatus>>(
+      `/integrations/ext/type-migrations/${jobId}`,
+      {
+        params: { teamid, adbid },
+      },
+    );
+    return this.unwrap(response.data);
+  }
+
   async createWorkflow(
     params: CreateWorkflowRequest,
   ): Promise<CreateWorkflowResult> {
@@ -854,6 +911,19 @@ export class ExtApiClient {
     const response = await this.client.put<
       ExtApiResponse<UpdateWorkflowResult>
     >(`/integrations/ext/workflows/${encodeURIComponent(workflowId)}`, body);
+    return this.unwrap(response.data);
+  }
+
+  async executeWorkflow(
+    params: ExecuteWorkflowRequest,
+  ): Promise<ExecuteWorkflowResult> {
+    const { workflowId, ...body } = params;
+    const response = await this.client.post<
+      ExtApiResponse<ExecuteWorkflowResult>
+    >(
+      `/integrations/ext/workflows/${encodeURIComponent(workflowId)}/execute`,
+      body,
+    );
     return this.unwrap(response.data);
   }
 

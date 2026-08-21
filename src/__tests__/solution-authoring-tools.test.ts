@@ -11,6 +11,8 @@ import type {
   CreateWorkspaceResult,
   CreateWorkflowRequest,
   CreateWorkflowResult,
+  ExecuteWorkflowRequest,
+  ExecuteWorkflowResult,
   ExtApiClient,
   UpdateTypeRequest,
   UpdateTypeResult,
@@ -127,6 +129,13 @@ describe("solution authoring tools", () => {
         ]),
       }),
     });
+    expect(
+      (SOLUTION_AUTHORING_TOOLS[2].inputSchema as any).properties.changes
+        .properties.icon,
+    ).toMatchObject({
+      type: "string",
+      description: expect.stringContaining("icon::<lucide-icon-name>"),
+    });
     expect(isSolutionAuthoringTool("anydb_update_type")).toBe(true);
   });
 
@@ -240,7 +249,11 @@ describe("solution authoring tools", () => {
         persisted: true,
       },
       impact: { affectedFields: ["Status"], destructive: false },
-      migration: { status: "queued", jobId: 12345678 },
+      migration: {
+        status: "queued",
+        jobId: 12345678,
+        recordsToMigrate: 27,
+      },
       warnings: [],
       validation: { valid: true, errors: [] },
     } as UpdateTypeResult);
@@ -252,6 +265,7 @@ describe("solution authoring tools", () => {
       clientRequestId: "meeting-note-v2",
       expectedRevision: "1",
       changes: {
+        icon: "icon::clipboard-check::#1565C0::#FFFFFF",
         addFields: [
           {
             key: "Status",
@@ -276,6 +290,54 @@ describe("solution authoring tools", () => {
     expect(JSON.parse(result.content[0].text)).toMatchObject({
       operation: "update_type",
       migration: { status: "queued" },
+    });
+  });
+
+  it("advertises and forwards type migration polling", async () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_get_type_migration_status",
+    );
+    expect(tool?.inputSchema).toMatchObject({
+      additionalProperties: false,
+      required: ["teamid", "adbid", "jobId"],
+      properties: { jobId: { type: "integer", minimum: 1 } },
+    });
+    expect(isSolutionAuthoringTool("anydb_get_type_migration_status")).toBe(
+      true,
+    );
+
+    const getTypeMigrationStatus =
+      jest.fn<ExtApiClient["getTypeMigrationStatus"]>();
+    getTypeMigrationStatus.mockResolvedValue({
+      jobId: 12345678,
+      status: "IN_PROGRESS",
+      progress: 44,
+      recordsProcessed: 12,
+      recordsToMigrate: 27,
+      recordsRemaining: 15,
+      errors: 0,
+    });
+    const client = { getTypeMigrationStatus } as unknown as ExtApiClient;
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_get_type_migration_status",
+      {
+        teamid: "507f1f77bcf86cd799439011",
+        adbid: "507f1f77bcf86cd799439012",
+        jobId: 12345678,
+      },
+      client,
+    );
+
+    expect(getTypeMigrationStatus).toHaveBeenCalledWith(
+      "507f1f77bcf86cd799439011",
+      "507f1f77bcf86cd799439012",
+      12345678,
+    );
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      recordsProcessed: 12,
+      recordsToMigrate: 27,
+      recordsRemaining: 15,
     });
   });
 
@@ -769,12 +831,13 @@ describe("solution authoring tools", () => {
       client,
     );
 
-    expect(SOLUTION_AUTHORING_TOOLS[3].name).toBe("anydb_create_workflow");
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_create_workflow",
+    )!;
+    expect(tool.name).toBe("anydb_create_workflow");
     expect(isSolutionAuthoringTool("anydb_create_workflow")).toBe(true);
-    expect(SOLUTION_AUTHORING_TOOLS[3].description).toContain(
-      "anydb_get_workflow_execution_history",
-    );
-    expect(SOLUTION_AUTHORING_TOOLS[3].inputSchema).toMatchObject({
+    expect(tool.description).toContain("anydb_get_workflow_execution_history");
+    expect(tool.inputSchema).toMatchObject({
       properties: {
         workflow: {
           required: ["name", "trigger"],
@@ -798,9 +861,7 @@ describe("solution authoring tools", () => {
         },
       },
     });
-    const workflowSchema = JSON.stringify(
-      SOLUTION_AUTHORING_TOOLS[3].inputSchema,
-    );
+    const workflowSchema = JSON.stringify(tool.inputSchema);
     expect(workflowSchema).toContain('"actions"');
     expect(workflowSchema).toContain("priorActionKey.outputName");
     expect(workflowSchema).not.toContain('"connections"');
@@ -849,6 +910,118 @@ describe("solution authoring tools", () => {
       result: { enabled: true },
     });
     expect(isSolutionAuthoringTool("anydb_update_workflow")).toBe(true);
+  });
+
+  it("advertises and forwards complete workflow action replacement", async () => {
+    const updateWorkflow = jest.fn<ExtApiClient["updateWorkflow"]>();
+    updateWorkflow.mockResolvedValue({
+      success: true,
+      operation: "update_workflow",
+      requestId: "replace-workflow-actions-1",
+      result: {
+        workflowId: "507f1f77bcf86cd799439091",
+        name: "On SAF Form Submit",
+        description: "Updated chain",
+        enabled: false,
+      },
+      graph: {
+        actions: [
+          {
+            key: "find",
+            type: "action_find",
+            actionId: "action_find-runtime",
+          },
+          {
+            key: "notify",
+            type: "action_notification",
+            actionId: "action_notification-runtime",
+          },
+        ],
+      },
+    } as UpdateWorkflowResult);
+    const client = { updateWorkflow } as unknown as ExtApiClient;
+    const request: UpdateWorkflowRequest & Record<string, unknown> = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      workflowId: "507f1f77bcf86cd799439091",
+      clientRequestId: "replace-workflow-actions-1",
+      changes: {
+        description: "Updated chain",
+        actions: [
+          {
+            key: "find",
+            type: "action_find",
+            config: { query: "Status:Open" },
+          },
+          {
+            key: "notify",
+            type: "action_notification",
+            config: { records: "{{find.records}}" },
+          },
+        ],
+      },
+    };
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_update_workflow",
+      { ...request, changes: JSON.stringify(request.changes) },
+      client,
+    );
+
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_update_workflow",
+    );
+    expect(
+      (tool?.inputSchema as any).properties.changes.properties.actions,
+    ).toMatchObject({ minItems: 1 });
+    expect(tool?.description).toContain("complete ordered action chain");
+    expect(tool?.description).toContain("inputSchema.required");
+    expect(updateWorkflow).toHaveBeenCalledWith(request);
+    expect(JSON.parse(result.content[0].text).graph.actions).toHaveLength(2);
+  });
+
+  it("advertises and forwards simulated workflow execution", async () => {
+    const executeWorkflow = jest.fn<ExtApiClient["executeWorkflow"]>();
+    executeWorkflow.mockResolvedValue({
+      success: true,
+      operation: "execute_workflow",
+      result: {
+        workflowId: "507f1f77bcf86cd799439091",
+        simulated: true,
+        execution: { executionId: "run-1", status: "success" },
+      },
+    } as ExecuteWorkflowResult);
+    const client = { executeWorkflow } as unknown as ExtApiClient;
+    const request: ExecuteWorkflowRequest & Record<string, unknown> = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      workflowId: "507f1f77bcf86cd799439091",
+      adoid: "507f1f77bcf86cd799439092",
+      simulate: true,
+    };
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_execute_workflow",
+      request,
+      client,
+    );
+
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_execute_workflow",
+    );
+    expect((tool?.inputSchema as any).required).toEqual([
+      "teamid",
+      "adbid",
+      "workflowId",
+      "simulate",
+    ]);
+    expect(tool?.description).toContain("simulate=false");
+    expect(isSolutionAuthoringTool("anydb_execute_workflow")).toBe(true);
+    expect(executeWorkflow).toHaveBeenCalledWith(request);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      operation: "execute_workflow",
+      result: { simulated: true },
+    });
   });
 
   it("lists workflow trigger definitions", async () => {
