@@ -149,10 +149,10 @@ The service exposes 44 tools.
 
 ### Type Authoring
 
-| Tool                     | Description                                                       |
-| ------------------------ | ----------------------------------------------------------------- |
-| `anydb_create_workspace` | Create a new empty AnyDB workspace                                |
-| `anydb_create_type`      | Define a new type or import a compatible built-in type            |
+| Tool                     | Description                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| `anydb_create_workspace` | Create a new empty AnyDB workspace                                                        |
+| `anydb_create_type`      | Define a new type or import a compatible built-in type                                    |
 | `anydb_update_type`      | Patch type metadata (including icon), fields, badges, or child policy and migrate records |
 
 `anydb_create_type` supports semantic fields, a six-column form layout,
