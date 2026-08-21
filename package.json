@@ -28,7 +28,7 @@
     "prepare": "npm run build",
     "start": "npm run build && node dist/index.js",
     "start:mcp": "npm run build && node dist/index.js",
-    "start:server": "npm run build && node dist/mcp-server.js",
+    "start:http": "npm run build && node dist/http.js",
     "start:rest": "npm run build && node dist/rest-server.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",

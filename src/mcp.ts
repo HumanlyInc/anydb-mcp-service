@@ -39,6 +39,77 @@ import {
 } from "./solution-resources.js";
 import type { TemplateStructure } from "./types.js";
 
+/**
+ * AnyDB MCP Server
+ * Provides MCP tools for AI agents to create and manage AnyDB templates
+ *
+ * =============================================================================
+ * IMPORTANT: Understanding AnyDB Terminology
+ * =============================================================================
+ *
+ * - **teamid**: MongoDB ObjectId identifying a team/organization. Each team is
+ *   a separate workspace with its own databases and users. Use list_teams to
+ *   discover available teams.
+ *
+ * - **adbid**: MongoDB ObjectId for an ADB (AnyDB Database). Each team can have
+ *   multiple databases. Think of it like a spreadsheet file or a table. Use
+ *   list_databases_for_team to find databases within a team.
+ *
+ * - **adoid**: MongoDB ObjectId for an ADO (AnyDB Object/Record). This is a
+ *   single row/record within a database, similar to a row in a spreadsheet.
+ *
+ * - **cellpos**: Cell position identifier (e.g., "A1", "B2"). Each record has
+ *   cells organized in a grid. Cells contain typed data like text, numbers,
+ *   dates, files, formulas, etc. The cellpos identifies which cell in the record
+ *   contains the data you want to access.
+ *
+ * =============================================================================
+ * Working with Records and Cells
+ * =============================================================================
+ *
+ * Records in AnyDB work like spreadsheet rows with typed cells:
+ * - Each cell has a position (A1, B2, etc.) and a type (text, number, date, file, etc.)
+ * - Use get_record to fetch a complete record with all its cell data
+ * - Cell types include: text, number, date, checkbox, dropdown, file, formula,
+ *   relation, and many more
+ * - Files are stored in cells and accessed using cellpos (e.g., "C5" might contain a PDF)
+ *
+ * =============================================================================
+ * File Download Workflow
+ * =============================================================================
+ *
+ * When using download_file:
+ * 1. The tool returns a JSON response with a "url" field containing the download link
+ * 2. **Important**: The MCP client/host must handle this URL appropriately:
+ *    - For human users: Create a clickable download button/link in the UI
+ *    - For LLM processing: Fetch the file content from the URL and pass it to the LLM
+ * 3. The URL may be temporary (pre-signed), so use it promptly
+ * 4. Use redirect=true for direct browser downloads, redirect=false for API access
+ * 5. Use preview=true to display the file inline instead of downloading
+ *
+ * Example response: {"url": "https://storage.../file.pdf", "redirect": false}
+ *
+ * =============================================================================
+ * File Upload Workflow
+ * =============================================================================
+ *
+ * Uploading small files is simple with the upload_file tool:
+ * 1. Prepare your file content as a base64-encoded string
+ * 2. Call upload_file with filename, fileContent, teamid, adbid, adoid, and optional cellpos
+ * 3. The tool creates a separate child File record attached to the supplied parent adoid
+ * 4. Upload preparation and completion target the child File record, not the parent
+ * 5. Returns the created child File record ID after completing the upload
+ *
+ * Example: Upload a text file
+ *   - filename: "document.txt"
+ *   - fileContent: Base64-encoded file content
+ *   - teamid, adbid, adoid: IDs from your records
+ *   - cellpos: "A1" (optional, defaults to A1)
+ *   - contentType: "text/plain" (optional, helps with file handling)
+ *
+ * =============================================================================
+ */
+
 // Define available tools
 const TOOLS: Tool[] = [
   ...SETUP_TOOLS,
@@ -706,13 +777,18 @@ const TOOLS: Tool[] = [
   },
 ];
 
-export function createMcpServer(credentials: {
+export function createMcpServer({
+  apiKey,
+  userEmail,
+  baseURL,
+}: {
   apiKey: string;
-  email: string;
+  userEmail: string;
+  baseURL?: string;
 }) {
   const extApiClient = new ExtApiClient({
-    apiKey: config.defaultApiKey || "",
-    userEmail: config.defaultUserEmail || "",
+    apiKey,
+    userEmail,
     baseURL: config.anydbApiBaseUrl,
   });
 

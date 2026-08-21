@@ -2,10 +2,6 @@
 
 import "dotenv/config";
 
-/**
- * AnyDB MCP Server
- */
-
 import express from "express";
 import cors from "cors";
 import { createMcpServer } from "./mcp.js";
@@ -20,12 +16,12 @@ app.use(express.json());
 // Start server
 const PORT = process.env.REST_API_PORT || 3001;
 
-app.all("/mcp", async (req, res) => {
+app.all("/", async (req, res) => {
   // New connection
   const apiKey = req.headers["x-anydb-api-key"] as string | undefined;
-  const email = req.headers["x-anydb-email"] as string | undefined;
+  const userEmail = req.headers["x-anydb-email"] as string | undefined;
 
-  if (!apiKey || !email) {
+  if (!apiKey || !userEmail) {
     res.status(401).json({
       error: "Missing AnyDB credentials",
     });
@@ -35,7 +31,7 @@ app.all("/mcp", async (req, res) => {
 
   const server = createMcpServer({
     apiKey,
-    email,
+    userEmail,
   });
 
   const transport = new StreamableHTTPServerTransport();
@@ -45,5 +41,5 @@ app.all("/mcp", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`AnyDB MCP Server running on http://localhost:${PORT}`);
+  console.log(`AnyDB MCP HTTP transport running on http://localhost:${PORT}`);
 });
