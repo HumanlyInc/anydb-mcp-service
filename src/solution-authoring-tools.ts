@@ -185,13 +185,13 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_create_view",
     description:
-      "Create a filtered View using stable workspace type names. Call anydb_list_views first and reuse or update a compatible View instead of creating a duplicate. Use scope workspace to attach the View to the database root and scope children with parentRecordId for matching direct children.",
+      "Create a filtered View using stable workspace type names that remain valid across type revisions. Each target's filters apply only to records of that type. Call anydb_list_views first and reuse or update a compatible View instead of creating a duplicate. Use scope workspace to attach the View to the database root for workspace-level type filtering, or scope children with parentRecordId to filter matching direct children of that record.",
     inputSchema: createViewInputSchema as unknown as Tool["inputSchema"],
   },
   {
     name: "anydb_update_view",
     description:
-      "Update an existing filtered View by viewId. Change its name and/or replace its complete targets and filter set using stable workspace type names. Omit changes.targets to preserve existing criteria. View placement is immutable; create another View to change between workspace and children scope.",
+      "Update an existing filtered View by viewId. Change its name and/or replace its complete targets and per-type filter sets using stable workspace type names that remain valid across type revisions. Omit changes.targets to preserve existing criteria. View placement is immutable; create another View to change between workspace and children scope.",
     inputSchema: updateViewInputSchema as unknown as Tool["inputSchema"],
   },
   {

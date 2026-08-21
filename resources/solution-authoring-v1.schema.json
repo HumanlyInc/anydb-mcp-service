@@ -21,11 +21,7 @@
           "maxLength": 200,
           "description": "Name of the new empty workspace."
         },
-        "clientRequestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
-        }
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 }
       }
     },
     "layout": {
@@ -46,49 +42,10 @@
         "key": { "type": "string", "minLength": 1, "maxLength": 120 },
         "description": { "type": "string", "maxLength": 1000 },
         "valueType": {
-          "enum": [
-            "string",
-            "number",
-            "boolean",
-            "array",
-            "void",
-            "file",
-            "object",
-            "ref",
-            "user"
-          ]
+          "enum": ["string", "number", "boolean", "array", "void", "file", "object", "ref", "user"]
         },
         "format": {
-          "enum": [
-            "general",
-            "number",
-            "currency",
-            "percentage",
-            "date",
-            "datetime",
-            "time",
-            "ref",
-            "signature",
-            "file",
-            "checkbox",
-            "user",
-            "users",
-            "select",
-            "multi-select",
-            "rich-text",
-            "attachments",
-            "comments",
-            "ai",
-            "barcode",
-            "qrcode",
-            "chart",
-            "report",
-            "lookup",
-            "button",
-            "timeline",
-            "dynamic",
-            "heading"
-          ]
+          "enum": ["general", "number", "currency", "percentage", "date", "datetime", "time", "ref", "signature", "file", "checkbox", "user", "users", "select", "multi-select", "rich-text", "attachments", "comments", "ai", "barcode", "qrcode", "chart", "report", "lookup", "button", "timeline", "dynamic", "heading"]
         },
         "formula": { "type": "string", "minLength": 1 },
         "targetType": { "type": "string", "minLength": 1, "maxLength": 120 },
@@ -166,20 +123,7 @@
         "source": { "enum": ["cell", "meta", "badge"] },
         "field": { "type": "string", "minLength": 1, "maxLength": 120 },
         "operator": {
-          "enum": [
-            "eq",
-            "neq",
-            "gt",
-            "lt",
-            "gte",
-            "lte",
-            "like",
-            "contains",
-            "startswith",
-            "endswith",
-            "includes",
-            "notincludes"
-          ]
+          "enum": ["eq", "neq", "gt", "lt", "gte", "lte", "like", "contains", "startswith", "endswith", "includes", "notincludes"]
         },
         "value": {
           "type": ["string", "number", "boolean"],
@@ -200,10 +144,11 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 120,
-          "description": "Stable workspace type name whose records the View can display."
+          "description": "Stable workspace type name whose records the View can display. The name applies across revisions of that type; do not use a template ID."
         },
         "filters": {
           "type": "array",
+          "description": "Filters applied only to records of this target type. Omit or use an empty array to include all records of the type within the View scope.",
           "items": { "$ref": "#/$defs/viewFilter" }
         }
       }
@@ -216,9 +161,12 @@
         "name": { "type": "string", "minLength": 1, "maxLength": 200 },
         "scope": {
           "enum": ["workspace", "children"],
-          "description": "workspace attaches the View to the database root; children attaches it to one parent record and lists matching direct children."
+          "description": "workspace attaches the View to the database root for workspace-level type filtering; children attaches it to parentRecordId and filters matching direct children of that record."
         },
-        "parentRecordId": { "$ref": "#/$defs/objectId" },
+        "parentRecordId": {
+          "$ref": "#/$defs/objectId",
+          "description": "Required only for children scope. The View lists matching direct children attached to this parent record."
+        },
         "targets": {
           "type": "array",
           "minItems": 1,
@@ -227,10 +175,7 @@
       },
       "allOf": [
         {
-          "if": {
-            "properties": { "scope": { "const": "children" } },
-            "required": ["scope"]
-          },
+          "if": { "properties": { "scope": { "const": "children" } }, "required": ["scope"] },
           "then": { "required": ["parentRecordId"] },
           "else": { "not": { "required": ["parentRecordId"] } }
         }
@@ -261,11 +206,7 @@
         "teamid": { "$ref": "#/$defs/objectId" },
         "adbid": { "$ref": "#/$defs/objectId" },
         "viewId": { "$ref": "#/$defs/objectId" },
-        "clientRequestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
-        },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
         "validateOnly": { "type": "boolean", "default": false },
         "changes": {
           "type": "object",
@@ -310,11 +251,7 @@
         "teamid": { "$ref": "#/$defs/objectId" },
         "adbid": { "$ref": "#/$defs/objectId" },
         "viewId": { "$ref": "#/$defs/objectId" },
-        "clientRequestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
-        }
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 }
       }
     },
     "shareTarget": {
@@ -375,7 +312,10 @@
           }
         }
       },
-      "anyOf": [{ "required": ["emails"] }, { "required": ["groupNames"] }]
+      "anyOf": [
+        { "required": ["emails"] },
+        { "required": ["groupNames"] }
+      ]
     },
     "createShareInput": {
       "type": "object",
@@ -384,11 +324,7 @@
       "properties": {
         "teamid": { "$ref": "#/$defs/objectId" },
         "adbid": { "$ref": "#/$defs/objectId" },
-        "clientRequestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
-        },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
         "validateOnly": { "type": "boolean", "default": false },
         "share": {
           "type": "object",
@@ -410,10 +346,7 @@
           },
           "allOf": [
             {
-              "if": {
-                "properties": { "privacy": { "const": "private" } },
-                "required": ["privacy"]
-              },
+              "if": { "properties": { "privacy": { "const": "private" } }, "required": ["privacy"] },
               "then": { "required": ["recipients"] },
               "else": { "not": { "required": ["recipients"] } }
             },
@@ -484,11 +417,7 @@
           "enum": ["record", "form"],
           "description": "Share facet to revoke without affecting a different facet on the same internal share."
         },
-        "clientRequestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
-        }
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 }
       }
     },
     "typeDefinition": {
@@ -522,19 +451,11 @@
       "properties": {
         "teamid": { "$ref": "#/$defs/objectId" },
         "adbid": { "$ref": "#/$defs/objectId" },
-        "clientRequestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
-        },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
         "validateOnly": { "type": "boolean", "default": false },
         "mode": { "enum": ["define", "import_builtin"] },
         "type": { "$ref": "#/$defs/typeDefinition" },
-        "builtInTemplateName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 120
-        }
+        "builtInTemplateName": { "type": "string", "minLength": 1, "maxLength": 120 }
       },
       "allOf": [
         {
@@ -566,24 +487,12 @@
     "updateTypeInput": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "teamid",
-        "adbid",
-        "templateName",
-        "clientRequestId",
-        "expectedRevision",
-        "changes",
-        "confirmDataLoss"
-      ],
+      "required": ["teamid", "adbid", "templateName", "clientRequestId", "expectedRevision", "changes", "confirmDataLoss"],
       "properties": {
         "teamid": { "$ref": "#/$defs/objectId" },
         "adbid": { "$ref": "#/$defs/objectId" },
         "templateName": { "type": "string", "minLength": 1, "maxLength": 120 },
-        "clientRequestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
-        },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
         "expectedRevision": { "type": "string", "minLength": 1 },
         "validateOnly": { "type": "boolean", "default": false },
         "changes": {
@@ -595,26 +504,11 @@
               "type": "string",
               "description": "Replacement Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>."
             },
-            "addFields": {
-              "type": "array",
-              "items": { "$ref": "#/$defs/field" }
-            },
-            "updateFields": {
-              "type": "array",
-              "items": { "$ref": "#/$defs/fieldUpdate" }
-            },
-            "removeFields": {
-              "type": "array",
-              "uniqueItems": true,
-              "items": { "type": "string", "minLength": 1 }
-            },
-            "replaceBadges": {
-              "type": ["array", "null"],
-              "items": { "$ref": "#/$defs/badge" }
-            },
-            "replaceChildPolicy": {
-              "oneOf": [{ "$ref": "#/$defs/childPolicy" }, { "type": "null" }]
-            }
+            "addFields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
+            "updateFields": { "type": "array", "items": { "$ref": "#/$defs/fieldUpdate" } },
+            "removeFields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+            "replaceBadges": { "type": ["array", "null"], "items": { "$ref": "#/$defs/badge" } },
+            "replaceChildPolicy": { "oneOf": [{ "$ref": "#/$defs/childPolicy" }, { "type": "null" }] }
           }
         },
         "confirmDataLoss": { "type": "boolean", "default": false }
@@ -636,11 +530,7 @@
       "properties": {
         "formName": { "type": "string", "minLength": 1, "maxLength": 200 },
         "templateName": { "type": "string", "minLength": 1, "maxLength": 120 },
-        "fieldNames": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
-        },
+        "fieldNames": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "parentRecordId": { "$ref": "#/$defs/objectId" },
         "filter": { "type": "string", "minLength": 1 },
         "interval": { "type": "string", "minLength": 1 },
@@ -680,11 +570,7 @@
       "properties": {
         "teamid": { "$ref": "#/$defs/objectId" },
         "adbid": { "$ref": "#/$defs/objectId" },
-        "clientRequestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
-        },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
         "validateOnly": { "type": "boolean", "default": false },
         "workflow": {
           "type": "object",
@@ -699,15 +585,7 @@
               "additionalProperties": false,
               "required": ["type", "config"],
               "properties": {
-                "type": {
-                  "enum": [
-                    "trigger_on_form_submit",
-                    "trigger_on_record_create",
-                    "trigger_on_record_update",
-                    "trigger_on_schedule",
-                    "trigger_manual"
-                  ]
-                },
+                "type": { "enum": ["trigger_on_form_submit", "trigger_on_record_create", "trigger_on_record_update", "trigger_on_schedule", "trigger_manual"] },
                 "config": { "$ref": "#/$defs/workflowTriggerConfig" }
               }
             },
@@ -717,11 +595,7 @@
               "required": ["source"],
               "properties": {
                 "source": { "type": "string", "minLength": 1 },
-                "timeoutMs": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 30000
-                }
+                "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 30000 }
               }
             },
             "actions": {
@@ -740,22 +614,12 @@
     "updateWorkflowInput": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "teamid",
-        "adbid",
-        "workflowId",
-        "clientRequestId",
-        "changes"
-      ],
+      "required": ["teamid", "adbid", "workflowId", "clientRequestId", "changes"],
       "properties": {
         "teamid": { "$ref": "#/$defs/objectId" },
         "adbid": { "$ref": "#/$defs/objectId" },
         "workflowId": { "$ref": "#/$defs/objectId" },
-        "clientRequestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
-        },
+        "clientRequestId": { "type": "string", "minLength": 1, "maxLength": 200 },
         "changes": {
           "type": "object",
           "additionalProperties": false,
@@ -797,9 +661,7 @@
     "anydb_create_workspace": { "$ref": "#/$defs/createWorkspaceInput" },
     "anydb_create_type": { "$ref": "#/$defs/createTypeInput" },
     "anydb_update_type": { "$ref": "#/$defs/updateTypeInput" },
-    "anydb_get_type_migration_status": {
-      "$ref": "#/$defs/getTypeMigrationStatusInput"
-    },
+    "anydb_get_type_migration_status": { "$ref": "#/$defs/getTypeMigrationStatusInput" },
     "anydb_create_view": { "$ref": "#/$defs/createViewInput" },
     "anydb_update_view": { "$ref": "#/$defs/updateViewInput" },
     "anydb_list_views": { "$ref": "#/$defs/listViewsInput" },
