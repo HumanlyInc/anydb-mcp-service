@@ -436,6 +436,7 @@ export interface TypeMigrationStatus {
   recordsRemaining?: number;
   errors: number;
   success?: boolean;
+  message?: string;
   templateName?: string;
   previousTemplateId?: string;
   templateId?: string;
