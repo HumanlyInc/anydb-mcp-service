@@ -129,6 +129,13 @@ describe("solution authoring tools", () => {
         ]),
       }),
     });
+    expect(
+      (SOLUTION_AUTHORING_TOOLS[2].inputSchema as any).properties.changes
+        .properties.icon,
+    ).toMatchObject({
+      type: "string",
+      description: expect.stringContaining("icon::<lucide-icon-name>"),
+    });
     expect(isSolutionAuthoringTool("anydb_update_type")).toBe(true);
   });
 
@@ -258,6 +265,7 @@ describe("solution authoring tools", () => {
       clientRequestId: "meeting-note-v2",
       expectedRevision: "1",
       changes: {
+        icon: "icon::clipboard-check::#1565C0::#FFFFFF",
         addFields: [
           {
             key: "Status",

@@ -144,10 +144,11 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 120,
-          "description": "Stable workspace type name whose records the View can display."
+          "description": "Stable workspace type name whose records the View can display. The name applies across revisions of that type; do not use a template ID."
         },
         "filters": {
           "type": "array",
+          "description": "Filters applied only to records of this target type. Omit or use an empty array to include all records of the type within the View scope.",
           "items": { "$ref": "#/$defs/viewFilter" }
         }
       }
@@ -160,9 +161,12 @@
         "name": { "type": "string", "minLength": 1, "maxLength": 200 },
         "scope": {
           "enum": ["workspace", "children"],
-          "description": "workspace attaches the View to the database root; children attaches it to one parent record and lists matching direct children."
+          "description": "workspace attaches the View to the database root for workspace-level type filtering; children attaches it to parentRecordId and filters matching direct children of that record."
         },
-        "parentRecordId": { "$ref": "#/$defs/objectId" },
+        "parentRecordId": {
+          "$ref": "#/$defs/objectId",
+          "description": "Required only for children scope. The View lists matching direct children attached to this parent record."
+        },
         "targets": {
           "type": "array",
           "minItems": 1,
@@ -423,7 +427,10 @@
       "properties": {
         "name": { "type": "string", "minLength": 1, "maxLength": 120 },
         "description": { "type": "string", "maxLength": 2000 },
-        "icon": { "type": "string" },
+        "icon": {
+          "type": "string",
+          "description": "Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>, for example icon::clipboard-check::#1565C0::#FFFFFF."
+        },
         "titleFormula": { "type": "string", "minLength": 1 },
         "fields": {
           "type": "array",
@@ -493,6 +500,10 @@
           "additionalProperties": false,
           "properties": {
             "description": { "type": "string" },
+            "icon": {
+              "type": "string",
+              "description": "Replacement Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>."
+            },
             "addFields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
             "updateFields": { "type": "array", "items": { "$ref": "#/$defs/fieldUpdate" } },
             "removeFields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
