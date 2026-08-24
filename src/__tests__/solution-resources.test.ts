@@ -54,6 +54,45 @@ describe("solution resources", () => {
     );
     expect(resource.text).toContain("Standalone type");
     expect(resource.text).toContain("## Cells");
+    expect(resource.text).toContain(
+      "Avoid special characters such as `%` in any key used inside `{{Field Key}}`",
+    );
+    expect(resource.text).toContain(
+      "A `heading` field requires `headingLabel`",
+    );
+    expect(resource.text).toContain(
+      "stored in the heading cell's `HEADING_LABEL` prop rather than its `value`",
+    );
+    expect(resource.text).toContain(
+      "A `percentage` field stores a fraction from `0` to `1`",
+    );
+    expect(resource.text).toContain("Store 25% as `0.25`, not `25`");
+    expect(resource.text).toContain(
+      "`date`, `datetime`, and `time` record values use integer seconds since the Unix epoch",
+    );
+    expect(resource.text).toContain("`Math.floor(Date.now() / 1000)`");
+    expect(resource.text).toContain("not `Date.now()`");
+    expect(resource.text).toContain(
+      "Guard aggregations and other relationship-dependent expressions",
+    );
+    expect(resource.text).toContain(
+      "This includes `SUM`, `COUNT`, `MAX`, `FILTER`, `SUMBY`, `MAXBY`",
+    );
+    expect(resource.text).toContain(
+      'normally `0` for numeric results, `[]` for arrays, and `""` for text',
+    );
+    expect(resource.text).toContain(
+      "IFERROR(SUM(C@CURRREC!N@Invoice!{{Amount}}), 0)",
+    );
+    expect(resource.text).toContain(
+      "IFERROR(COUNT(C@CURRREC!N@Invoice!{{Name}}), 0)",
+    );
+    expect(resource.text).toContain(
+      'IFERROR(MAXBY(FILTER(C@CURRREC!N@Invoice!{{Packed Data}}, {type: "Open"}), "total"), 0)',
+    );
+    expect(resource.text).not.toContain(
+      "locked `Total = SUM(C@CURRREC!N@Order Item!{{Total}})`",
+    );
     expect(resource.text).toContain("### Canonical Type Layout");
     expect(resource.text).toContain("six-column grid, A-F");
     expect(resource.text).toContain("Build an occupancy map");
@@ -77,6 +116,15 @@ describe("solution resources", () => {
     );
     expect(resource.text).toContain(
       "Connected child and parent references return arrays",
+    );
+    expect(resource.text).toContain(
+      "Do not author or modify `childPolicy`, `childPolicy.allowOnly`, or `childPolicy.autoCreate` through MCP",
+    );
+    expect(resource.text).toContain(
+      "Omit child policy from create and update requests",
+    );
+    expect(resource.text).not.toContain(
+      "`childPolicy.allowOnly` restricts allowed child types",
     );
     expect(resource.text).toContain("C@CURRREC!N@Invoice!{{Amount}}");
     expect(resource.text).toContain("A@CURRREC!{{Budget}}[0]");
@@ -106,6 +154,18 @@ describe("solution resources", () => {
     expect(resource.text).toContain("call `anydb_get_workflow`");
     expect(resource.text).toContain(
       "Its ID is `created.id` (the new adoid), not `created.adoid`",
+    );
+    expect(resource.text).toContain(
+      "Supplying it replaces the record's complete parent list",
+    );
+    expect(resource.text).toContain(
+      "Omit `parentid` to leave attachments unchanged",
+    );
+    expect(resource.text).toContain(
+      "pass its ID as `adoid` to `anydb_execute_workflow`",
+    );
+    expect(resource.text).toContain(
+      "`{{context:meta.*}}` and `{{context:content.*}}`",
     );
     expect(resource.text).toContain("After creating or changing a workflow");
     expect(resource.text).toContain("anydb_get_workflow_execution_history");
@@ -164,6 +224,9 @@ describe("solution resources", () => {
     expect(resource.mimeType).toBe("application/schema+json");
     expect(schema.$id).toBe(SOLUTION_AUTHORING_SCHEMA_URI);
     expect(schema.$defs.field.properties.format.enum).toContain("lookup");
+    expect(schema.$defs.field.properties).toHaveProperty("headingLabel");
+    expect(schema.$defs.field.allOf[0].then.required).toContain("headingLabel");
+    expect(schema.$defs.fieldUpdate.properties).toHaveProperty("headingLabel");
     expect(schema.$defs.field.properties.lookup.properties.mode.enum).toEqual([
       "snapshot",
       "live",
@@ -185,6 +248,9 @@ describe("solution resources", () => {
     expect(schema.$defs.createTypeInput.properties).toHaveProperty(
       "builtInTemplateName",
     );
+    expect(schema.$defs.typeDefinition.properties).not.toHaveProperty(
+      "childPolicy",
+    );
     expect(schema.$defs.updateTypeInput.properties).toHaveProperty(
       "templateName",
     );
@@ -194,6 +260,9 @@ describe("solution resources", () => {
     expect(
       schema.$defs.updateTypeInput.properties.changes.properties,
     ).toHaveProperty("icon");
+    expect(
+      schema.$defs.updateTypeInput.properties.changes.properties,
+    ).not.toHaveProperty("replaceChildPolicy");
     expect(
       schema.$defs.updateTypeInput.properties.changes.properties.icon,
     ).toMatchObject({ type: "string" });
