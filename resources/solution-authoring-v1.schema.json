@@ -41,6 +41,12 @@
       "properties": {
         "key": { "type": "string", "minLength": 1, "maxLength": 120 },
         "description": { "type": "string", "maxLength": 1000 },
+        "headingLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Displayed heading text. Required only when format is heading; the server stores it in the HEADING_LABEL cell prop rather than the cell value."
+        },
         "valueType": {
           "enum": ["string", "number", "boolean", "array", "void", "file", "object", "ref", "user"]
         },
@@ -80,7 +86,14 @@
         "required": { "type": "boolean", "default": false },
         "locked": { "type": "boolean", "default": false },
         "layout": { "$ref": "#/$defs/layout" }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "format": { "const": "heading" } } },
+          "then": { "required": ["headingLabel"] },
+          "else": { "not": { "required": ["headingLabel"] } }
+        }
+      ]
     },
     "badge": {
       "type": "object",
@@ -440,8 +453,7 @@
         "badges": {
           "type": "array",
           "items": { "$ref": "#/$defs/badge" }
-        },
-        "childPolicy": { "$ref": "#/$defs/childPolicy" }
+        }
       }
     },
     "createTypeInput": {
@@ -473,6 +485,7 @@
         "key": { "type": "string", "minLength": 1 },
         "newKey": { "type": "string", "minLength": 1 },
         "description": { "type": "string" },
+        "headingLabel": { "$ref": "#/$defs/field/properties/headingLabel" },
         "valueType": { "$ref": "#/$defs/field/properties/valueType" },
         "format": { "$ref": "#/$defs/field/properties/format" },
         "formula": { "type": "string" },
@@ -507,8 +520,7 @@
             "addFields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
             "updateFields": { "type": "array", "items": { "$ref": "#/$defs/fieldUpdate" } },
             "removeFields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-            "replaceBadges": { "type": ["array", "null"], "items": { "$ref": "#/$defs/badge" } },
-            "replaceChildPolicy": { "oneOf": [{ "$ref": "#/$defs/childPolicy" }, { "type": "null" }] }
+            "replaceBadges": { "type": ["array", "null"], "items": { "$ref": "#/$defs/badge" } }
           }
         },
         "confirmDataLoss": { "type": "boolean", "default": false }

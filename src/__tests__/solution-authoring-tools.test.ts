@@ -1104,7 +1104,8 @@ describe("solution authoring tools", () => {
         guidance: {
           anydbApis: {
             getRecordById: "anydb.getRecordById(adoid)",
-            updateRecord: "anydb.updateRecord({ adoid, cellValues? })",
+            updateRecord:
+              "anydb.updateRecord({ adoid, cellValues?, parentid? })",
           },
           rules: ["Require input.recordId for triggering-record workflows."],
         },

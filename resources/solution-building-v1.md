@@ -81,6 +81,21 @@ Supported authoring formats are `general`, `number`, `currency`, `percentage`, `
 
 Important format rules:
 
+- Field keys referenced by formulas must use only letters, numbers, and spaces. Avoid special characters such as `%` in any key used inside `{{Field Key}}`; use a key such as `Discount Percentage` instead of `Discount %`.
+- A `heading` field requires `headingLabel`. The `key` remains the stable field identifier, while `headingLabel` is the displayed text stored in the heading cell's `HEADING_LABEL` prop rather than its `value`. Do not put heading text in a default value or raw props. Example:
+
+  ```json
+  {
+    "key": "Financial Details Heading",
+    "headingLabel": "Financial details",
+    "valueType": "string",
+    "format": "heading",
+    "layout": { "position": "A3", "colspan": 6, "rowspan": 1 }
+  }
+  ```
+
+- A `percentage` field stores a fraction from `0` to `1`, not a human percentage from `0` to `100`. Store 25% as `0.25`, not `25`; convert user-entered percentage points before writing record values.
+- `date`, `datetime`, and `time` record values use integer seconds since the Unix epoch. Do not write ISO date strings or JavaScript millisecond timestamps. In JavaScript, convert the current time with `Math.floor(Date.now() / 1000)`, not `Date.now()`.
 - `ref` selects an independent record and requires an exact `targetType` name.
 - `lookup` mirrors a field through a `ref`; provide `lookup.fromField`, `lookup.targetField`, and an optional `lookup.mode` of `snapshot` or `live`. The default is `snapshot`.
 - `attachments` embeds child records and requires the child `targetType`. Give it enough space, normally full width and 6-7 rows high.
@@ -130,9 +145,9 @@ Keep these concerns separate:
 
 1. Ownership attaches a child record to one or more parents.
 2. An `attachments` cell controls embedded child display.
-3. `childPolicy.allowOnly` restricts allowed child types.
-4. `childPolicy.autoCreate` creates required children.
-5. A `ref` points to an independent record; `lookup` fields read through it.
+3. A `ref` points to an independent record; `lookup` fields read through it.
+
+Do not author or modify `childPolicy`, `childPolicy.allowOnly`, or `childPolicy.autoCreate` through MCP, for either standalone types or multi-type solutions. Omit child policy from create and update requests. Model ownership with parent attachments and embedded child display with `attachments` fields.
 
 Use a reference for shared master data. Use a child for a detail that belongs to the parent's lifecycle. A child may have multiple parents when the same detail legitimately participates in more than one aggregate.
 
@@ -249,6 +264,8 @@ Example private record share:
 
 Most arithmetic, comparison, conditional, text, date, and aggregation formulas are spreadsheet-like. Relationship traversal uses AnyDB-specific references. Prefer stable field keys and do not invent reference syntax.
 
+Guard aggregations and other relationship-dependent expressions that may receive undefined or temporarily unavailable values with `IFERROR`. This includes `SUM`, `COUNT`, `MAX`, `FILTER`, `SUMBY`, `MAXBY`, and similar operations. Choose a fallback compatible with the formula output: normally `0` for numeric results, `[]` for arrays, and `""` for text. Guard the complete expression, including nested operations; for example, use `IFERROR(MAXBY(FILTER(...), "total"), 0)` rather than guarding only `FILTER`.
+
 Use the reference form that matches the relationship:
 
 - Current-record field: `{{Field Key}}`, for example `{{Quantity}} * {{Unit Price}}`.
@@ -265,9 +282,9 @@ Reference examples:
 ```text
 {{Field Key}}
 SEQNUM("Sequence", 1000)
-SUM(C@CURRREC!N@Invoice!{{Amount}})
-COUNT(C@CURRREC!N@Invoice!{{Name}})
-MAXBY(FILTER(C@CURRREC!N@Invoice!{{Packed Data}}, {type: "Open"}), "total")
+IFERROR(SUM(C@CURRREC!N@Invoice!{{Amount}}), 0)
+IFERROR(COUNT(C@CURRREC!N@Invoice!{{Name}}), 0)
+IFERROR(MAXBY(FILTER(C@CURRREC!N@Invoice!{{Packed Data}}, {type: "Open"}), "total"), 0)
 A@CURRREC!{{Budget}}[0]
 M@CREATED, M@CREATEDBY
 ```
@@ -299,10 +316,11 @@ Keep the workflow set small and purposeful. Reuse an existing workflow or combin
 - Send actions in execution order. Each action has a unique client-local `key`, a registered `type`, and `config` matching that action's catalog input schema. The server creates and connects the persisted artifact IDs.
 - Map outputs into later action inputs with `{{trigger.outputName}}` or `{{priorActionKey.outputName}}`. A binding may only reference the trigger or an earlier action in the chain. Output names must come from the corresponding catalog output schema.
 - Form submit and record create/update triggers automatically pass their `adoid` output to an `action_script` as `recordId` when that input is omitted. Explicit `{{trigger.adoid}}` mappings are also supported.
-- Schedule and manual triggers do not receive an automatic record input.
+- Schedule and manual triggers do not receive an implicit record input. To execute a manual workflow against a record, pass its ID as `adoid` to `anydb_execute_workflow`; the runtime then exposes that record through `{{context:meta.*}}` and `{{context:content.*}}` action bindings. Omit `adoid` only when the manual workflow is intentionally record-independent.
 - For a triggering-record script, require `input.recordId`, load it with `await anydb.getRecordById(input.recordId)`, and fail before side effects if it is missing or inaccessible. Use criteria/refIds only for intentional scheduled, manual, or batch workflows.
 - Use only APIs and signatures returned in the `action_script` catalog guidance. Do not invent global helpers, capability probes, or compatibility wrappers.
 - `await anydb.createRecord(...)` returns the created runtime record. Its ID is `created.id` (the new adoid), not `created.adoid`. Omit `parentid` only when root creation is intentional; if attaching a child, resolve and validate the parent ID before calling `createRecord`.
+- `await anydb.updateRecord({ adoid, cellValues?, parentid? })` accepts one parent ID or an array in `parentid`. Supplying it replaces the record's complete parent list; include every existing parent that must remain attached plus any new parents. Omit `parentid` to leave attachments unchanged. Never pass an empty parent list.
 - `script.runtime.ts` is authoritative for supported script commands. Its catalog guidance exposes `globals`, `anydbApis`, `outputApis`, and record helpers. Use `log(...)` or `console.log(...)` for concise diagnostics around inputs, branch decisions, record IDs, and mutation results; never log credentials, tokens, or sensitive record content.
 - After a run, call `anydb_get_workflow` and inspect the script action at `executionHistory[].artifactExecutions[].output.logLines`. An empty execution history means the workflow did not run; a failed artifact also exposes its `error` alongside any captured output.
 - Await all data and mutation calls. Begin every explicit loop with `await anydb.yield()`.
@@ -338,6 +356,6 @@ For a multi-type example, an order solution uses three types:
 
 - `Product`: reference type with `SKU`, `Name`, and `Unit Price`.
 - `Order Item`: line-item child with `Product` (`ref` targeting `Product`), `SKU` (`lookup` from `Product`), `Quantity`, and locked `Total = {{Unit Price}} * {{Quantity}}`.
-- `Order`: master type with `Order Number = SEQNUM("Order", 1000)`, an `attachments` field targeting `Order Item`, and locked `Total = SUM(C@CURRREC!N@Order Item!{{Total}})`.
+- `Order`: master type with `Order Number = SEQNUM("Order", 1000)`, an `attachments` field targeting `Order Item`, and locked `Total = IFERROR(SUM(C@CURRREC!N@Order Item!{{Total}}), 0)`.
 
 Create `Product`, then `Order Item`, then `Order`. Finally create a disabled record-update workflow scoped to `Order Item` if status automation is required.
