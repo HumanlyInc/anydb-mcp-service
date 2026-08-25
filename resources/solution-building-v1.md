@@ -71,6 +71,17 @@ Use `anydb_create_workspace` only when the user explicitly asks for a new worksp
 
 Use a separate type for every repeatable object with its own lifecycle. Do not model an arbitrary number of line items, events, or documents as repeated fields on a parent.
 
+## Record Titles
+
+A type may carry a `titleFormula`. When it is set, records of that type are named by evaluating it against the record, and the name is recomputed whenever a field the formula reads changes. Use one whenever a record's identity is derived from its own fields — an order number, an asset tag, a subject plus a status — and omit it when people name records themselves. It is stored on the type rather than on a record, and `anydb_get_type_definition` returns the current value.
+
+- Write it as a formula **expression** that returns a string, referencing fields as `{{Field Key}}`, for example `CONCAT('Meeting: ', {{Subject}})` or `CONCAT('Item - ', IF({{Item Name}}, {{Item Name}}, 'Not Set'), ' - ', {{SKU}})`.
+- Build every title with `CONCAT`. A template-style string such as `{{Name}} ({{Status}})` is not a valid expression — it parses as a call rather than concatenation, and the failure is silent: the dependencies still resolve, but a record's name is never written, because an errored or pending value is not allowed to become a record name. Write `CONCAT({{Name}}, ' (', {{Status}}, ')')` instead.
+- Guard fields that may be empty, as in the `IF` above, so a partly filled record does not produce a broken title.
+- Reference only field keys that exist on the type. The same key rules as formulas apply: letters, numbers, and spaces only.
+- `anydb_create_type` accepts it in `type.titleFormula`, and `anydb_update_type` changes it through `changes.titleFormula`. Changing it on an existing type is a normal update — do not try to recreate the type, which is rejected as a duplicate name. Sending an empty string clears it.
+- `create_record` still requires a `name`, but a valid formula replaces it as soon as the fields it reads hold values, including in the same `create_record` call that supplies them. Pass a placeholder rather than trying to precompute the title. If a record keeps the literal name it was created with, the formula is not evaluating — check it is a `CONCAT`-style expression before assuming the type did not save it.
+
 ## Cells
 
 A semantic field has a stable `key`, `valueType`, `format`, and non-overlapping grid `layout`. Keys are the public identifiers used by formulas and workflows; positions are presentation details except where the formula runtime explicitly requires a position.
@@ -150,6 +161,14 @@ Keep these concerns separate:
 Do not author or modify `childPolicy`, `childPolicy.allowOnly`, or `childPolicy.autoCreate` through MCP, for either standalone types or multi-type solutions. Omit child policy from create and update requests. Model ownership with parent attachments and embedded child display with `attachments` fields.
 
 Use a reference for shared master data. Use a child for a detail that belongs to the parent's lifecycle. A child may have multiple parents when the same detail legitimately participates in more than one aggregate.
+
+Parent attachment is a property of the record, not of the type, and it is set through the record tools:
+
+- `create_record` and `bulk_create_records` take `attach` as a single parent ID or an array of parent IDs. Omit it to create the record at the database root.
+- `update_record` sets a record's parents through `meta.attach`, which also accepts a single ID or an array. This is the tool that attaches one record to several parents.
+- `meta.attach` replaces the record's complete parent list rather than adding to it, exactly like `parentid` in the script runtime. Read the record's current parents with `get_record` and resend every parent that must stay attached alongside the new ones. Omit `meta.attach` to leave attachments unchanged, and never send an empty array.
+- `move_record` is a single-parent reassignment: the supplied `parentid` becomes the record's only parent and every other parent is detached. Use it for a genuine move in a single-parent hierarchy, not to add a parent.
+- `delete_record` with `removefromids` detaches a record from specific parents without deleting it. Passing the null ObjectId deletes the record instead.
 
 ## Views
 

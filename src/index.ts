@@ -296,7 +296,7 @@ const TOOLS: Tool[] = [
   {
     name: "create_record",
     description:
-      "Create a new AnyDB record in a specific database. You can optionally attach it to a parent record or use a template.",
+      "Create a new AnyDB record in a specific database. You can optionally attach it to one or more parent records or use a template. AnyDB records support multiple parents, so attach accepts either a single parent ID or an array of parent IDs.",
     inputSchema: {
       type: "object",
       properties: {
@@ -314,9 +314,12 @@ const TOOLS: Tool[] = [
           description: "The name of the record",
         },
         attach: {
-          type: "string",
+          oneOf: [
+            { type: "string" },
+            { type: "array", items: { type: "string" } },
+          ],
           description:
-            "Optional parent record ID to attach this record to (MongoDB ObjectId)",
+            "Optional. Parent record IDs (MongoDB ObjectIds). AnyDB records can have more than one parent: pass a single ID for one parent, or an array to attach the record to several parents at once. Omit to create the record at the database root.",
         },
         templatename: {
           type: "string",
@@ -356,7 +359,14 @@ const TOOLS: Tool[] = [
                 description: "Optional caller-generated correlation value",
               },
               name: { type: "string", description: "Record name" },
-              attach: { type: "string", description: "Optional parent ID" },
+              attach: {
+                oneOf: [
+                  { type: "string" },
+                  { type: "array", items: { type: "string" } },
+                ],
+                description:
+                  "Optional parent record ID, or an array of parent IDs to attach this record to several parents at once.",
+              },
               template: {
                 type: "string",
                 description: "Optional template ID",
@@ -376,14 +386,15 @@ const TOOLS: Tool[] = [
   },
   {
     name: "update_record",
-    description: "Update an existing AnyDB record's metadata and content.",
+    description:
+      "Update an existing AnyDB record's metadata and content. This is also the tool that changes a record's parents: meta.attach sets the record's complete parent list, so it is how you attach one record to several parents. Use move_record only for a single-parent reassignment.",
     inputSchema: {
       type: "object",
       properties: {
         meta: {
           type: "object",
           description:
-            "Record metadata including adoid, adbid, teamid, and optional fields like name, description, status, etc.",
+            "Record metadata including adoid, adbid, teamid, and optional fields like name, description, status, attach, etc. Only the keys you supply are changed; omitted keys are left as they are.",
           properties: {
             adoid: {
               type: "string",
@@ -420,6 +431,14 @@ const TOOLS: Tool[] = [
             status: {
               type: "string",
               description: "Optional status",
+            },
+            attach: {
+              oneOf: [
+                { type: "string" },
+                { type: "array", items: { type: "string" } },
+              ],
+              description:
+                "Optional parent record IDs (MongoDB ObjectIds). AnyDB records can have multiple parents, so pass an array to attach this record to several parents. The value REPLACES the record's complete parent list, so include every existing parent that must stay attached plus any new ones — read the record's current parents first. Omit attach entirely to leave the parents unchanged; never pass an empty array. To detach from specific parents instead, use delete_record with removefromids.",
             },
             assignees: {
               type: "object",
@@ -479,7 +498,14 @@ const TOOLS: Tool[] = [
                   followup: { type: "number" },
                   locked: { type: "boolean" },
                   status: { type: "string" },
-                  attach: { type: "string" },
+                  attach: {
+                    oneOf: [
+                      { type: "string" },
+                      { type: "array", items: { type: "string" } },
+                    ],
+                    description:
+                      "Optional parent record ID, or an array of parent IDs. Replaces the record's complete parent list; include every parent that must stay attached.",
+                  },
                   assignees: { type: "object" },
                 },
                 required: ["adoid", "adbid", "teamid"],
@@ -558,7 +584,7 @@ const TOOLS: Tool[] = [
   {
     name: "move_record",
     description:
-      "Move an existing AnyDB record to a new parent. This changes the parent-child relationship of the record in the database hierarchy. The record itself remains the same, but its location in the tree structure changes. Use this to reorganize records or change their grouping.",
+      "Move an existing AnyDB record so that the supplied parent becomes its ONLY parent. This is a single-parent reassignment: it replaces the record's entire parent list with parentid, detaching it from every other parent it currently has. Use it to reorganize a single-parent hierarchy. To attach a record to several parents, or to add a parent while keeping the existing ones, use update_record with meta.attach as an array instead.",
     inputSchema: {
       type: "object",
       properties: {
@@ -577,7 +603,7 @@ const TOOLS: Tool[] = [
         parentid: {
           type: "string",
           description:
-            "The target parent record ID to move this record under (MongoDB ObjectId). The record will become a child of this parent.",
+            "The target parent record ID to move this record under (MongoDB ObjectId). The record becomes a child of this parent and is detached from all of its current parents.",
         },
       },
       required: ["adoid", "adbid", "teamid", "parentid"],
@@ -1000,7 +1026,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           adbid,
           teamid,
           name,
-          attach: args?.attach as string | undefined,
+          attach: args?.attach as string | string[] | undefined,
           templatename: args?.templatename as string | undefined,
           content: args?.content as Record<string, any> | undefined,
         };
@@ -1021,7 +1047,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const records = args?.records as Array<{
           clientref?: string;
           name: string;
-          attach?: string;
+          attach?: string | string[];
           template?: string;
           templatename?: string;
           content?: Record<string, unknown>;

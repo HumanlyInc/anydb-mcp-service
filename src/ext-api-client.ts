@@ -546,7 +546,7 @@ export interface ExecuteWorkflowResult {
 export interface BulkCreateRecordInput {
   clientref?: string;
   name: string;
-  attach?: string;
+  attach?: string | string[];
   template?: string;
   templatename?: string;
   content?: Record<string, unknown>;
@@ -556,7 +556,7 @@ export interface CreateRecordRequest {
   teamid: string;
   adbid: string;
   name: string;
-  attach?: string;
+  attach?: string | string[];
   template?: string;
   templatename?: string;
   content?: Record<string, unknown>;
