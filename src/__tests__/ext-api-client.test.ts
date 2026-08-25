@@ -98,6 +98,52 @@ describe("ExtApiClient", () => {
     expect(result).toEqual({ mode: "hybrid", warnings: [], results: [] });
   });
 
+  it("preserves multiple parent attachments for record create and update", async () => {
+    const receivedBodies: unknown[] = [];
+    const baseURL = await listen((incoming, response) => {
+      const chunks: Buffer[] = [];
+      incoming.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      incoming.on("end", () => {
+        receivedBodies.push(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify({
+            status: "success",
+            data: { meta: {}, content: {} },
+          }),
+        );
+      });
+    });
+    const client = new ExtApiClient({
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+      baseURL,
+    });
+    const parentIds = ["507f1f77bcf86cd799439021", "507f1f77bcf86cd799439022"];
+
+    await client.createRecord({
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      name: "Multi-parent record",
+      attach: parentIds,
+    });
+    await client.updateRecord({
+      meta: {
+        teamid: "507f1f77bcf86cd799439011",
+        adbid: "507f1f77bcf86cd799439012",
+        adoid: "507f1f77bcf86cd799439013",
+        attach: parentIds,
+      },
+    });
+
+    expect(receivedBodies).toEqual([
+      expect.objectContaining({ attach: parentIds }),
+      expect.objectContaining({
+        meta: expect.objectContaining({ attach: parentIds }),
+      }),
+    ]);
+  });
+
   it("posts an empty workspace request to the external workspace route", async () => {
     let receivedBody: unknown;
     let receivedUrl = "";

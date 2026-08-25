@@ -314,9 +314,17 @@ const TOOLS: Tool[] = [
           description: "The name of the record",
         },
         attach: {
-          type: "string",
+          oneOf: [
+            { type: "string" },
+            {
+              type: "array",
+              items: { type: "string" },
+              minItems: 1,
+              uniqueItems: true,
+            },
+          ],
           description:
-            "Optional parent record ID to attach this record to (MongoDB ObjectId)",
+            "Optional parent record ID or non-empty array of parent record IDs to attach this record to (MongoDB ObjectIds)",
         },
         templatename: {
           type: "string",
@@ -356,7 +364,19 @@ const TOOLS: Tool[] = [
                 description: "Optional caller-generated correlation value",
               },
               name: { type: "string", description: "Record name" },
-              attach: { type: "string", description: "Optional parent ID" },
+              attach: {
+                oneOf: [
+                  { type: "string" },
+                  {
+                    type: "array",
+                    items: { type: "string" },
+                    minItems: 1,
+                    uniqueItems: true,
+                  },
+                ],
+                description:
+                  "Optional parent record ID or non-empty array of parent record IDs",
+              },
               template: {
                 type: "string",
                 description: "Optional template ID",
@@ -421,6 +441,19 @@ const TOOLS: Tool[] = [
               type: "string",
               description: "Optional status",
             },
+            attach: {
+              oneOf: [
+                { type: "string" },
+                {
+                  type: "array",
+                  items: { type: "string" },
+                  minItems: 1,
+                  uniqueItems: true,
+                },
+              ],
+              description:
+                "Optional parent record ID or non-empty array of parent record IDs. When supplied, replaces the complete parent list.",
+            },
             assignees: {
               type: "object",
               description: "Optional assignees",
@@ -479,7 +512,19 @@ const TOOLS: Tool[] = [
                   followup: { type: "number" },
                   locked: { type: "boolean" },
                   status: { type: "string" },
-                  attach: { type: "string" },
+                  attach: {
+                    oneOf: [
+                      { type: "string" },
+                      {
+                        type: "array",
+                        items: { type: "string" },
+                        minItems: 1,
+                        uniqueItems: true,
+                      },
+                    ],
+                    description:
+                      "Optional parent record ID or non-empty array of parent record IDs. When supplied, replaces the complete parent list.",
+                  },
                   assignees: { type: "object" },
                 },
                 required: ["adoid", "adbid", "teamid"],
