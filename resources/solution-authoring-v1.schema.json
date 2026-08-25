@@ -571,7 +571,7 @@
         "description": { "type": "string", "maxLength": 1000 },
         "config": {
           "type": "object",
-          "description": "Action input matching its catalog inputSchema. Use {{trigger.outputName}} or {{priorActionKey.outputName}} for artifact output bindings."
+          "description": "Action input matching its catalog inputSchema. Use {{trigger.outputName}} or {{priorActionKey.outputName}} for artifact output bindings. For action_script, config.script holds the executable JavaScript body and config.timeoutMs its optional timeout; anydb_get_workflow returns the stored source at the same path for review."
         }
       }
     },
@@ -604,10 +604,21 @@
             "script": {
               "type": "object",
               "additionalProperties": false,
+              "description": "Single-action-script shorthand accepted only at creation. anydb_update_workflow does not accept it; send changes.actions with an action_script entry instead.",
               "required": ["source"],
               "properties": {
-                "source": { "type": "string", "minLength": 1 },
-                "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 30000 }
+                "source": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Executable JavaScript body for the workflow script runtime, validated before persistence. No async IIFE wrapper, no import/export/require/eval/Function/process/globalThis, only documented anydb.* and output.* members accessed by literal name, awaited data and mutation calls, and an await such as anydb.yield() in every loop body. See the Script Actions rules in anydb://guides/solution-building/v1 and the action_script guidance from anydb_list_workflow_actions.",
+                  "$comment": "Authoritative runtime surface: script.runtime.ts, surfaced through the action_script catalog entry."
+                },
+                "timeoutMs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 30000,
+                  "description": "Script execution timeout in milliseconds, clamped by the server to its configured cap (30000 by default). Design each run to finish inside this budget by filtering or paging instead of scanning a whole type."
+                }
               }
             },
             "actions": {

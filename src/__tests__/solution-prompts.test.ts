@@ -7,6 +7,7 @@ describe("solution prompts", () => {
     expect(listSolutionPrompts()).toEqual([
       expect.objectContaining({ name: "design_anydb_type" }),
       expect.objectContaining({ name: "design_anydb_solution" }),
+      expect.objectContaining({ name: "author_anydb_workflow_script" }),
     ]);
   });
 
@@ -51,6 +52,48 @@ describe("solution prompts", () => {
     expect(text).toContain("anydb_list_team_groups");
     expect(text).toContain("generated publicUrl");
     expect(text).toContain("Do not call mutation tools");
+  });
+
+  it("builds a runtime-contract-first workflow script authoring prompt", () => {
+    const result = getSolutionPrompt("author_anydb_workflow_script", {
+      goal: "Notify the approver when Status becomes Approved",
+    });
+    const text = result.messages[0].content.text;
+
+    expect(text).toContain("Author an AnyDB workflow script action");
+    expect(text).toContain("anydb://guides/solution-building/v1");
+    expect(text).toContain("anydb_list_workflow_actions");
+    expect(text).toContain("action_script entry's guidance");
+    expect(text).toContain("no async IIFE wrapper");
+    expect(text).toContain("await anydb.yield()");
+    expect(text).toContain("await anydb.getRecordById(input.recordId)");
+    expect(text).toContain("integer epoch seconds");
+    expect(text).toContain("output.summary(...)");
+    expect(text).toContain("simulate: true");
+    expect(text).not.toContain("Existing workflowId");
+    expect(text).not.toContain("anydb_update_workflow");
+  });
+
+  it("builds a review-and-revise prompt when an existing workflow is supplied", () => {
+    const result = getSolutionPrompt("author_anydb_workflow_script", {
+      goal: "Stop sending duplicate approval emails",
+      workflowId: "6512ab34cd56ef7890123456",
+      constraints: "Keep the existing trigger",
+    });
+    const text = result.messages[0].content.text;
+
+    expect(text).toContain(
+      "Review and revise the script action of an existing AnyDB workflow",
+    );
+    expect(text).toContain("Existing workflowId: 6512ab34cd56ef7890123456");
+    expect(text).toContain("Keep the existing trigger");
+    expect(text).toContain("anydb_get_workflow");
+    expect(text).toContain("config.script");
+    expect(text).toContain("output.logLines");
+    expect(text).toContain("Diagnose the actual defect before rewriting");
+    expect(text).toContain(
+      "anydb_update_workflow by resending the complete ordered action chain",
+    );
   });
 
   it("requires a business goal", () => {

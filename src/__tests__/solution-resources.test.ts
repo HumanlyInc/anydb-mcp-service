@@ -153,14 +153,12 @@ describe("solution resources", () => {
     );
     expect(resource.text).toContain("call `anydb_get_workflow`");
     expect(resource.text).toContain(
-      "Its ID is `created.id` (the new adoid), not `created.adoid`",
+      "Its ID is `created.id`, the new adoid, not `created.adoid`",
     );
     expect(resource.text).toContain(
-      "Supplying it replaces the record's complete parent list",
+      "replaces the record's complete parent list",
     );
-    expect(resource.text).toContain(
-      "Omit `parentid` to leave attachments unchanged",
-    );
+    expect(resource.text).toContain("Omit it to leave attachments unchanged");
     expect(resource.text).toContain(
       "pass its ID as `adoid` to `anydb_execute_workflow`",
     );
@@ -179,6 +177,76 @@ describe("solution resources", () => {
       "Five or more workflows is a design-review signal",
     );
     expect(resource.text).toContain("It is not a hard limit");
+    expect(resource.text).toContain("### Script Actions");
+    expect(resource.text).toContain(
+      "### Reviewing and Updating a Script Action",
+    );
+    expect(resource.text).toContain("never wrap the body in an async IIFE");
+    expect(resource.text).toContain(
+      "`constructor.constructor` escapes are rejected",
+    );
+    expect(resource.text).toContain(
+      "Computed access such as `anydb[methodName](...)` is rejected",
+    );
+    expect(resource.text).toContain("Never feature-detect an API");
+    expect(resource.text).toContain(
+      "clamped to the server's script timeout cap, 30000 ms by default",
+    );
+    expect(resource.text).toContain("const CONFIG = { ... }");
+    expect(resource.text).toContain(
+      "Listing a field in `CONFIG` is not implementing its condition",
+    );
+    expect(resource.text).toContain(
+      "Keep branch selection free of side effects",
+    );
+    expect(resource.text).toContain(
+      "Persist a state transition before sending the email",
+    );
+    expect(resource.text).toContain(
+      "Never swallow a failure in an empty `catch`",
+    );
+    expect(resource.text).toContain(
+      "require `input.recordId`, load it with `await anydb.getRecordById(input.recordId)`",
+    );
+    expect(resource.text).toContain(
+      "accept exactly one type-name selector (`type`, `typeName`, or `templateName`) and never a template ID",
+    );
+    expect(resource.text).toContain("a single `=` is not an operator");
+    expect(resource.text).toContain(
+      "`record.content`, `record.cells`, and `record.getCellValue(...)` do not exist",
+    );
+    expect(resource.text).toContain(
+      "Iterate cells with `record.getFieldNames()`",
+    );
+    expect(resource.text).toContain(
+      "An unawaited mutation statement is rejected at validation",
+    );
+    expect(resource.text).toContain(
+      "write `SUBMITTED DATE`, not `Submitted Date`",
+    );
+    expect(resource.text).toContain(
+      "A `ref` cell does not accept a raw record ID inside `cellValues`",
+    );
+    expect(resource.text).toContain(
+      "`parentId`, `templateName`, `typeName`, and `id` are not accepted in write payloads",
+    );
+    expect(resource.text).toContain(
+      "A loop whose only `await` sits inside a nested function is rejected",
+    );
+    expect(resource.text).toContain("^[A-Za-z_][A-Za-z0-9_]*$");
+    expect(resource.text).toContain(
+      "`scriptSummary`, `cellValue`, `processedRefIds`, `updatedRefIds`, `logLines`, `exported_file`, and `customOutputs`",
+    );
+    expect(resource.text).toContain(
+      "the current source is available at the `action_script` entry's `config.script`",
+    );
+    expect(resource.text).toContain(
+      "does not accept the `workflow.script` shorthand used at creation",
+    );
+    expect(resource.text).toContain("An omitted binding is dropped silently");
+    expect(resource.text).toContain(
+      "returns a simulated record whose mutation helpers throw",
+    );
     expect(resource.text).toContain("## Sharing");
     expect(resource.text).toContain("anydb_list_views");
     expect(resource.text).toContain("anydb_delete_view");

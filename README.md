@@ -190,15 +190,22 @@ template name and may specify the parent that receives submissions.
 
 ### Workflows
 
-| Tool                    | Description                                             |
-| ----------------------- | ------------------------------------------------------- |
-| `anydb_create_workflow` | Create one trigger followed by an ordered action chain  |
-| `anydb_update_workflow` | Change a workflow's name, description, or enabled state |
+| Tool                    | Description                                                        |
+| ----------------------- | ------------------------------------------------------------------ |
+| `anydb_create_workflow` | Create one trigger followed by an ordered action chain             |
+| `anydb_update_workflow` | Change a workflow's metadata and/or replace its whole action chain |
 
 Always query the trigger and action catalogs before creating automation. They
 contain authoritative schemas, compatibility rules, script runtime guidance,
 and current-team license availability. Create workflows disabled by default,
 run a representative case, and inspect its execution history before enabling it.
+
+For a script action, `anydb_list_workflow_actions` returns the running server's
+script runtime surface under the `action_script` entry's `guidance`, and the
+solution-building guide's Script Actions section carries the authoring rules the
+server enforces at validation. To revise an existing script, read its stored
+source from `anydb_get_workflow` at the `action_script` entry's `config.script`,
+then resend the complete action chain through `anydb_update_workflow`.
 
 ### Records and Templates
 
@@ -271,12 +278,15 @@ do not expose MCP resource reading directly.
 
 ## MCP Prompts
 
-| Prompt                  | Purpose                                                      |
-| ----------------------- | ------------------------------------------------------------ |
-| `design_anydb_type`     | Plan one standalone type without inventing a larger solution |
-| `design_anydb_solution` | Plan a coordinated multi-type solution before mutation       |
+| Prompt                         | Purpose                                                      |
+| ------------------------------ | ------------------------------------------------------------ |
+| `design_anydb_type`            | Plan one standalone type without inventing a larger solution |
+| `design_anydb_solution`        | Plan a coordinated multi-type solution before mutation       |
+| `author_anydb_workflow_script` | Author, or review and revise, a workflow script action       |
 
-Both prompts require a `goal` and accept optional `constraints`.
+Every prompt requires a `goal` and accepts optional `constraints`.
+`author_anydb_workflow_script` also accepts a `workflowId` to review and revise
+an existing workflow's script instead of writing a new one.
 
 ## Troubleshooting
 

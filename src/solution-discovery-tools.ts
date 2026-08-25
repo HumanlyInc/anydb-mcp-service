@@ -72,7 +72,7 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
   {
     name: "anydb_get_workflow",
     description:
-      "Get one workflow's normalized trigger/action graph and retained execution records, including per-artifact status, outputs, and errors. Use this to diagnose whether a workflow fired and what happened. Use a workflowId returned by anydb_list_workflows or anydb_create_workflow.",
+      "Get one workflow's normalized trigger/action graph and retained execution records, including per-artifact status, outputs, and errors. Each action's stored config is returned, so an action_script entry exposes its current source at config.script; read it before reviewing or revising that script rather than inferring behavior from the workflow name. Use this to diagnose whether a workflow fired and what happened, including script diagnostics at executionHistory[].artifactExecutions[].output.logLines. Use a workflowId returned by anydb_list_workflows or anydb_create_workflow.",
     inputSchema: {
       type: "object",
       properties: {

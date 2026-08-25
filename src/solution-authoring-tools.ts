@@ -155,13 +155,13 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   },
   {
     name: "anydb_create_workflow",
-    description: `Read the authoring guide, then call anydb_list_workflow_triggers and anydb_list_workflow_actions before authoring. Create one supported trigger followed by an ordered chain of registered actions. Prefer one script action when the team license permits it and that is the simplest design. Use action keys and symbolic output bindings; the server generates runtime artifact IDs and connections. After creation, run one representative case and inspect anydb_get_workflow or anydb_get_workflow_execution_history before considering the automation verified.`,
+    description: `Read the authoring guide, then call anydb_list_workflow_triggers and anydb_list_workflow_actions before authoring. Create one supported trigger followed by an ordered chain of registered actions. Prefer one script action when the team license permits it and that is the simplest design. Use action keys and symbolic output bindings; the server generates runtime artifact IDs and connections. For an action_script, follow the guide's Script Actions rules and the action_script catalog guidance: an executable body with no async IIFE, documented anydb/output APIs only, awaited data and mutation calls, an await in every loop body, exact schema field casing, epoch-second dates, and explicit output.set/output.summary results. The server validates script source before persisting it, so use validateOnly to check a draft. After creation, run one representative case and inspect anydb_get_workflow or anydb_get_workflow_execution_history before considering the automation verified.`,
     inputSchema: createWorkflowInputSchema as unknown as Tool["inputSchema"],
   },
   {
     name: "anydb_update_workflow",
     description:
-      "Update an existing workflow's metadata and/or replace its complete ordered action chain. Call anydb_list_workflow_actions first and follow each action inputSchema.required list plus its contextual guidance. Omit changes.actions to preserve actions. To add, update, remove, or reorder actions, provide the desired final chain using registered action types and symbolic bindings, then execute a simulation to verify it.",
+      "Update an existing workflow's metadata and/or replace its complete ordered action chain. Call anydb_list_workflow_actions first and follow each action inputSchema.required list plus its contextual guidance. Omit changes.actions to preserve actions. To add, update, remove, or reorder actions, provide the desired final chain using registered action types and symbolic bindings, then execute a simulation to verify it. To revise a script, first read the stored source from anydb_get_workflow at the action_script entry's config.script, review it against the guide's Script Actions rules, and resend the full chain with the corrected config.script; the workflow.script shorthand accepted at creation is not accepted here. Preserve every other action config value and {{trigger.*}} or {{priorActionKey.*}} binding when resending, because an omitted one is dropped. The server revalidates script source and rejects an invalid body.",
     inputSchema: updateWorkflowInputSchema as unknown as Tool["inputSchema"],
   },
   {
@@ -179,7 +179,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_list_workflow_actions",
     description:
-      "List registered workflow actions with descriptions, exact input/output schemas, trigger compatibility, and whether each action is accepted by anydb_create_workflow. The action_script entry includes authoritative script runtime APIs and authoring rules.",
+      "List registered workflow actions with descriptions, exact input/output schemas, trigger compatibility, and whether each action is accepted by anydb_create_workflow. The action_script entry carries the authoritative script runtime surface for the running server: allowed globals, anydb APIs, output APIs, record helpers, trigger-input binding, debugging, and authoring rules. Read it before writing or revising any script source, and prefer it over remembered API names.",
     inputSchema: workflowCatalogInputSchema as Tool["inputSchema"],
   },
   {
