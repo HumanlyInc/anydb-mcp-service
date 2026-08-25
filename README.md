@@ -149,15 +149,22 @@ The service exposes 44 tools.
 
 ### Type Authoring
 
-| Tool                     | Description                                                                               |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `anydb_create_workspace` | Create a new empty AnyDB workspace                                                        |
-| `anydb_create_type`      | Define a new type or import a compatible built-in type                                    |
-| `anydb_update_type`      | Patch type metadata (including icon), fields, badges, or child policy and migrate records |
+| Tool                     | Description                                                                                    |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `anydb_create_workspace` | Create a new empty AnyDB workspace                                                             |
+| `anydb_create_type`      | Define a new type or import a compatible built-in type                                         |
+| `anydb_update_type`      | Patch type metadata (icon, title formula), fields, badges, or child policy and migrate records |
 
 `anydb_create_type` supports semantic fields, a six-column form layout,
 formulas, lookups, badges, and child policies. Destructive type updates require
 explicit data-loss confirmation and an expected revision.
+
+A type's `titleFormula` names its records from their own fields and recomputes
+when a field it reads changes. Set it at creation through `type.titleFormula` or
+on an existing type through `anydb_update_type`'s `changes.titleFormula`. It must
+be an expression returning a string, so use `CONCAT('Meeting: ', {{Subject}})` —
+a template string such as `{{Name}} ({{Status}})` is not valid and silently
+leaves record names unwritten.
 
 ### Views
 
@@ -209,28 +216,36 @@ then resend the complete action chain through `anydb_update_workflow`.
 
 ### Records and Templates
 
-| Tool                      | Description                                                   |
-| ------------------------- | ------------------------------------------------------------- |
-| `anydb_semantic_search`   | Search authorized records by content meaning                  |
-| `list_teams`              | List accessible teams                                         |
-| `list_databases_for_team` | List databases in a team                                      |
-| `list_templates`          | List workspace templates/types                                |
-| `get_template`            | Get a template schema by stable `templatename`                |
-| `list_records`            | List records with pagination and structured filters           |
-| `get_record`              | Get one complete record                                       |
-| `create_record`           | Create a record, optionally from a template or under a parent |
-| `bulk_create_records`     | Create up to 100 records with per-item results                |
-| `update_record`           | Update record metadata and partial cell content               |
-| `bulk_update_records`     | Update up to 100 records with per-item results                |
-| `delete_record`           | Permanently delete a record                                   |
-| `copy_record`             | Copy a record with configurable attachment handling           |
-| `move_record`             | Move a record to another parent                               |
-| `search_records`          | Search records in one database                                |
-| `search_team_records`     | Search each accessible database in a team                     |
+| Tool                      | Description                                                  |
+| ------------------------- | ------------------------------------------------------------ |
+| `anydb_semantic_search`   | Search authorized records by content meaning                 |
+| `list_teams`              | List accessible teams                                        |
+| `list_databases_for_team` | List databases in a team                                     |
+| `list_templates`          | List workspace templates/types                               |
+| `get_template`            | Get a template schema by stable `templatename`               |
+| `list_records`            | List records with pagination and structured filters          |
+| `get_record`              | Get one complete record                                      |
+| `create_record`           | Create a record, optionally from a template or under parents |
+| `bulk_create_records`     | Create up to 100 records with per-item results               |
+| `update_record`           | Update record metadata, parents, and partial cell content    |
+| `bulk_update_records`     | Update up to 100 records with per-item results               |
+| `delete_record`           | Delete a record, or detach it from specific parents          |
+| `copy_record`             | Copy a record with configurable attachment handling          |
+| `move_record`             | Reassign a record to a single new parent                     |
+| `search_records`          | Search records in one database                               |
+| `search_team_records`     | Search each accessible database in a team                    |
 
 Bulk operations use bounded concurrency and partial-failure semantics. A
 successful item is not rolled back when another item fails. Use `clientref` to
 correlate results.
+
+AnyDB records can have more than one parent. `create_record` takes `attach`, and
+`update_record` takes `meta.attach`, either as a single parent ID or an array of
+parent IDs — `update_record` is how a record is attached to several parents. The
+value replaces the record's complete parent list, so resend every parent that
+must stay attached. `move_record` is a single-parent reassignment that detaches
+the record from all of its current parents, and `delete_record` with
+`removefromids` detaches from specific parents without deleting the record.
 
 Structured `list_records` filters support metadata, badges, and template fields:
 

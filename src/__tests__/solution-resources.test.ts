@@ -54,6 +54,22 @@ describe("solution resources", () => {
     );
     expect(resource.text).toContain("Standalone type");
     expect(resource.text).toContain("## Cells");
+    expect(resource.text).toContain("## Record Titles");
+    expect(resource.text).toContain(
+      "records of that type are named by evaluating it against the record",
+    );
+    expect(resource.text).toContain("CONCAT('Meeting: ', {{Subject}})");
+    expect(resource.text).toContain(
+      "`anydb_update_type` changes it through `changes.titleFormula`",
+    );
+    expect(resource.text).toContain(
+      "do not try to recreate the type, which is rejected as a duplicate name",
+    );
+    expect(resource.text).toContain("Build every title with `CONCAT`");
+    expect(resource.text).toContain(
+      "it parses as a call rather than concatenation, and the failure is silent",
+    );
+    expect(resource.text).toContain("CONCAT({{Name}}, ' (', {{Status}}, ')')");
     expect(resource.text).toContain(
       "Avoid special characters such as `%` in any key used inside `{{Field Key}}`",
     );
@@ -125,6 +141,24 @@ describe("solution resources", () => {
     );
     expect(resource.text).not.toContain(
       "`childPolicy.allowOnly` restricts allowed child types",
+    );
+    expect(resource.text).toContain(
+      "Parent attachment is a property of the record, not of the type",
+    );
+    expect(resource.text).toContain(
+      "`update_record` sets a record's parents through `meta.attach`",
+    );
+    expect(resource.text).toContain(
+      "This is the tool that attaches one record to several parents",
+    );
+    expect(resource.text).toContain(
+      "replaces the record's complete parent list rather than adding to it",
+    );
+    expect(resource.text).toContain(
+      "`move_record` is a single-parent reassignment",
+    );
+    expect(resource.text).toContain(
+      "`delete_record` with `removefromids` detaches a record from specific parents",
     );
     expect(resource.text).toContain("C@CURRREC!N@Invoice!{{Amount}}");
     expect(resource.text).toContain("A@CURRREC!{{Budget}}[0]");
@@ -322,6 +356,16 @@ describe("solution resources", () => {
     expect(schema.$defs.updateTypeInput.properties).toHaveProperty(
       "templateName",
     );
+    expect(
+      schema.$defs.typeDefinition.properties.titleFormula.description,
+    ).toContain("record-title formula");
+    expect(
+      schema.$defs.updateTypeInput.properties.changes.properties,
+    ).toHaveProperty("titleFormula");
+    expect(
+      schema.$defs.updateTypeInput.properties.changes.properties.titleFormula
+        .description,
+    ).toContain("not a template string like {{Subject}} ({{Status}})");
     expect(schema.$defs.updateTypeInput.properties).not.toHaveProperty(
       "templateid",
     );
