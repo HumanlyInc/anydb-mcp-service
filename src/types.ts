@@ -72,7 +72,7 @@ export interface ADORecord {
     followup?: number;
     locked?: boolean;
     status?: string;
-    attach?: string;
+    attach?: string | string[];
     assignees?: {
       users?: string[];
       groups?: string[];
@@ -99,7 +99,7 @@ export interface CreateRecordParams {
   adbid: string;
   teamid: string;
   name: string;
-  attach?: string;
+  attach?: string | string[];
   template?: string;
   content?: Record<string, any>;
 }
@@ -115,7 +115,7 @@ export interface UpdateRecordParams {
     followup?: number;
     locked?: boolean;
     status?: string;
-    attach?: string;
+    attach?: string | string[];
     assignees?: {
       users?: string[];
       groups?: string[];
