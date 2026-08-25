@@ -65,11 +65,21 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       "do not try to recreate the type, which is rejected as a duplicate name",
     );
-    expect(resource.text).toContain("Build every title with `CONCAT`");
     expect(resource.text).toContain(
-      "it parses as a call rather than concatenation, and the failure is silent",
+      "A title formula is a formula expression, not a template string",
+    );
+    expect(resource.text).toContain(
+      "Anything the formula runtime cannot evaluate is rejected **silently**",
     );
     expect(resource.text).toContain("CONCAT({{Name}}, ' (', {{Status}}, ')')");
+    expect(resource.text).toContain("`{{Name}} & ' (' & {{Status}}`");
+    expect(resource.text).toContain(
+      "A field key that does not exist on the type",
+    );
+    expect(resource.text).toContain("One unknown key discards the whole title");
+    expect(resource.text).toContain(
+      "that read is the only confirmation that the formula evaluates",
+    );
     expect(resource.text).toContain(
       "Avoid special characters such as `%` in any key used inside `{{Field Key}}`",
     );
@@ -365,7 +375,7 @@ describe("solution resources", () => {
     expect(
       schema.$defs.updateTypeInput.properties.changes.properties.titleFormula
         .description,
-    ).toContain("not a template string like {{Subject}} ({{Status}})");
+    ).toContain("CONCAT is the only supported way to join text");
     expect(schema.$defs.updateTypeInput.properties).not.toHaveProperty(
       "templateid",
     );

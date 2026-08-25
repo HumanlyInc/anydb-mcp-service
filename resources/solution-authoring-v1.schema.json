@@ -447,7 +447,7 @@
         "titleFormula": {
           "type": "string",
           "minLength": 1,
-          "description": "Optional record-title formula. Records of the type are named by evaluating it, and the name is recomputed when a field it reads changes. Must be a formula expression returning a string, referencing fields as {{Field Key}} — use CONCAT('Meeting: ', {{Subject}}), not a template string like {{Subject}} ({{Status}}), which is not a valid expression and silently leaves record names unwritten."
+          "description": "Optional record-title formula. Records of the type are named by evaluating it, and the name is recomputed when a field it reads changes. Must be a formula expression in the same language as a cell formula, not a template string. CONCAT is the only supported way to join text: CONCAT('Meeting: ', {{Subject}}) works, while {{Subject}} ({{Status}}), {{A}} & {{B}} and {{A}} + {{B}} do not. A template string, an unknown field key, an unknown function, or a syntax error is rejected silently — the record keeps its existing name and no error is returned — so confirm a new formula by reading one record's meta.name back."
         },
         "fields": {
           "type": "array",
@@ -523,7 +523,7 @@
             },
             "titleFormula": {
               "type": "string",
-              "description": "Replacement record-title formula. Must be a formula expression returning a string, referencing fields as {{Field Key}} — use CONCAT('Meeting: ', {{Subject}}), not a template string like {{Subject}} ({{Status}}), which is not a valid expression and silently leaves record names unwritten. Reference only field keys that exist on the type after this update is applied, and send an empty string to clear it."
+              "description": "Replacement record-title formula. Must be a formula expression in the same language as a cell formula, not a template string. CONCAT is the only supported way to join text: CONCAT('Meeting: ', {{Subject}}) works, while {{Subject}} ({{Status}}), {{A}} & {{B}} and {{A}} + {{B}} do not. A template string, an unknown field key, an unknown function, or a syntax error is rejected silently — the record keeps its existing name and no error is returned — so confirm a new formula by reading one record's meta.name back. Reference only field keys that exist on the type after this update is applied, and send an empty string to clear it."
             },
             "addFields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
             "updateFields": { "type": "array", "items": { "$ref": "#/$defs/fieldUpdate" } },

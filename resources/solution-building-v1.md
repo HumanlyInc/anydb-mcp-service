@@ -75,12 +75,36 @@ Use a separate type for every repeatable object with its own lifecycle. Do not m
 
 A type may carry a `titleFormula`. When it is set, records of that type are named by evaluating it against the record, and the name is recomputed whenever a field the formula reads changes. Use one whenever a record's identity is derived from its own fields — an order number, an asset tag, a subject plus a status — and omit it when people name records themselves. It is stored on the type rather than on a record, and `anydb_get_type_definition` returns the current value.
 
-- Write it as a formula **expression** that returns a string, referencing fields as `{{Field Key}}`, for example `CONCAT('Meeting: ', {{Subject}})` or `CONCAT('Item - ', IF({{Item Name}}, {{Item Name}}, 'Not Set'), ' - ', {{SKU}})`.
-- Build every title with `CONCAT`. A template-style string such as `{{Name}} ({{Status}})` is not a valid expression — it parses as a call rather than concatenation, and the failure is silent: the dependencies still resolve, but a record's name is never written, because an errored or pending value is not allowed to become a record name. Write `CONCAT({{Name}}, ' (', {{Status}}, ')')` instead.
-- Guard fields that may be empty, as in the `IF` above, so a partly filled record does not produce a broken title.
-- Reference only field keys that exist on the type. The same key rules as formulas apply: letters, numbers, and spaces only.
+**A title formula is a formula expression, not a template string.** It uses the same language as the `formula` on a cell, described under Formulas below, so a meeting note titled from its subject is `CONCAT('Meeting: ', {{Subject}})`. Anything the formula runtime cannot evaluate is rejected **silently**: the record keeps whatever name it already had, no error is returned by any tool, and the stored `titleFormula` still reads back correctly from `anydb_get_type_definition`. A title that never appears is almost always a formula the runtime could not evaluate, not a type that failed to save.
+
+These forms work:
+
+| Form                                   | Example                                                           | Resulting name    |
+| -------------------------------------- | ----------------------------------------------------------------- | ----------------- |
+| A single field                         | `{{Name}}`                                                        | `Widget`          |
+| `CONCAT` over fields and literals      | `CONCAT({{Name}}, ' (', {{Status}}, ')')`                         | `Widget (Active)` |
+| `CONCAT` with a guard for empty fields | `CONCAT({{Name}}, ' (', IF({{Status}}, {{Status}}, 'None'), ')')` | `Widget (Active)` |
+| A quoted literal                       | `'Static Title'`                                                  | `Static Title`    |
+| A number, which is stringified         | `{{Count}}`                                                       | `7`               |
+| Arithmetic                             | `{{Count}} * 2`                                                   | `14`              |
+
+These produce no name at all:
+
+| Broken form                                           | Example                             |
+| ----------------------------------------------------- | ----------------------------------- |
+| Template string — parses as a call, not interpolation | `{{Name}} ({{Status}})`             |
+| `&` as string concatenation — not supported           | `{{Name}} & ' (' & {{Status}}`      |
+| `+` as string concatenation — not supported           | `{{Name}} + ' (' + {{Status}}`      |
+| A field key that does not exist on the type           | `CONCAT({{Name}}, ' - ', {{Nope}})` |
+| An unknown function                                   | `NOPE({{Name}})`                    |
+| A syntax error such as unbalanced parentheses         | `CONCAT({{Name}}, ' ('`             |
+
+- Join text with `CONCAT`. It is the only supported way to combine values into a title; neither `+` nor `&` concatenates strings, and neither reports an error.
+- Reference only field keys that exist on the type, using their exact casing. One unknown key discards the whole title, so re-check the formula whenever a field it reads is renamed or removed.
+- Guard fields that may be empty with `IF`, as above, so a partly filled record still gets a usable title.
+- Verify a new or changed formula by creating one record and reading its `meta.name` back. Because failure is silent, that read is the only confirmation that the formula evaluates.
 - `anydb_create_type` accepts it in `type.titleFormula`, and `anydb_update_type` changes it through `changes.titleFormula`. Changing it on an existing type is a normal update — do not try to recreate the type, which is rejected as a duplicate name. Sending an empty string clears it.
-- `create_record` still requires a `name`, but a valid formula replaces it as soon as the fields it reads hold values, including in the same `create_record` call that supplies them. Pass a placeholder rather than trying to precompute the title. If a record keeps the literal name it was created with, the formula is not evaluating — check it is a `CONCAT`-style expression before assuming the type did not save it.
+- `create_record` still requires a `name`, but a valid formula replaces it as soon as the fields it reads hold values, including in the same `create_record` call that supplies them. Pass a placeholder rather than trying to precompute the title.
 
 ## Cells
 
