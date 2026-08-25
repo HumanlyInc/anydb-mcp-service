@@ -317,18 +317,80 @@ Keep the workflow set small and purposeful. Reuse an existing workflow or combin
 - Map outputs into later action inputs with `{{trigger.outputName}}` or `{{priorActionKey.outputName}}`. A binding may only reference the trigger or an earlier action in the chain. Output names must come from the corresponding catalog output schema.
 - Form submit and record create/update triggers automatically pass their `adoid` output to an `action_script` as `recordId` when that input is omitted. Explicit `{{trigger.adoid}}` mappings are also supported.
 - Schedule and manual triggers do not receive an implicit record input. To execute a manual workflow against a record, pass its ID as `adoid` to `anydb_execute_workflow`; the runtime then exposes that record through `{{context:meta.*}}` and `{{context:content.*}}` action bindings. Omit `adoid` only when the manual workflow is intentionally record-independent.
-- For a triggering-record script, require `input.recordId`, load it with `await anydb.getRecordById(input.recordId)`, and fail before side effects if it is missing or inaccessible. Use criteria/refIds only for intentional scheduled, manual, or batch workflows.
-- Use only APIs and signatures returned in the `action_script` catalog guidance. Do not invent global helpers, capability probes, or compatibility wrappers.
-- `await anydb.createRecord(...)` returns the created runtime record. Its ID is `created.id` (the new adoid), not `created.adoid`. Omit `parentid` only when root creation is intentional; if attaching a child, resolve and validate the parent ID before calling `createRecord`.
-- `await anydb.updateRecord({ adoid, cellValues?, parentid? })` accepts one parent ID or an array in `parentid`. Supplying it replaces the record's complete parent list; include every existing parent that must remain attached plus any new parents. Omit `parentid` to leave attachments unchanged. Never pass an empty parent list.
-- `script.runtime.ts` is authoritative for supported script commands. Its catalog guidance exposes `globals`, `anydbApis`, `outputApis`, and record helpers. Use `log(...)` or `console.log(...)` for concise diagnostics around inputs, branch decisions, record IDs, and mutation results; never log credentials, tokens, or sensitive record content.
-- After a run, call `anydb_get_workflow` and inspect the script action at `executionHistory[].artifactExecutions[].output.logLines`. An empty execution history means the workflow did not run; a failed artifact also exposes its `error` alongside any captured output.
-- Await all data and mutation calls. Begin every explicit loop with `await anydb.yield()`.
-- Make update-triggered side effects idempotent or persist a state transition that exits the triggering condition.
-- End scripts with explicit `output.set(...)` values and a concise `output.summary(...)`.
 - Scripts and some other actions may be license-gated. Create disabled by default and enable only when explicitly requested.
-- Use `anydb_update_workflow` to change an existing workflow's name, description, or enabled state. Workflow updates continue to enforce the standard workflow authorization policy.
 - After creating or changing a workflow, keep it disabled until practical verification is ready. Trigger one representative run, then call `anydb_get_workflow` (or `anydb_get_workflow_execution_history`) and inspect the workflow-level status plus each artifact's input, output, logs, and error before considering the automation complete.
+
+### Script Actions
+
+`action_script` runs a JavaScript body inside an async workflow runtime. Call `anydb_list_workflow_actions` and read the `action_script` entry's `guidance` before writing or changing script source: its `globals`, `anydbApis`, `outputApis`, `recordShape`, and `rules` are generated from the server runtime and are authoritative over any example below. `script.runtime.ts` is that surface; an API absent from it does not exist.
+
+Execution shape and validation:
+
+- Provide an executable statement body only. The runtime already wraps it in an async function, so use top-level `await` and never wrap the body in an async IIFE.
+- The body is validated before persistence, so `anydb_create_workflow` and `anydb_update_workflow` reject an invalid script instead of storing it. `validateOnly: true` checks a draft on creation without persisting it.
+- `import`, `export`, `require(...)`, `eval(...)`, `Function(...)`, `process`, `globalThis`, `global`, `module`, `exports`, `__dirname`, `__filename`, and `constructor.constructor` escapes are rejected.
+- `setTimeout`, `setInterval`, and `setImmediate` are unavailable. Use `await anydb.yield()` to yield and `fetch(url, options)` for external HTTP.
+- Only documented `anydb.*` and `output.*` members are callable, and only by literal name. Computed access such as `anydb[methodName](...)` is rejected. `base` is an alias of `anydb`.
+- Never feature-detect an API (`typeof anydb.updateRecord === "function"`), never write compatibility wrappers, and never call guessed globals such as `getRecord(...)`, `searchRecords(...)`, or a bare `sendEmail(...)`. Use the documented name or fail.
+- A supplied `timeoutMs` is clamped to the server's script timeout cap, 30000 ms by default. Design each run to finish inside that budget: filter or page large sets instead of scanning a whole type.
+
+Structure and requirement coverage:
+
+- Open with a top-level `const CONFIG = { ... }` block holding the source type and field names, plus `target` and `defaults` when the script writes to another type. Reference `CONFIG.*` in the logic instead of repeating literals. Do not add a `CONFIG.output` section; `output.set(...)` keys are plain string literals.
+- Place execution logic next, and end with explicit `output.set(...)` values and a concise `output.summary(...)`.
+- Derive a checklist of every condition, mutation, side effect, ordering constraint, and output in the request, then confirm the finished script covers it. Listing a field in `CONFIG` is not implementing its condition.
+- Bind each condition to the exact field it names. Do not substitute a different field because its values look similar.
+- Implement each requested action only inside the branch its conditions govern, and preserve ordering where one action depends on another.
+- Preserve operation semantics: an append retains existing content, a clear writes the schema-valid empty value, and a lock or unlock request calls the corresponding awaited record helper.
+- Do not add mutations the request did not ask for.
+- Include short `//` comments naming the concrete condition, field, or cell each block handles, covering at least setup/guard, fetch/process, and output.
+
+Execution integrity:
+
+- Keep branch selection free of side effects. Select the matching branch first, then validate only the inputs and capabilities that branch uses. Never abort a run because data belonging to an unselected branch is missing.
+- Preflight every mandatory record, recipient, and identifier before the first mutation, email, notification, share change, or lock change. When a mandatory action cannot be expressed with documented APIs, fail before any side effect rather than part way through.
+- Apply value changes in the fewest writes, skip unchanged fields, and perform one cumulative write per append target rather than one write per entry.
+- Script-runtime writes already override cell locks. Do not unlock a cell to write it; change lock state only when requested, and only after the value writes succeed.
+- Persist a state transition before sending the email or notification that announces it.
+- Make update-triggered side effects idempotent, either by transitioning the record out of the triggering condition or by persisting an idempotency marker. An in-memory check does not survive a retried run.
+- Never swallow a failure in an empty `catch`. Recover completely, report an explicit partial outcome, or rethrow with operation context, and report success only when every mandatory action completed.
+- Report state after the writes, not the pre-update values, and escape record-derived values before interpolating them into an HTML email body.
+- Never invent an identifier. `anydb.updateShare(...)` resolves the existing share from `adoid`; supply `shareId` only when an actual share ID was returned or provided.
+
+Data access contracts:
+
+- For a triggering-record script, require `input.recordId`, load it with `await anydb.getRecordById(input.recordId)`, and fail before side effects when it is missing or inaccessible. Use `input.refIds` or query criteria only for intentional scheduled, manual, or batch workflows.
+- `anydb.findRecords(...)` and `anydb.findRecordsPage(...)` accept exactly one type-name selector (`type`, `typeName`, or `templateName`) and never a template ID. In `condition`, equality is `==`; a single `=` is not an operator. Supported comparisons are `==`, `!=`, `<`, `<=`, `>`, and `>=`.
+- Use `anydb.findRecordsPage(...)` with `limit` and `cursor` for large sets, `anydb.getRecordsByType(...)` only for an unfiltered scan, and `anydb.getChildren(parentid, ...)` for parent-child hierarchy instead of reading IDs out of a cell.
+- Read values with `record.cellValues[field]`, `record.fields[field]`, `record.getCell(refOrKey)`, `await record.getRefCellValue(refPath)`, and `record.meta.*`. `record.content`, `record.cells`, and `record.getCellValue(...)` do not exist.
+- Iterate cells with `record.getFieldNames()`. `Object.keys(record.fields)` also contains grid-position aliases and double-counts every cell.
+- Traverse references with `await record.getRefCellValue("Manager->Department->Name")` or its array form. Traversal stays inside the workflow's own team and database.
+- Await every data call and every mutation helper: `setCell`, `setCellProps`, `setCellRefValue`, `lock`, `unlock`, `lockCell`, `unlockCell`, `hideCell`, and `unhideCell`. An unawaited mutation statement is rejected at validation.
+- Use exact schema casing for type and field names. When the type declares `SUBMITTED DATE`, write `SUBMITTED DATE`, not `Submitted Date`.
+- Write `select` values as declared option literals, normalizing a user's case variant to the schema literal rather than matching on substrings; write `checkbox` values as booleans; write `date`, `datetime`, and `time` values as integer epoch seconds. When reading a numeric date cell, treat a value above `1e12` as milliseconds before converting.
+- A `ref` cell does not accept a raw record ID inside `cellValues`. Use `await record.setCellRefValue(refOrKey, targetAdoid)`, or copy an existing normalized ref payload unchanged.
+- Write APIs take object parameters with exact lowercase keys: `anydb.createRecord({ name, parentid?, typeid?, typename?, cellValues? })` and `anydb.updateRecord({ adoid, cellValues?, parentid? })`. Use one create target selector, `typename` or `typeid`. `parentId`, `templateName`, `typeName`, and `id` are not accepted in write payloads, and positional forms such as `anydb.updateRecord(adoid, fields)` are not supported.
+- `await anydb.createRecord(...)` returns the created runtime record. Its ID is `created.id`, the new adoid, not `created.adoid`. Omit `parentid` only when root creation is intentional; when attaching a child, resolve and validate the parent ID before the call.
+- Supplying `parentid` to `anydb.createRecord(...)` or `anydb.updateRecord(...)` accepts one parent ID or an array and replaces the record's complete parent list, so include every existing parent that must remain attached. Omit it to leave attachments unchanged, and never pass an empty list.
+- When schema field names, formats, and select options are known, treat them as authoritative. Do not add regex or `Object.keys(...)` discovery to rediscover a field the type already declares.
+
+Loops and output:
+
+- Every loop in async context must contain an `await` in its own body; begin each loop with `await anydb.yield()`. A loop whose only `await` sits inside a nested function is rejected.
+- `while (true)`, `while (1)`, and `for (;;)` are rejected. Prefer one top-level scan loop, avoid nested loops, and keep explicit loops out of non-async helper functions.
+- `output.set(key, value)` keys must match `^[A-Za-z_][A-Za-z0-9_]*$` and must avoid the reserved names `scriptSummary`, `cellValue`, `processedRefIds`, `updatedRefIds`, `logLines`, `exported_file`, and `customOutputs`, which the runtime populates itself.
+- Use `log(...)` or `console.log(...)` for concise diagnostics around inputs, branch decisions, record IDs, and mutation results. Never log credentials, tokens, or sensitive record content.
+- Report whether a branch matched, which actions completed, and the resulting state through `output.set(...)` and `output.summary(...)` so later actions can bind to them.
+
+### Reviewing and Updating a Script Action
+
+- `anydb_get_workflow` returns each action's stored `config`, so the current source is available at the `action_script` entry's `config.script`. Read it before proposing a change; never rewrite a script from the workflow name or description alone.
+- Review the stored source against the contracts above and the current `action_script` catalog guidance. The runtime surface changes between releases, so re-read the catalog instead of trusting a previously generated script.
+- `anydb_update_workflow` replaces the complete ordered action chain and does not accept the `workflow.script` shorthand used at creation. To change one script, resend every action in its final order as `{ key, type: "action_script", config: { script } }` with the corrected source. Omit `changes.actions` entirely when only the name, description, or enabled state changes.
+- Preserve each action's other config values and every `{{trigger.*}}` or `{{priorActionKey.*}}` binding when resending the chain. An omitted binding is dropped silently.
+- Verify with `anydb_execute_workflow` using `simulate: true`, then a real run against test data, and inspect `executionHistory[].artifactExecutions[].output.logLines` before considering the change complete.
+- A simulated run reads real records but persists nothing, and `anydb.createRecord(...)` returns a simulated record whose mutation helpers throw. A script that writes back to a record it just created must be verified with a real run.
+- After a run, `anydb_get_workflow` or `anydb_get_workflow_execution_history` shows per-artifact status, output, and error. An empty execution history means the workflow never fired: check that it is enabled and that the trigger matched.
 
 ## Construction Procedure
 
