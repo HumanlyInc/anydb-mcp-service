@@ -100,6 +100,54 @@ npx -y anydb-mcp-service
 Configure environment variables in the MCP host rather than passing credentials
 through a conversation.
 
+## HTTP Transport
+
+Alongside the default stdio transport, the server runs over MCP Streamable HTTP
+for clients that connect to a URL rather than spawning a process:
+
+```bash
+npm run start:http
+```
+
+The endpoint is stateless: every request builds its own MCP server, so no
+session state is carried between requests. `POST /` is the only MCP method;
+`GET` and `DELETE` return 405. `GET /health` reports liveness and version.
+
+| Variable | Default | Purpose |
+| ------------------- | ----------------------- | ----------------------------------------------------- |
+| `MCP_HTTP_PORT` | `3001` | Listen port, separate from the REST server's port |
+| `MCP_HTTP_HOST` | `127.0.0.1` | Bind address; widen only behind a TLS proxy |
+| `MCP_ALLOWED_ORIGINS` | *(unset)* | Comma-separated browser origins; unset emits no CORS |
+| `MCP_RESOURCE_URI` | `https://mcp.anydb.com` | Canonical resource id and expected token audience |
+| `MCP_OAUTH_ISSUER` | `https://app.anydb.com` | Authorization server that issues access tokens |
+| `MCP_OAUTH_JWKS_URI` | `<issuer>/.well-known/jwks.json` | Token verification keys |
+| `MCP_OAUTH_ENABLED` | `true` | Set `false` to run API-key-only |
+
+### Authentication
+
+Requests authenticate with either an OAuth 2.1 bearer token or the API-key
+headers. A bearer token wins when both are present, so an OAuth session never
+silently falls back to a differently-scoped API key.
+
+```
+Authorization: Bearer <access token>
+```
+
+```
+x-anydb-api-key: <key>
+x-anydb-email: <email associated with the key>
+```
+
+Bearer tokens are verified against the authorization server's JWKS: RS256 only,
+with issuer, audience, and expiry all checked. A token minted for a different
+audience is rejected. Unauthorized responses carry a `WWW-Authenticate` header
+pointing at `/.well-known/oauth-protected-resource`, which is how a client
+discovers where to authenticate.
+
+The token claims, scopes (`mcp:read`, `mcp:write`, `mcp:author`), and discovery
+documents are specified in [docs/token-contract.md](docs/token-contract.md); the
+rollout is planned in [docs/oauth2-plan.md](docs/oauth2-plan.md).
+
 ## Solution Building
 
 The server supports either one standalone type or a coordinated solution with

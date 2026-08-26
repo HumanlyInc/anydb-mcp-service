@@ -1,21 +1,39 @@
 import "dotenv/config";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 /**
  * Configuration for AnyDB MCP Service
  * Adjust these values based on your AnyDB API setup
  */
 
-// Debug: Log environment variables
-console.error(
-  "[Config] ANYDB_DEFAULT_API_KEY:",
-  process.env.ANYDB_DEFAULT_API_KEY
-    ? `${process.env.ANYDB_DEFAULT_API_KEY.substring(0, 8)}...`
-    : "NOT SET",
-);
-console.error(
-  "[Config] ANYDB_DEFAULT_USER_EMAIL:",
-  process.env.ANYDB_DEFAULT_USER_EMAIL || "NOT SET",
-);
+/**
+ * Read the package version so the MCP handshake reports what is actually
+ * running. Both src/config.ts and dist/config.js sit one level below the
+ * package root, so the relative path resolves in dev and in the published
+ * package alike.
+ */
+function readPackageVersion(): string {
+  try {
+    const path = fileURLToPath(new URL("../package.json", import.meta.url));
+    const parsed = JSON.parse(readFileSync(path, "utf8"));
+    return typeof parsed.version === "string" ? parsed.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
+function parseOrigins(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+const oauthIssuer = (
+  process.env.MCP_OAUTH_ISSUER || "https://app.anydb.com"
+).replace(/\/$/, "");
 
 export const config = {
   // AnyDB Internal API endpoint (not exposed outside local subnet)
@@ -28,5 +46,31 @@ export const config = {
 
   // Server configuration
   serverName: "anydb-mcp-service",
-  serverVersion: "1.0.0",
+  serverVersion: readPackageVersion(),
+
+  http: {
+    // Dedicated port: the REST server owns REST_API_PORT.
+    port: Number(process.env.MCP_HTTP_PORT || 3001),
+
+    // Bind loopback by default. Only widen behind a TLS-terminating proxy.
+    host: process.env.MCP_HTTP_HOST || "127.0.0.1",
+
+    // Browser origins allowed to call the MCP endpoint. Empty means no CORS
+    // headers are emitted at all, which is correct for non-browser clients.
+    allowedOrigins: parseOrigins(process.env.MCP_ALLOWED_ORIGINS),
+  },
+
+  oauth: {
+    // Canonical resource identifier; the audience tokens must carry.
+    resourceUri: (
+      process.env.MCP_RESOURCE_URI || "https://mcp.anydb.com"
+    ).replace(/\/$/, ""),
+    issuer: oauthIssuer,
+    jwksUri:
+      process.env.MCP_OAUTH_JWKS_URI || `${oauthIssuer}/.well-known/jwks.json`,
+    // Bearer auth is on unless explicitly disabled.
+    enabled: process.env.MCP_OAUTH_ENABLED !== "false",
+    resourceDocumentation:
+      "https://www.anydb.com/support/integrations/mcp-claude",
+  },
 };

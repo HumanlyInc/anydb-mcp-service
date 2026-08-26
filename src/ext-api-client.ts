@@ -15,9 +15,12 @@ import type {
 export const FILE_TEMPLATE_ADOID = "222222222222222222222222";
 
 interface ExtApiClientConfig {
-  apiKey: string;
-  userEmail: string;
   baseURL: string;
+  /** Legacy API-key auth. Ignored when accessToken is present. */
+  apiKey?: string;
+  userEmail?: string;
+  /** OAuth 2.1 bearer token. Takes precedence over the API key. */
+  accessToken?: string;
 }
 
 interface ExtApiResponse<T> {
@@ -598,8 +601,7 @@ export class ExtApiClient {
       baseURL: config.baseURL,
       headers: {
         "Content-Type": "application/json",
-        "x-anydb-api-key": config.apiKey,
-        "x-anydb-email": config.userEmail,
+        ...ExtApiClient.authHeaders(config),
       },
       timeout: 30000,
     });
@@ -607,6 +609,23 @@ export class ExtApiClient {
       (response) => response,
       (error: unknown) => Promise.reject(this.toRequestError(error)),
     );
+  }
+
+  /**
+   * Build the auth headers for one credential set. A bearer token wins when
+   * both are supplied so that an OAuth session never silently falls back to a
+   * differently-scoped API key.
+   */
+  private static authHeaders(
+    config: ExtApiClientConfig,
+  ): Record<string, string> {
+    if (config.accessToken) {
+      return { Authorization: `Bearer ${config.accessToken}` };
+    }
+    const headers: Record<string, string> = {};
+    if (config.apiKey) headers["x-anydb-api-key"] = config.apiKey;
+    if (config.userEmail) headers["x-anydb-email"] = config.userEmail;
+    return headers;
   }
 
   private toRequestError(error: unknown): Error {

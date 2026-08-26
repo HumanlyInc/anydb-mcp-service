@@ -67,8 +67,9 @@ describe("semantic search MCP tool", () => {
       path.resolve(process.cwd(), "src/semantic-search-tools.ts"),
       "utf8",
     );
+    // Tool wiring lives in mcp.ts; index.ts is only the stdio entry point.
     const serverSource = fs.readFileSync(
-      path.resolve(process.cwd(), "src/index.ts"),
+      path.resolve(process.cwd(), "src/mcp.ts"),
       "utf8",
     );
 
