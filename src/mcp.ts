@@ -37,7 +37,6 @@ import {
   readSolutionResource,
   SOLUTION_BUILDING_GUIDE_URI,
 } from "./solution-resources.js";
-import type { TemplateStructure } from "./types.js";
 
 /**
  * AnyDB MCP Server

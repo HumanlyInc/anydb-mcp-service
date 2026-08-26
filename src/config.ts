@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 /**
  * Configuration for AnyDB MCP Service
  * Adjust these values based on your AnyDB API setup
