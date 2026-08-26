@@ -54,6 +54,71 @@ describe("solution resources", () => {
     );
     expect(resource.text).toContain("Standalone type");
     expect(resource.text).toContain("## Cells");
+    expect(resource.text).toContain("## Record Titles");
+    expect(resource.text).toContain(
+      "records of that type are named by evaluating it against the record",
+    );
+    expect(resource.text).toContain("CONCAT('Meeting: ', {{Subject}})");
+    expect(resource.text).toContain(
+      "`anydb_update_type` changes it through `changes.titleFormula`",
+    );
+    expect(resource.text).toContain(
+      "do not try to recreate the type, which is rejected as a duplicate name",
+    );
+    expect(resource.text).toContain(
+      "A title formula is a formula expression, not a template string",
+    );
+    expect(resource.text).toContain(
+      "Anything the formula runtime cannot evaluate is rejected **silently**",
+    );
+    expect(resource.text).toContain("CONCAT({{Name}}, ' (', {{Status}}, ')')");
+    expect(resource.text).toContain("`{{Name}} & ' (' & {{Status}}`");
+    expect(resource.text).toContain(
+      "A field key that does not exist on the type",
+    );
+    expect(resource.text).toContain("One unknown key discards the whole title");
+    expect(resource.text).toContain(
+      "that read is the only confirmation that the formula evaluates",
+    );
+    expect(resource.text).toContain(
+      "Avoid special characters such as `%` in any key used inside `{{Field Key}}`",
+    );
+    expect(resource.text).toContain(
+      "A `heading` field requires `headingLabel`",
+    );
+    expect(resource.text).toContain(
+      "stored in the heading cell's `HEADING_LABEL` prop rather than its `value`",
+    );
+    expect(resource.text).toContain(
+      "A `percentage` field stores a fraction from `0` to `1`",
+    );
+    expect(resource.text).toContain("Store 25% as `0.25`, not `25`");
+    expect(resource.text).toContain(
+      "`date`, `datetime`, and `time` record values use integer seconds since the Unix epoch",
+    );
+    expect(resource.text).toContain("`Math.floor(Date.now() / 1000)`");
+    expect(resource.text).toContain("not `Date.now()`");
+    expect(resource.text).toContain(
+      "Guard aggregations and other relationship-dependent expressions",
+    );
+    expect(resource.text).toContain(
+      "This includes `SUM`, `COUNT`, `MAX`, `FILTER`, `SUMBY`, `MAXBY`",
+    );
+    expect(resource.text).toContain(
+      'normally `0` for numeric results, `[]` for arrays, and `""` for text',
+    );
+    expect(resource.text).toContain(
+      "IFERROR(SUM(C@CURRREC!N@Invoice!{{Amount}}), 0)",
+    );
+    expect(resource.text).toContain(
+      "IFERROR(COUNT(C@CURRREC!N@Invoice!{{Name}}), 0)",
+    );
+    expect(resource.text).toContain(
+      'IFERROR(MAXBY(FILTER(C@CURRREC!N@Invoice!{{Packed Data}}, {type: "Open"}), "total"), 0)',
+    );
+    expect(resource.text).not.toContain(
+      "locked `Total = SUM(C@CURRREC!N@Order Item!{{Total}})`",
+    );
     expect(resource.text).toContain("### Canonical Type Layout");
     expect(resource.text).toContain("six-column grid, A-F");
     expect(resource.text).toContain("Build an occupancy map");
@@ -77,6 +142,33 @@ describe("solution resources", () => {
     );
     expect(resource.text).toContain(
       "Connected child and parent references return arrays",
+    );
+    expect(resource.text).toContain(
+      "Do not author or modify `childPolicy`, `childPolicy.allowOnly`, or `childPolicy.autoCreate` through MCP",
+    );
+    expect(resource.text).toContain(
+      "Omit child policy from create and update requests",
+    );
+    expect(resource.text).not.toContain(
+      "`childPolicy.allowOnly` restricts allowed child types",
+    );
+    expect(resource.text).toContain(
+      "Parent attachment is a property of the record, not of the type",
+    );
+    expect(resource.text).toContain(
+      "`update_record` sets a record's parents through `meta.attach`",
+    );
+    expect(resource.text).toContain(
+      "This is the tool that attaches one record to several parents",
+    );
+    expect(resource.text).toContain(
+      "replaces the record's complete parent list rather than adding to it",
+    );
+    expect(resource.text).toContain(
+      "`move_record` is a single-parent reassignment",
+    );
+    expect(resource.text).toContain(
+      "`delete_record` with `removefromids` detaches a record from specific parents",
     );
     expect(resource.text).toContain("C@CURRREC!N@Invoice!{{Amount}}");
     expect(resource.text).toContain("A@CURRREC!{{Budget}}[0]");
@@ -105,7 +197,17 @@ describe("solution resources", () => {
     );
     expect(resource.text).toContain("call `anydb_get_workflow`");
     expect(resource.text).toContain(
-      "Its ID is `created.id` (the new adoid), not `created.adoid`",
+      "Its ID is `created.id`, the new adoid, not `created.adoid`",
+    );
+    expect(resource.text).toContain(
+      "replaces the record's complete parent list",
+    );
+    expect(resource.text).toContain("Omit it to leave attachments unchanged");
+    expect(resource.text).toContain(
+      "pass its ID as `adoid` to `anydb_execute_workflow`",
+    );
+    expect(resource.text).toContain(
+      "`{{context:meta.*}}` and `{{context:content.*}}`",
     );
     expect(resource.text).toContain("After creating or changing a workflow");
     expect(resource.text).toContain("anydb_get_workflow_execution_history");
@@ -119,6 +221,76 @@ describe("solution resources", () => {
       "Five or more workflows is a design-review signal",
     );
     expect(resource.text).toContain("It is not a hard limit");
+    expect(resource.text).toContain("### Script Actions");
+    expect(resource.text).toContain(
+      "### Reviewing and Updating a Script Action",
+    );
+    expect(resource.text).toContain("never wrap the body in an async IIFE");
+    expect(resource.text).toContain(
+      "`constructor.constructor` escapes are rejected",
+    );
+    expect(resource.text).toContain(
+      "Computed access such as `anydb[methodName](...)` is rejected",
+    );
+    expect(resource.text).toContain("Never feature-detect an API");
+    expect(resource.text).toContain(
+      "clamped to the server's script timeout cap, 30000 ms by default",
+    );
+    expect(resource.text).toContain("const CONFIG = { ... }");
+    expect(resource.text).toContain(
+      "Listing a field in `CONFIG` is not implementing its condition",
+    );
+    expect(resource.text).toContain(
+      "Keep branch selection free of side effects",
+    );
+    expect(resource.text).toContain(
+      "Persist a state transition before sending the email",
+    );
+    expect(resource.text).toContain(
+      "Never swallow a failure in an empty `catch`",
+    );
+    expect(resource.text).toContain(
+      "require `input.recordId`, load it with `await anydb.getRecordById(input.recordId)`",
+    );
+    expect(resource.text).toContain(
+      "accept exactly one type-name selector (`type`, `typeName`, or `templateName`) and never a template ID",
+    );
+    expect(resource.text).toContain("a single `=` is not an operator");
+    expect(resource.text).toContain(
+      "`record.content`, `record.cells`, and `record.getCellValue(...)` do not exist",
+    );
+    expect(resource.text).toContain(
+      "Iterate cells with `record.getFieldNames()`",
+    );
+    expect(resource.text).toContain(
+      "An unawaited mutation statement is rejected at validation",
+    );
+    expect(resource.text).toContain(
+      "write `SUBMITTED DATE`, not `Submitted Date`",
+    );
+    expect(resource.text).toContain(
+      "A `ref` cell does not accept a raw record ID inside `cellValues`",
+    );
+    expect(resource.text).toContain(
+      "`parentId`, `templateName`, `typeName`, and `id` are not accepted in write payloads",
+    );
+    expect(resource.text).toContain(
+      "A loop whose only `await` sits inside a nested function is rejected",
+    );
+    expect(resource.text).toContain("^[A-Za-z_][A-Za-z0-9_]*$");
+    expect(resource.text).toContain(
+      "`scriptSummary`, `cellValue`, `processedRefIds`, `updatedRefIds`, `logLines`, `exported_file`, and `customOutputs`",
+    );
+    expect(resource.text).toContain(
+      "the current source is available at the `action_script` entry's `config.script`",
+    );
+    expect(resource.text).toContain(
+      "does not accept the `workflow.script` shorthand used at creation",
+    );
+    expect(resource.text).toContain("An omitted binding is dropped silently");
+    expect(resource.text).toContain(
+      "returns a simulated record whose mutation helpers throw",
+    );
     expect(resource.text).toContain("## Sharing");
     expect(resource.text).toContain("anydb_list_views");
     expect(resource.text).toContain("anydb_delete_view");
@@ -164,6 +336,9 @@ describe("solution resources", () => {
     expect(resource.mimeType).toBe("application/schema+json");
     expect(schema.$id).toBe(SOLUTION_AUTHORING_SCHEMA_URI);
     expect(schema.$defs.field.properties.format.enum).toContain("lookup");
+    expect(schema.$defs.field.properties).toHaveProperty("headingLabel");
+    expect(schema.$defs.field.allOf[0].then.required).toContain("headingLabel");
+    expect(schema.$defs.fieldUpdate.properties).toHaveProperty("headingLabel");
     expect(schema.$defs.field.properties.lookup.properties.mode.enum).toEqual([
       "snapshot",
       "live",
@@ -185,15 +360,31 @@ describe("solution resources", () => {
     expect(schema.$defs.createTypeInput.properties).toHaveProperty(
       "builtInTemplateName",
     );
+    expect(schema.$defs.typeDefinition.properties).not.toHaveProperty(
+      "childPolicy",
+    );
     expect(schema.$defs.updateTypeInput.properties).toHaveProperty(
       "templateName",
     );
+    expect(
+      schema.$defs.typeDefinition.properties.titleFormula.description,
+    ).toContain("record-title formula");
+    expect(
+      schema.$defs.updateTypeInput.properties.changes.properties,
+    ).toHaveProperty("titleFormula");
+    expect(
+      schema.$defs.updateTypeInput.properties.changes.properties.titleFormula
+        .description,
+    ).toContain("CONCAT is the only supported way to join text");
     expect(schema.$defs.updateTypeInput.properties).not.toHaveProperty(
       "templateid",
     );
     expect(
       schema.$defs.updateTypeInput.properties.changes.properties,
     ).toHaveProperty("icon");
+    expect(
+      schema.$defs.updateTypeInput.properties.changes.properties,
+    ).not.toHaveProperty("replaceChildPolicy");
     expect(
       schema.$defs.updateTypeInput.properties.changes.properties.icon,
     ).toMatchObject({ type: "string" });

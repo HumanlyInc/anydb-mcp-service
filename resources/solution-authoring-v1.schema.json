@@ -41,6 +41,12 @@
       "properties": {
         "key": { "type": "string", "minLength": 1, "maxLength": 120 },
         "description": { "type": "string", "maxLength": 1000 },
+        "headingLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Displayed heading text. Required only when format is heading; the server stores it in the HEADING_LABEL cell prop rather than the cell value."
+        },
         "valueType": {
           "enum": ["string", "number", "boolean", "array", "void", "file", "object", "ref", "user"]
         },
@@ -80,7 +86,14 @@
         "required": { "type": "boolean", "default": false },
         "locked": { "type": "boolean", "default": false },
         "layout": { "$ref": "#/$defs/layout" }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "format": { "const": "heading" } } },
+          "then": { "required": ["headingLabel"] },
+          "else": { "not": { "required": ["headingLabel"] } }
+        }
+      ]
     },
     "badge": {
       "type": "object",
@@ -431,7 +444,11 @@
           "type": "string",
           "description": "Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>, for example icon::clipboard-check::#1565C0::#FFFFFF."
         },
-        "titleFormula": { "type": "string", "minLength": 1 },
+        "titleFormula": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional record-title formula. Records of the type are named by evaluating it, and the name is recomputed when a field it reads changes. Must be a formula expression in the same language as a cell formula, not a template string. CONCAT is the only supported way to join text: CONCAT('Meeting: ', {{Subject}}) works, while {{Subject}} ({{Status}}), {{A}} & {{B}} and {{A}} + {{B}} do not. A template string, an unknown field key, an unknown function, or a syntax error is rejected silently — the record keeps its existing name and no error is returned — so confirm a new formula by reading one record's meta.name back."
+        },
         "fields": {
           "type": "array",
           "minItems": 1,
@@ -440,8 +457,7 @@
         "badges": {
           "type": "array",
           "items": { "$ref": "#/$defs/badge" }
-        },
-        "childPolicy": { "$ref": "#/$defs/childPolicy" }
+        }
       }
     },
     "createTypeInput": {
@@ -473,6 +489,7 @@
         "key": { "type": "string", "minLength": 1 },
         "newKey": { "type": "string", "minLength": 1 },
         "description": { "type": "string" },
+        "headingLabel": { "$ref": "#/$defs/field/properties/headingLabel" },
         "valueType": { "$ref": "#/$defs/field/properties/valueType" },
         "format": { "$ref": "#/$defs/field/properties/format" },
         "formula": { "type": "string" },
@@ -504,11 +521,14 @@
               "type": "string",
               "description": "Replacement Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>."
             },
+            "titleFormula": {
+              "type": "string",
+              "description": "Replacement record-title formula. Must be a formula expression in the same language as a cell formula, not a template string. CONCAT is the only supported way to join text: CONCAT('Meeting: ', {{Subject}}) works, while {{Subject}} ({{Status}}), {{A}} & {{B}} and {{A}} + {{B}} do not. A template string, an unknown field key, an unknown function, or a syntax error is rejected silently — the record keeps its existing name and no error is returned — so confirm a new formula by reading one record's meta.name back. Reference only field keys that exist on the type after this update is applied, and send an empty string to clear it."
+            },
             "addFields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
             "updateFields": { "type": "array", "items": { "$ref": "#/$defs/fieldUpdate" } },
             "removeFields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-            "replaceBadges": { "type": ["array", "null"], "items": { "$ref": "#/$defs/badge" } },
-            "replaceChildPolicy": { "oneOf": [{ "$ref": "#/$defs/childPolicy" }, { "type": "null" }] }
+            "replaceBadges": { "type": ["array", "null"], "items": { "$ref": "#/$defs/badge" } }
           }
         },
         "confirmDataLoss": { "type": "boolean", "default": false }
@@ -559,7 +579,7 @@
         "description": { "type": "string", "maxLength": 1000 },
         "config": {
           "type": "object",
-          "description": "Action input matching its catalog inputSchema. Use {{trigger.outputName}} or {{priorActionKey.outputName}} for artifact output bindings."
+          "description": "Action input matching its catalog inputSchema. Use {{trigger.outputName}} or {{priorActionKey.outputName}} for artifact output bindings. For action_script, config.script holds the executable JavaScript body and config.timeoutMs its optional timeout; anydb_get_workflow returns the stored source at the same path for review."
         }
       }
     },
@@ -592,10 +612,21 @@
             "script": {
               "type": "object",
               "additionalProperties": false,
+              "description": "Single-action-script shorthand accepted only at creation. anydb_update_workflow does not accept it; send changes.actions with an action_script entry instead.",
               "required": ["source"],
               "properties": {
-                "source": { "type": "string", "minLength": 1 },
-                "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 30000 }
+                "source": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Executable JavaScript body for the workflow script runtime, validated before persistence. No async IIFE wrapper, no import/export/require/eval/Function/process/globalThis, only documented anydb.* and output.* members accessed by literal name, awaited data and mutation calls, and an await such as anydb.yield() in every loop body. See the Script Actions rules in anydb://guides/solution-building/v1 and the action_script guidance from anydb_list_workflow_actions.",
+                  "$comment": "Authoritative runtime surface: script.runtime.ts, surfaced through the action_script catalog entry."
+                },
+                "timeoutMs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 30000,
+                  "description": "Script execution timeout in milliseconds, clamped by the server to its configured cap (30000 by default). Design each run to finish inside this budget by filtering or paging instead of scanning a whole type."
+                }
               }
             },
             "actions": {

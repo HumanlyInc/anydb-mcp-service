@@ -1,11 +1,11 @@
 {
   "name": "anydb-mcp-service",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "Model Context Protocol (MCP) server for AnyDB database and record management through AI assistants",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "anydb-mcp-service": "./dist/index.js"
+    "anydb-mcp-service": "dist/index.js"
   },
   "files": [
     "dist",
@@ -15,7 +15,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/HumanlyInc/anydb-mcp-service.git"
+    "url": "git+https://github.com/HumanlyInc/anydb-mcp-service.git"
   },
   "homepage": "https://www.anydb.com/support/integrations/mcp-claude",
   "bugs": {
