@@ -872,7 +872,7 @@ export function createMcpServer({
         return callSetupTool(name);
       }
 
-      if (!config.defaultApiKey || !config.defaultUserEmail) {
+      if (!apiKey || !userEmail) {
         throw new Error(
           "AnyDB credentials are not configured. Call anydb_get_setup_guide, then set ANYDB_DEFAULT_API_KEY and ANYDB_DEFAULT_USER_EMAIL in the MCP client environment and restart the client.",
         );
