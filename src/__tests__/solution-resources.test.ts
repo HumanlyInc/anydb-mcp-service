@@ -570,6 +570,24 @@ describe("cell properties and conditional formatting", () => {
     );
   });
 
+  it("says which reference form goes where", () => {
+    // A formula written against a grid position silently reads a different
+    // field once the layout changes, so clients need this stated, not implied.
+    expect(guide).toContain("Referring to a Cell");
+    expect(guide).toContain("Only as the first argument to `DYNREF`");
+  });
+
+  it("warns that DYNREF and SEQNUM must not be wrapped", () => {
+    // The IFERROR advice elsewhere in the guide would otherwise read as
+    // applying to these two as well.
+    expect(guide).toContain("must stand alone");
+    expect(guide).toContain("SEQNUM");
+  });
+
+  it("explains how to make a computed cell overridable", () => {
+    expect(guide).toContain("VALUE_OVERRIDE_ENABLED");
+  });
+
   it("no longer tells clients to avoid props", () => {
     // The guide previously said to use semantic properties "instead of raw
     // internal props", which is now the opposite of the supported path.

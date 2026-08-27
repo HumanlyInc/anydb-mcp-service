@@ -184,6 +184,7 @@ Commonly useful properties:
 | `CELL_ERROR` | Validation. Return `false` when valid, or the message to show when not |
 | `DATE_DISPLAY`, `DATETIME_DISPLAY`, `CHECKBOX_DISPLAY`, `SELECT_DISPLAY` | Format-specific presentation |
 | `X_SIZE` | Column width in pixels |
+| `VALUE_OVERRIDE_ENABLED` | Let a person type over a computed cell. A cell with a `formula` is read-only by default; set this to `true` when the user must be able to override it |
 | `AI_PROMPT` | The prompt for an `ai` field, e.g. `"Summarise the file attached in {{My Doc}}"` |
 | `BUTTON_ACTION_TYPE`, `BUTTON_ACTION_VALUE` | Wire a `button` field to an automation by name |
 
@@ -381,12 +382,36 @@ Guard aggregations and other relationship-dependent expressions that may receive
 
 Use the reference form that matches the relationship:
 
-- Current-record field: `{{Field Key}}`, for example `{{Quantity}} * {{Unit Price}}`.
+- Current-record field: `{{Field Key}}`, for example `{{Quantity}} * {{Unit Price}}`. Use the field's stable `key`, spelled exactly as defined, and make sure it resolves to exactly one field — a key that matches two fields is ambiguous and will not evaluate.
 - Current-record metadata: `M@NAME`, `M@STATUS`, `M@CREATED`, `M@UPDATED`, `M@CREATEDBY`, or `M@UPDATEDBY`.
 - All child values regardless of type: `C@CURRREC!{{Amount}}`.
 - Child values for one stable type name: `C@CURRREC!N@Invoice!{{Amount}}`.
 - Parent values: `A@CURRREC!{{Budget}}`.
 - Independent record selected by a `ref` field: use a semantic `lookup` field; the server compiles it to `DYNREF(<ref cell position>, {{Target Field}})`.
+
+### Referring to a Cell: Key or Position
+
+A cell can be named two ways, and they are not interchangeable.
+
+| Form | Example | Use it |
+| --- | --- | --- |
+| Field key | `{{Order Total}}` | Everywhere. This is the only form to use in ordinary formulas, in property expressions, and in workflow conditions |
+| Grid position | `A1`, `B12` | **Only as the first argument to `DYNREF`.** Nowhere else |
+
+Field keys are stable identifiers; grid positions are presentation details that
+move whenever a layout changes, so a formula written against `B12` silently
+starts reading a different field after a field is inserted above it. Write
+`{{Unit Price}} * {{Quantity}}`, never `C4 * D4`.
+
+The one exception is `DYNREF`, whose first argument must be the grid position of
+the `ref` cell — a field key does not work there. Prefer a semantic `lookup`
+field so the server writes the `DYNREF` and resolves the position for you; reach
+for raw `DYNREF` only when a lookup field cannot express what you need.
+
+Two functions must stand alone and must never be wrapped by another function,
+`IFERROR` included: `DYNREF` and `SEQNUM`. Write `DYNREF(A2, {{Email}}, 'GO')`,
+not `IFERROR(DYNREF(A2, {{Email}}, 'GO'), "")`. The `IFERROR` guidance above
+applies to aggregations, not to these two.
 
 Connected child and parent references return arrays. Pass child arrays to aggregations such as `SUM`, `COUNT`, `MAX`, `FILTER`, `SUMBY`, or `MAXBY`. When exactly one parent or child value is intended, select it explicitly with zero-based `[0]`, for example `A@CURRREC!{{Budget}}[0]`. Do not use `[0]` when all connected values must participate.
 
