@@ -136,8 +136,78 @@ Important format rules:
 - `attachments` embeds child records and requires the child `targetType`. Give it enough space, normally full width and 6-7 rows high.
 - `select` and `multi-select` require stable `options`.
 - Computed fields use `formula` and should normally be `locked`.
-- Use `description`, `required`, and format-specific semantic properties instead of raw internal `props`.
+- Prefer the named fields — `description`, `headingLabel`, `required`, `locked`, `options`, `targetType` — over `props`. Each owns a cell property, and setting the same property through `props` is rejected. Use `props` for presentation and behaviour the named fields do not cover; see Cell Properties below.
 - Layout positions match `^[A-Z]+[1-9][0-9]*$`; `colspan` and `rowspan` are positive integers. Occupied grid areas must not overlap.
+
+### Cell Properties and Conditional Formatting
+
+Anything about a cell that the named fields do not cover — colour, emphasis,
+alignment, visibility, display format, validation message, width — is a cell
+property, set through the field's `props` map.
+
+Each property takes `value`, `expr`, or both:
+
+```json
+{
+  "key": "Status",
+  "valueType": "string",
+  "format": "select",
+  "options": ["In Review", "Approved", "Rejected"],
+  "layout": { "position": "D16", "colspan": 1, "rowspan": 1 },
+  "props": {
+    "BACKGROUND_COLOR": {
+      "value": "#FFFFFF",
+      "expr": "IF(CURRCELL=='In Review', '#FAF3DD', IF(CURRCELL=='Approved', '#EEF3ED', IF(CURRCELL=='Rejected', '#FAECEC', '#FFFFFF')))"
+    }
+  }
+}
+```
+
+`expr` is an ordinary AnyDB formula evaluated per record — the same language as
+`formula`, and the only way to make a cell's appearance or behaviour depend on
+data. `value` is the static fallback shown until the expression first evaluates.
+Supply `value` alone for a fixed setting, `expr` alone when it is always
+computed, or both.
+
+**`CURRCELL` inside a property expression is the cell's own value.** That is what
+makes status colouring and per-cell validation possible without naming the field
+from inside itself.
+
+Commonly useful properties:
+
+| Property | Purpose |
+| --- | --- |
+| `BACKGROUND_COLOR`, `TEXT_COLOR` | Colour, usually driven by `expr` |
+| `TEXT_BOLD`, `TEXT_ITALIC`, `TEXT_ALIGN`, `TEXT_SIZE` | Emphasis and alignment |
+| `CELL_HIDDEN`, `FORM_HIDDEN`, `KEY_HIDDEN` | Visibility; `FORM_HIDDEN` hides a field on the submission form while keeping it on the record |
+| `CELL_DISPLAY_AS` | Render a field as another format, e.g. `select` versus `general`, chosen by `expr` |
+| `CELL_ERROR` | Validation. Return `false` when valid, or the message to show when not |
+| `DATE_DISPLAY`, `DATETIME_DISPLAY`, `CHECKBOX_DISPLAY`, `SELECT_DISPLAY` | Format-specific presentation |
+| `X_SIZE` | Column width in pixels |
+| `AI_PROMPT` | The prompt for an `ai` field, e.g. `"Summarise the file attached in {{My Doc}}"` |
+| `BUTTON_ACTION_TYPE`, `BUTTON_ACTION_VALUE` | Wire a `button` field to an automation by name |
+
+An `ai` field needs `AI_PROMPT`, and a `button` field needs the two
+`BUTTON_ACTION_*` properties; neither format works without them.
+
+Three rules the server enforces:
+
+- **Do not set a property a named field owns.** `CELL_DESCRIPTION`,
+  `HEADING_LABEL`, `CELL_LOCKED`, `CELL_REQUIRED`, `SELECT_OPTIONS`, and
+  `ATTACHMENTS_TEMPLATE_NAME` belong to `description`, `headingLabel`, `locked`,
+  `required`, `options`, and `targetType`. Sending them in `props` is rejected
+  and names the field to use instead.
+- **Some properties are not available.** `SCRIPT_SOURCE`,
+  `ATTACHMENTS_TEMPLATE_ID`, `ATTACHMENTS_PARENT`, `VALUE_OVERRIDE`,
+  `CELL_HIDDEN_ACCESS`, and `CELL_LOCKED_ACCESS` stay editor-only — they are
+  unreachable by any authorable format, address records by raw id where a name
+  is the supported path, or bind per-role permissions.
+- **An unknown property name is rejected**, so a typo fails validation rather
+  than being silently ignored. Run `validateOnly` first when unsure.
+
+On `anydb_update_type`, `props` replaces the whole map for that field. Omit it to
+leave existing properties untouched; to change one property, read the field with
+`anydb_get_type_definition` and resend the full map with your edit applied.
 
 ### Canonical Type Layout
 

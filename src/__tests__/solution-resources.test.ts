@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { readFileSync } from "node:fs";
 
 import {
   ANYDB_SETUP_GUIDE_URI,
@@ -489,5 +490,89 @@ describe("solution resources", () => {
     expect(() => readSolutionResource("anydb://unknown")).toThrow(
       "Unknown AnyDB resource",
     );
+  });
+});
+
+describe("cell properties and conditional formatting", () => {
+  const schema = JSON.parse(
+    readFileSync(
+      new URL("../../resources/solution-authoring-v1.schema.json", import.meta.url),
+      "utf8",
+    ),
+  ) as any;
+  const guide = readFileSync(
+    new URL("../../resources/solution-building-v1.md", import.meta.url),
+    "utf8",
+  );
+
+  it("lets a field carry props on create and update", () => {
+    for (const def of ["field", "fieldUpdate"]) {
+      expect(schema.$defs[def].properties.props).toBeDefined();
+      expect(schema.$defs[def].properties.props.additionalProperties.$ref).toBe(
+        "#/$defs/cellProp",
+      );
+    }
+  });
+
+  it("requires a prop to carry a value, an expr, or both", () => {
+    const prop = schema.$defs.cellProp;
+    expect(prop.minProperties).toBe(1);
+    expect(prop.additionalProperties).toBe(false);
+    expect(Object.keys(prop.properties).sort()).toEqual(["expr", "value"]);
+  });
+
+  it("tells clients which properties the named fields own", () => {
+    // Sending these through props is rejected by the server, so the schema has
+    // to say so or clients will discover it as a 400.
+    for (const owned of [
+      "CELL_DESCRIPTION",
+      "HEADING_LABEL",
+      "CELL_LOCKED",
+      "CELL_REQUIRED",
+      "SELECT_OPTIONS",
+      "ATTACHMENTS_TEMPLATE_NAME",
+    ]) {
+      expect(schema.$defs.field.properties.props.description).toContain(owned);
+    }
+  });
+
+  it("tells clients which properties are unavailable", () => {
+    for (const restricted of [
+      "SCRIPT_SOURCE",
+      "VALUE_OVERRIDE",
+      "CELL_LOCKED_ACCESS",
+    ]) {
+      expect(schema.$defs.field.properties.props.description).toContain(
+        restricted,
+      );
+    }
+  });
+
+  it("documents the properties that authorable formats require", () => {
+    // `ai` and `button` are offered as formats, so a client must be told how
+    // to make them work rather than discovering the props are refused.
+    const desc = schema.$defs.field.properties.props.description;
+    expect(desc).toContain("AI_PROMPT");
+    expect(desc).toContain("BUTTON_ACTION_TYPE");
+    expect(guide).toContain("AI_PROMPT");
+    expect(guide).toContain("BUTTON_ACTION_VALUE");
+  });
+
+  it("documents CURRCELL, which is what makes per-cell conditions work", () => {
+    expect(schema.$defs.cellProp.description).toContain("CURRCELL");
+    expect(guide).toContain("CURRCELL");
+  });
+
+  it("documents that props replaces the whole map on update", () => {
+    expect(guide).toContain("replaces the whole map");
+    expect(schema.$defs.field.properties.props.description).toContain(
+      "replaces the whole map",
+    );
+  });
+
+  it("no longer tells clients to avoid props", () => {
+    // The guide previously said to use semantic properties "instead of raw
+    // internal props", which is now the opposite of the supported path.
+    expect(guide).not.toContain("instead of raw internal `props`");
   });
 });
