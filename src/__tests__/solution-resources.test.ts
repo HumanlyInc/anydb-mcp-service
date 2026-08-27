@@ -584,6 +584,25 @@ describe("cell properties and conditional formatting", () => {
     expect(guide).toContain("SEQNUM");
   });
 
+  it("documents the comparison and logic operators", () => {
+    // A client wrote IF(CURRCELL='High', ...) and every record took the first
+    // branch. Equality was documented only for the separate findRecords
+    // condition language, so there was no signal for the formula language.
+    expect(guide).toContain("### Operators");
+    expect(guide).toContain("`=` is not equality");
+    expect(guide).toContain("`!` is factorial");
+  });
+
+  it("shows equality against a string literal", () => {
+    // Every formula example was truthiness or arithmetic, so there was no
+    // correct pattern to copy.
+    expect(guide).toContain("CURRCELL == 'High'");
+  });
+
+  it("keeps the formula and condition languages distinct", () => {
+    expect(guide).toContain("separate, smaller** language");
+  });
+
   it("points clients at the live function reference", () => {
     // The guide cannot stay current with 84-odd functions, so it must send
     // clients somewhere that is, rather than inviting them to guess.
