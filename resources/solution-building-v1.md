@@ -376,6 +376,25 @@ Example private record share:
 
 ## Formulas
 
+One formula language drives four different things, so the same syntax applies
+whether you are computing a value or colouring a cell:
+
+- **Cell values** — a field's `formula`
+- **Cell properties** — the `expr` on a property, such as `BACKGROUND_COLOR` or
+  `CELL_HIDDEN`; see Cell Properties above
+- **Cell validation** — the `expr` on `CELL_ERROR`
+- **Record names** — a type's `titleFormula`
+
+**The authoritative, current function reference is
+<https://www.anydb.com/support/reference/formulas/>.** Consult it when you need a
+function this guide does not name, or to confirm a signature — it lists every
+supported function with arguments and examples, and is updated as functions are
+added. Around 84 functions are available today, spanning arithmetic, text, date
+and time, logic, validation (`ISEMAIL`, `ISURL`, `ISNUMERIC`, `ISPOSTALCODE` and
+similar), aggregation (`SUM`, `COUNT`, `MAX`, `SUMIF`, `SUMBY`, `MAXBY`,
+`FILTER`, `GROUPBYSUM`), and lookup (`VLOOKUP`, `DYNREF`, `MAP`, `HTABLE`).
+Do not invent function names — check the reference instead.
+
 Most arithmetic, comparison, conditional, text, date, and aggregation formulas are spreadsheet-like. Relationship traversal uses AnyDB-specific references. Prefer stable field keys and do not invent reference syntax.
 
 Guard aggregations and other relationship-dependent expressions that may receive undefined or temporarily unavailable values with `IFERROR`. This includes `SUM`, `COUNT`, `MAX`, `FILTER`, `SUMBY`, `MAXBY`, and similar operations. Choose a fallback compatible with the formula output: normally `0` for numeric results, `[]` for arrays, and `""` for text. Guard the complete expression, including nested operations; for example, use `IFERROR(MAXBY(FILTER(...), "total"), 0)` rather than guarding only `FILTER`.
@@ -393,20 +412,22 @@ Use the reference form that matches the relationship:
 
 A cell can be named two ways, and they are not interchangeable.
 
-| Form | Example | Use it |
+| Form | Example | When to use it |
 | --- | --- | --- |
-| Field key | `{{Order Total}}` | Everywhere. This is the only form to use in ordinary formulas, in property expressions, and in workflow conditions |
-| Grid position | `A1`, `B12` | **Only as the first argument to `DYNREF`.** Nowhere else |
+| Field key | `{{Order Total}}` | Always, unless writing raw `DYNREF` |
+| Grid position | `A1`, `B12` | Only as the first argument to `DYNREF` |
 
-Field keys are stable identifiers; grid positions are presentation details that
-move whenever a layout changes, so a formula written against `B12` silently
-starts reading a different field after a field is inserted above it. Write
-`{{Unit Price}} * {{Quantity}}`, never `C4 * D4`.
+The engine accepts both forms — `A1 + B1` evaluates — but when authoring through
+this API, use field keys. Keys are stable identifiers; grid positions are
+presentation details that move whenever a layout changes, so a formula written
+against `B12` silently starts reading a different field once a row is inserted
+above it, with nothing to signal the change. Write `{{Unit Price}} * {{Quantity}}`,
+not `C4 * D4`.
 
-The one exception is `DYNREF`, whose first argument must be the grid position of
-the `ref` cell — a field key does not work there. Prefer a semantic `lookup`
-field so the server writes the `DYNREF` and resolves the position for you; reach
-for raw `DYNREF` only when a lookup field cannot express what you need.
+`DYNREF` is the exception: its first argument must be the grid position of the
+`ref` cell. Prefer a semantic `lookup` field so the server writes the `DYNREF`
+and resolves the position for you; reach for raw `DYNREF` only when a lookup
+field cannot express what you need.
 
 Two functions must stand alone and must never be wrapped by another function,
 `IFERROR` included: `DYNREF` and `SEQNUM`. Write `DYNREF(A2, {{Email}}, 'GO')`,
@@ -432,6 +453,27 @@ For linked independent records, define `lookup.fromField`, `lookup.targetField`,
 Live lookup propagation is supported: after the reference has resolved, changing the target field recomputes dependent live lookups. Snapshot lookups intentionally retain the value captured when the reference was selected. Do not assume a corrected template or lookup engine automatically backfills stale computed values stored on records created before the correction. Inspect affected records and explicitly reselect or update their reference field to trigger lookup evaluation; use a controlled migration or batch update when many records are affected.
 
 Only use a positional reference when raw `DYNREF` is unavoidable: its first argument is the grid position of the `ref` cell, not the ref field key or target record name. Never substitute a template ID or record ID into a formula reference. Create referenced types and finalize stable type names, field keys, and layouts before formulas that depend on them. Use journal children with packed object values plus `MAXBY` or `FILTER` when the parent needs current state derived from history.
+
+### When Formulas Evaluate
+
+Formulas evaluate on the server, not in the client. Writing a record runs them
+and the response carries the result: `anydb_update_record` and
+`anydb_create_record` return the record after evaluation, so computed cells,
+property expressions, and the record name in that response are already current.
+
+Do not follow a write with a read to see computed values, and do not compute
+them yourself and write them in — a cell with a `formula` is owned by the
+formula. Read the write's response instead.
+
+Two consequences worth planning for:
+
+- A formula that depends on another record's data reflects that data as of
+  evaluation. A `lookup` in `snapshot` mode is copied once when the reference is
+  selected; only `live` mode keeps tracking the source.
+- If a computed value in the response is empty or shows a message, the formula
+  did not evaluate — usually an ambiguous `{{key}}`, a reference to a field that
+  does not exist yet, or an unguarded aggregation. Fix the formula rather than
+  writing a value over it.
 
 ## Workflows
 

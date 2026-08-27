@@ -372,7 +372,7 @@ const TOOLS: Tool[] = [
   {
     name: "update_record",
     description:
-      "Update an existing AnyDB record's metadata and content. This is also the tool that changes a record's parents: meta.attach sets the record's complete parent list, so it is how you attach one record to several parents. Use move_record only for a single-parent reassignment.",
+      "Update an existing AnyDB record's metadata and content. Formulas run on write, and the response is the record after evaluation, so computed cells, property expressions, and the record name it returns are already current - do not follow this with a read to see them, and never compute a formula-owned cell yourself and write the result in. This is also the tool that changes a record's parents: meta.attach sets the record's complete parent list, so it is how you attach one record to several parents. Use move_record only for a single-parent reassignment.",
     inputSchema: {
       type: "object",
       properties: {

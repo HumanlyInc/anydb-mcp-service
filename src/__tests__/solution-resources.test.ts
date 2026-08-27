@@ -584,6 +584,18 @@ describe("cell properties and conditional formatting", () => {
     expect(guide).toContain("SEQNUM");
   });
 
+  it("points clients at the live function reference", () => {
+    // The guide cannot stay current with 84-odd functions, so it must send
+    // clients somewhere that is, rather than inviting them to guess.
+    expect(guide).toContain("anydb.com/support/reference/formulas");
+    expect(guide).toContain("Do not invent function names");
+  });
+
+  it("sets the expectation that writes return evaluated values", () => {
+    expect(guide).toContain("When Formulas Evaluate");
+    expect(guide).toContain("return the record after evaluation");
+  });
+
   it("explains how to make a computed cell overridable", () => {
     expect(guide).toContain("VALUE_OVERRIDE_ENABLED");
   });
