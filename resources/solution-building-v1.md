@@ -136,8 +136,79 @@ Important format rules:
 - `attachments` embeds child records and requires the child `targetType`. Give it enough space, normally full width and 6-7 rows high.
 - `select` and `multi-select` require stable `options`.
 - Computed fields use `formula` and should normally be `locked`.
-- Use `description`, `required`, and format-specific semantic properties instead of raw internal `props`.
+- Prefer the named fields — `description`, `headingLabel`, `required`, `locked`, `options`, `targetType` — over `props`. Each owns a cell property, and setting the same property through `props` is rejected. Use `props` for presentation and behaviour the named fields do not cover; see Cell Properties below.
 - Layout positions match `^[A-Z]+[1-9][0-9]*$`; `colspan` and `rowspan` are positive integers. Occupied grid areas must not overlap.
+
+### Cell Properties and Conditional Formatting
+
+Anything about a cell that the named fields do not cover — colour, emphasis,
+alignment, visibility, display format, validation message, width — is a cell
+property, set through the field's `props` map.
+
+Each property takes `value`, `expr`, or both:
+
+```json
+{
+  "key": "Status",
+  "valueType": "string",
+  "format": "select",
+  "options": ["In Review", "Approved", "Rejected"],
+  "layout": { "position": "D16", "colspan": 1, "rowspan": 1 },
+  "props": {
+    "BACKGROUND_COLOR": {
+      "value": "#FFFFFF",
+      "expr": "IF(CURRCELL=='In Review', '#FAF3DD', IF(CURRCELL=='Approved', '#EEF3ED', IF(CURRCELL=='Rejected', '#FAECEC', '#FFFFFF')))"
+    }
+  }
+}
+```
+
+`expr` is an ordinary AnyDB formula evaluated per record — the same language as
+`formula`, and the only way to make a cell's appearance or behaviour depend on
+data. `value` is the static fallback shown until the expression first evaluates.
+Supply `value` alone for a fixed setting, `expr` alone when it is always
+computed, or both.
+
+**`CURRCELL` inside a property expression is the cell's own value.** That is what
+makes status colouring and per-cell validation possible without naming the field
+from inside itself.
+
+Commonly useful properties:
+
+| Property | Purpose |
+| --- | --- |
+| `BACKGROUND_COLOR`, `TEXT_COLOR` | Colour, usually driven by `expr` |
+| `TEXT_BOLD`, `TEXT_ITALIC`, `TEXT_ALIGN`, `TEXT_SIZE` | Emphasis and alignment |
+| `CELL_HIDDEN`, `FORM_HIDDEN`, `KEY_HIDDEN` | Visibility; `FORM_HIDDEN` hides a field on the submission form while keeping it on the record |
+| `CELL_DISPLAY_AS` | Render a field as another format, e.g. `select` versus `general`, chosen by `expr` |
+| `CELL_ERROR` | Validation. Return `false` when valid, or the message to show when not |
+| `DATE_DISPLAY`, `DATETIME_DISPLAY`, `CHECKBOX_DISPLAY`, `SELECT_DISPLAY` | Format-specific presentation |
+| `X_SIZE` | Column width in pixels |
+| `VALUE_OVERRIDE_ENABLED` | Let a person type over a computed cell. A cell with a `formula` is read-only by default; set this to `true` when the user must be able to override it |
+| `AI_PROMPT` | The prompt for an `ai` field, e.g. `"Summarise the file attached in {{My Doc}}"` |
+| `BUTTON_ACTION_TYPE`, `BUTTON_ACTION_VALUE` | Wire a `button` field to an automation by name |
+
+An `ai` field needs `AI_PROMPT`, and a `button` field needs the two
+`BUTTON_ACTION_*` properties; neither format works without them.
+
+Three rules the server enforces:
+
+- **Do not set a property a named field owns.** `CELL_DESCRIPTION`,
+  `HEADING_LABEL`, `CELL_LOCKED`, `CELL_REQUIRED`, `SELECT_OPTIONS`, and
+  `ATTACHMENTS_TEMPLATE_NAME` belong to `description`, `headingLabel`, `locked`,
+  `required`, `options`, and `targetType`. Sending them in `props` is rejected
+  and names the field to use instead.
+- **Some properties are not available.** `SCRIPT_SOURCE`,
+  `ATTACHMENTS_TEMPLATE_ID`, `ATTACHMENTS_PARENT`, `VALUE_OVERRIDE`,
+  `CELL_HIDDEN_ACCESS`, and `CELL_LOCKED_ACCESS` stay editor-only — they are
+  unreachable by any authorable format, address records by raw id where a name
+  is the supported path, or bind per-role permissions.
+- **An unknown property name is rejected**, so a typo fails validation rather
+  than being silently ignored. Run `validateOnly` first when unsure.
+
+On `anydb_update_type`, `props` replaces the whole map for that field. Omit it to
+leave existing properties untouched; to change one property, read the field with
+`anydb_get_type_definition` and resend the full map with your edit applied.
 
 ### Canonical Type Layout
 
@@ -305,18 +376,63 @@ Example private record share:
 
 ## Formulas
 
+One formula language drives four different things, so the same syntax applies
+whether you are computing a value or colouring a cell:
+
+- **Cell values** — a field's `formula`
+- **Cell properties** — the `expr` on a property, such as `BACKGROUND_COLOR` or
+  `CELL_HIDDEN`; see Cell Properties above
+- **Cell validation** — the `expr` on `CELL_ERROR`
+- **Record names** — a type's `titleFormula`
+
+**The authoritative, current function reference is
+<https://www.anydb.com/support/reference/formulas/>.** Consult it when you need a
+function this guide does not name, or to confirm a signature — it lists every
+supported function with arguments and examples, and is updated as functions are
+added. Around 84 functions are available today, spanning arithmetic, text, date
+and time, logic, validation (`ISEMAIL`, `ISURL`, `ISNUMERIC`, `ISPOSTALCODE` and
+similar), aggregation (`SUM`, `COUNT`, `MAX`, `SUMIF`, `SUMBY`, `MAXBY`,
+`FILTER`, `GROUPBYSUM`), and lookup (`VLOOKUP`, `DYNREF`, `MAP`, `HTABLE`).
+Do not invent function names — check the reference instead.
+
 Most arithmetic, comparison, conditional, text, date, and aggregation formulas are spreadsheet-like. Relationship traversal uses AnyDB-specific references. Prefer stable field keys and do not invent reference syntax.
 
 Guard aggregations and other relationship-dependent expressions that may receive undefined or temporarily unavailable values with `IFERROR`. This includes `SUM`, `COUNT`, `MAX`, `FILTER`, `SUMBY`, `MAXBY`, and similar operations. Choose a fallback compatible with the formula output: normally `0` for numeric results, `[]` for arrays, and `""` for text. Guard the complete expression, including nested operations; for example, use `IFERROR(MAXBY(FILTER(...), "total"), 0)` rather than guarding only `FILTER`.
 
 Use the reference form that matches the relationship:
 
-- Current-record field: `{{Field Key}}`, for example `{{Quantity}} * {{Unit Price}}`.
+- Current-record field: `{{Field Key}}`, for example `{{Quantity}} * {{Unit Price}}`. Use the field's stable `key`, spelled exactly as defined, and make sure it resolves to exactly one field — a key that matches two fields is ambiguous and will not evaluate.
 - Current-record metadata: `M@NAME`, `M@STATUS`, `M@CREATED`, `M@UPDATED`, `M@CREATEDBY`, or `M@UPDATEDBY`.
 - All child values regardless of type: `C@CURRREC!{{Amount}}`.
 - Child values for one stable type name: `C@CURRREC!N@Invoice!{{Amount}}`.
 - Parent values: `A@CURRREC!{{Budget}}`.
 - Independent record selected by a `ref` field: use a semantic `lookup` field; the server compiles it to `DYNREF(<ref cell position>, {{Target Field}})`.
+
+### Referring to a Cell: Key or Position
+
+A cell can be named two ways, and they are not interchangeable.
+
+| Form | Example | When to use it |
+| --- | --- | --- |
+| Field key | `{{Order Total}}` | Always, unless writing raw `DYNREF` |
+| Grid position | `A1`, `B12` | Only as the first argument to `DYNREF` |
+
+The engine accepts both forms — `A1 + B1` evaluates — but when authoring through
+this API, use field keys. Keys are stable identifiers; grid positions are
+presentation details that move whenever a layout changes, so a formula written
+against `B12` silently starts reading a different field once a row is inserted
+above it, with nothing to signal the change. Write `{{Unit Price}} * {{Quantity}}`,
+not `C4 * D4`.
+
+`DYNREF` is the exception: its first argument must be the grid position of the
+`ref` cell. Prefer a semantic `lookup` field so the server writes the `DYNREF`
+and resolves the position for you; reach for raw `DYNREF` only when a lookup
+field cannot express what you need.
+
+Two functions must stand alone and must never be wrapped by another function,
+`IFERROR` included: `DYNREF` and `SEQNUM`. Write `DYNREF(A2, {{Email}}, 'GO')`,
+not `IFERROR(DYNREF(A2, {{Email}}, 'GO'), "")`. The `IFERROR` guidance above
+applies to aggregations, not to these two.
 
 Connected child and parent references return arrays. Pass child arrays to aggregations such as `SUM`, `COUNT`, `MAX`, `FILTER`, `SUMBY`, or `MAXBY`. When exactly one parent or child value is intended, select it explicitly with zero-based `[0]`, for example `A@CURRREC!{{Budget}}[0]`. Do not use `[0]` when all connected values must participate.
 
@@ -337,6 +453,27 @@ For linked independent records, define `lookup.fromField`, `lookup.targetField`,
 Live lookup propagation is supported: after the reference has resolved, changing the target field recomputes dependent live lookups. Snapshot lookups intentionally retain the value captured when the reference was selected. Do not assume a corrected template or lookup engine automatically backfills stale computed values stored on records created before the correction. Inspect affected records and explicitly reselect or update their reference field to trigger lookup evaluation; use a controlled migration or batch update when many records are affected.
 
 Only use a positional reference when raw `DYNREF` is unavoidable: its first argument is the grid position of the `ref` cell, not the ref field key or target record name. Never substitute a template ID or record ID into a formula reference. Create referenced types and finalize stable type names, field keys, and layouts before formulas that depend on them. Use journal children with packed object values plus `MAXBY` or `FILTER` when the parent needs current state derived from history.
+
+### When Formulas Evaluate
+
+Formulas evaluate on the server, not in the client. Writing a record runs them
+and the response carries the result: `anydb_update_record` and
+`anydb_create_record` return the record after evaluation, so computed cells,
+property expressions, and the record name in that response are already current.
+
+Do not follow a write with a read to see computed values, and do not compute
+them yourself and write them in — a cell with a `formula` is owned by the
+formula. Read the write's response instead.
+
+Two consequences worth planning for:
+
+- A formula that depends on another record's data reflects that data as of
+  evaluation. A `lookup` in `snapshot` mode is copied once when the reference is
+  selected; only `live` mode keeps tracking the source.
+- If a computed value in the response is empty or shows a message, the formula
+  did not evaluate — usually an ambiguous `{{key}}`, a reference to a field that
+  does not exist yet, or an unguarded aggregation. Fix the formula rather than
+  writing a value over it.
 
 ## Workflows
 
