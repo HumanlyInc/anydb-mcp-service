@@ -877,9 +877,13 @@ export function createMcpServer({
         return callSetupTool(name);
       }
 
-      if (!apiKey || !userEmail) {
+      // An OAuth bearer is a complete credential on its own. Requiring the
+      // API-key pair regardless meant an authenticated OAuth session was told
+      // to go configure ANYDB_DEFAULT_API_KEY — advice that cannot apply to a
+      // hosted client, which has no environment to set it in.
+      if (!accessToken && (!apiKey || !userEmail)) {
         throw new Error(
-          "AnyDB credentials are not configured. Call anydb_get_setup_guide, then set ANYDB_DEFAULT_API_KEY and ANYDB_DEFAULT_USER_EMAIL in the MCP client environment and restart the client.",
+          "AnyDB credentials are not configured. Call anydb_get_setup_guide, then either connect this client over OAuth or set ANYDB_DEFAULT_API_KEY and ANYDB_DEFAULT_USER_EMAIL in the MCP client environment and restart the client.",
         );
       }
 
@@ -1183,9 +1187,7 @@ export function createMcpServer({
             attachto: args?.attachto as string | undefined,
             attachmentsmode:
               (args?.attachmentsmode as
-                | "noattachments"
-                | "link"
-                | "duplicate") || "link",
+                "noattachments" | "link" | "duplicate") || "link",
           };
           const result = await extApiClient.copyRecord(params);
           return {
