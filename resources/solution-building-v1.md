@@ -393,7 +393,15 @@ whether you are computing a value or colouring a cell:
 <https://www.anydb.com/support/reference/formulas/>.** Consult it when you need a
 function this guide does not name, or to confirm a signature — it lists every
 supported function with arguments and examples, and is updated as functions are
-added. Around 84 functions are available today, spanning arithmetic, text, date
+added.
+
+Each function also has its own page at
+`https://www.anydb.com/support/reference/formulas/functions/<function_name>`,
+lowercased — for example
+<https://www.anydb.com/support/reference/formulas/functions/dynref> or
+`.../functions/sumif`. Fetch that page for exact arguments, return type, and a
+worked example before using a function you are unsure of, rather than inferring
+a signature from its name. Around 84 functions are available today, spanning arithmetic, text, date
 and time, logic, validation (`ISEMAIL`, `ISURL`, `ISNUMERIC`, `ISPOSTALCODE` and
 similar), aggregation (`SUM`, `COUNT`, `MAX`, `SUMIF`, `SUMBY`, `MAXBY`,
 `FILTER`, `GROUPBYSUM`), and lookup (`VLOOKUP`, `DYNREF`, `MAP`, `HTABLE`).

@@ -608,6 +608,9 @@ describe("cell properties and conditional formatting", () => {
     // clients somewhere that is, rather than inviting them to guess.
     expect(guide).toContain("anydb.com/support/reference/formulas");
     expect(guide).toContain("Do not invent function names");
+    // Per-function pages, so a client can look up one signature directly
+    // instead of fetching and scanning the index.
+    expect(guide).toContain("formulas/functions/<function_name>");
   });
 
   it("sets the expectation that writes return evaluated values", () => {
