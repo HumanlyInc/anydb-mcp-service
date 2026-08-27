@@ -13,9 +13,9 @@ See [`oauth2-plan.md`](./oauth2-plan.md) for the delivery plan this supports.
 | Name | Value |
 | --- | --- |
 | Resource (audience) | `https://mcp.anydb.com` |
-| Authorization Server issuer | `https://app.anydb.com` |
-| AS metadata | `https://app.anydb.com/.well-known/oauth-authorization-server` |
-| JWKS | `https://app.anydb.com/.well-known/jwks.json` |
+| Authorization Server issuer | `https://app.anydb.com/oauth` |
+| AS metadata | `https://app.anydb.com/oauth/.well-known/oauth-authorization-server` (also served at the RFC 8414 path `/.well-known/oauth-authorization-server/oauth`) |
+| JWKS | `https://app.anydb.com/oauth/jwks` |
 | RS metadata | `https://mcp.anydb.com/.well-known/oauth-protected-resource` |
 
 All are configurable in the MCP service via environment variables (§6) so that
@@ -98,7 +98,7 @@ Must advertise at minimum:
   "token_endpoint": "https://app.anydb.com/oauth/token",
   "registration_endpoint": "https://app.anydb.com/oauth/register",
   "revocation_endpoint": "https://app.anydb.com/oauth/revoke",
-  "jwks_uri": "https://app.anydb.com/.well-known/jwks.json",
+  "jwks_uri": "https://app.anydb.com/oauth/jwks",
   "scopes_supported": ["mcp:read", "mcp:write", "mcp:author"],
   "response_types_supported": ["code"],
   "grant_types_supported": ["authorization_code", "refresh_token"],
@@ -157,7 +157,7 @@ path is not scope-checked — it keeps today's full-access semantics.
 | `MCP_HTTP_HOST` | `127.0.0.1` | Bind address. Set `0.0.0.0` only behind a TLS-terminating proxy |
 | `MCP_RESOURCE_URI` | `https://mcp.anydb.com` | Canonical resource identifier; the expected `aud` |
 | `MCP_OAUTH_ISSUER` | `https://app.anydb.com` | Expected `iss`; base for AS metadata |
-| `MCP_OAUTH_JWKS_URI` | `<issuer>/.well-known/jwks.json` | Verification keys |
+| `MCP_OAUTH_JWKS_URI` | `<issuer>/jwks` | Verification keys. The AS publishes here, not at the RFC 8414 `.well-known/jwks.json` path |
 | `MCP_ALLOWED_ORIGINS` | *(unset — no CORS)* | Comma-separated browser origin allowlist |
 | `MCP_OAUTH_ENABLED` | `true` when a JWKS URI resolves | Set `false` to run API-key-only |
 

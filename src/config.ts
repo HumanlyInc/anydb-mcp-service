@@ -66,8 +66,12 @@ export const config = {
       process.env.MCP_RESOURCE_URI || "https://mcp.anydb.com"
     ).replace(/\/$/, ""),
     issuer: oauthIssuer,
-    jwksUri:
-      process.env.MCP_OAUTH_JWKS_URI || `${oauthIssuer}/.well-known/jwks.json`,
+    // The AnyDB authorization server publishes its keys at <issuer>/jwks, which
+    // is what its own discovery document advertises. The RFC 8414 convention of
+    // <issuer>/.well-known/jwks.json is a different path and 404s here — and a
+    // 404 means every bearer token fails verification, so this default matters.
+    // Override when pointing at an authorization server that differs.
+    jwksUri: process.env.MCP_OAUTH_JWKS_URI || `${oauthIssuer}/jwks`,
     // Bearer auth is on unless explicitly disabled.
     enabled: process.env.MCP_OAUTH_ENABLED !== "false",
     resourceDocumentation:
