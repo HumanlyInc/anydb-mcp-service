@@ -805,16 +805,21 @@ const TOOLS: Tool[] = [
 export function createMcpServer({
   apiKey,
   userEmail,
+  accessToken,
   baseURL,
 }: {
-  apiKey: string;
-  userEmail: string;
+  /** Legacy API-key auth. Ignored when accessToken is present. */
+  apiKey?: string;
+  userEmail?: string;
+  /** OAuth 2.1 bearer token, forwarded verbatim to the ext API. */
+  accessToken?: string;
   baseURL?: string;
 }) {
   const extApiClient = new ExtApiClient({
     apiKey,
     userEmail,
-    baseURL: config.anydbApiBaseUrl,
+    accessToken,
+    baseURL: baseURL || config.anydbApiBaseUrl,
   });
 
   // Create MCP server

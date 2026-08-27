@@ -58,6 +58,58 @@ describe("ExtApiClient", () => {
     },
   };
 
+  async function captureAuthHeaders(
+    config: ConstructorParameters<typeof ExtApiClient>[0] extends infer T
+      ? Omit<T & object, "baseURL">
+      : never,
+  ): Promise<Record<string, string | string[] | undefined>> {
+    let received: Record<string, string | string[] | undefined> = {};
+    const baseURL = await listen((incoming, response) => {
+      received = incoming.headers;
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ status: "success", data: {} }));
+    });
+    const client = new ExtApiClient({ ...config, baseURL });
+    await client
+      .semanticSearch({
+        teamid: "507f1f77bcf86cd799439011",
+        adbid: "507f1f77bcf86cd799439012",
+        query: "probe",
+      })
+      .catch(() => undefined);
+    return received;
+  }
+
+  it("sends API-key headers when only an API key is configured", async () => {
+    const headers = await captureAuthHeaders({
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+
+    expect(headers["x-anydb-api-key"]).toBe("test-key");
+    expect(headers["x-anydb-email"]).toBe("user@example.com");
+    expect(headers.authorization).toBeUndefined();
+  });
+
+  it("sends a bearer token when an access token is configured", async () => {
+    const headers = await captureAuthHeaders({ accessToken: "tok-abc" });
+
+    expect(headers.authorization).toBe("Bearer tok-abc");
+    expect(headers["x-anydb-api-key"]).toBeUndefined();
+  });
+
+  it("prefers the bearer token so an OAuth session never falls back to an API key", async () => {
+    const headers = await captureAuthHeaders({
+      accessToken: "tok-abc",
+      apiKey: "test-key",
+      userEmail: "user@example.com",
+    });
+
+    expect(headers.authorization).toBe("Bearer tok-abc");
+    expect(headers["x-anydb-api-key"]).toBeUndefined();
+    expect(headers["x-anydb-email"]).toBeUndefined();
+  });
+
   it("posts semantic search directly to the external controller route", async () => {
     let receivedBody: unknown;
     let receivedMethod = "";
