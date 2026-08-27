@@ -84,6 +84,7 @@ These forms work:
 | A single field                         | `{{Name}}`                                                        | `Widget`          |
 | `CONCAT` over fields and literals      | `CONCAT({{Name}}, ' (', {{Status}}, ')')`                         | `Widget (Active)` |
 | `CONCAT` with a guard for empty fields | `CONCAT({{Name}}, ' (', IF({{Status}}, {{Status}}, 'None'), ')')` | `Widget (Active)` |
+| Equality against a literal — note `==`  | `CONCAT({{Name}}, IF({{Priority}} == 'High', ' !', ''))`          | `Widget !`        |
 | A quoted literal                       | `'Static Title'`                                                  | `Static Title`    |
 | A number, which is stringified         | `{{Count}}`                                                       | `7`               |
 | Arithmetic                             | `{{Count}} * 2`                                                   | `14`              |
@@ -100,6 +101,7 @@ These produce no name at all:
 | A syntax error such as unbalanced parentheses         | `CONCAT({{Name}}, ' ('`             |
 
 - Join text with `CONCAT`. It is the only supported way to combine values into a title; neither `+` nor `&` concatenates strings, and neither reports an error.
+- Compare with `==`, never `=`. A single `=` is an assignment that evaluates truthy, so the condition is always true and no error is reported. See Operators under Formulas.
 - Reference only field keys that exist on the type, using their exact casing. One unknown key discards the whole title, so re-check the formula whenever a field it reads is renamed or removed.
 - Guard fields that may be empty with `IF`, as above, so a partly filled record still gets a usable title.
 - Verify a new or changed formula by creating one record and reading its `meta.name` back. Because failure is silent, that read is the only confirmation that the formula evaluates.
@@ -171,7 +173,9 @@ computed, or both.
 
 **`CURRCELL` inside a property expression is the cell's own value.** That is what
 makes status colouring and per-cell validation possible without naming the field
-from inside itself.
+from inside itself. Compare it with `==`, never `=` — see Operators under
+Formulas, since `=` produces a formula that silently takes the same branch for
+every record.
 
 Commonly useful properties:
 
@@ -389,7 +393,15 @@ whether you are computing a value or colouring a cell:
 <https://www.anydb.com/support/reference/formulas/>.** Consult it when you need a
 function this guide does not name, or to confirm a signature — it lists every
 supported function with arguments and examples, and is updated as functions are
-added. Around 84 functions are available today, spanning arithmetic, text, date
+added.
+
+Each function also has its own page at
+`https://www.anydb.com/support/reference/formulas/functions/<function_name>`,
+lowercased — for example
+<https://www.anydb.com/support/reference/formulas/functions/dynref> or
+`.../functions/sumif`. Fetch that page for exact arguments, return type, and a
+worked example before using a function you are unsure of, rather than inferring
+a signature from its name. Around 84 functions are available today, spanning arithmetic, text, date
 and time, logic, validation (`ISEMAIL`, `ISURL`, `ISNUMERIC`, `ISPOSTALCODE` and
 similar), aggregation (`SUM`, `COUNT`, `MAX`, `SUMIF`, `SUMBY`, `MAXBY`,
 `FILTER`, `GROUPBYSUM`), and lookup (`VLOOKUP`, `DYNREF`, `MAP`, `HTABLE`).
@@ -407,6 +419,48 @@ Use the reference form that matches the relationship:
 - Child values for one stable type name: `C@CURRREC!N@Invoice!{{Amount}}`.
 - Parent values: `A@CURRREC!{{Budget}}`.
 - Independent record selected by a `ref` field: use a semantic `lookup` field; the server compiles it to `DYNREF(<ref cell position>, {{Target Field}})`.
+
+### Operators
+
+Comparison and logic do not follow spreadsheet or JavaScript convention. Getting
+these wrong usually fails **silently** — the formula evaluates, just not to what
+was intended.
+
+| Purpose | Use | Not |
+| --- | --- | --- |
+| Equal | `==` | `=` |
+| Not equal | `!=` | `<>` |
+| And / Or / Not | `and`, `or`, `not` | `&&`, `\|\|`, `!` |
+| Compare | `>`, `<`, `>=`, `<=` | |
+| Either-or value | `IF(cond, a, b)` or `cond ? a : b` | |
+| Arithmetic | `+`, `-`, `*`, `/`, `^`, `()` | |
+| Array index, 0-based | `{{Items}}[0]` | |
+| Object property | `{{School}}.name` | |
+
+Two mistakes to avoid, both of which produce a working-looking formula:
+
+- **`=` is not equality.** It is an assignment, and it evaluates to the value on
+  its right — which is truthy — so `IF(CURRCELL = 'High', 'red', 'green')`
+  returns `red` for *every* record, whatever the cell contains. Nothing errors.
+  This is the single most common formula mistake; write `==`.
+- **`!` is factorial, not negation.** Use `not`, as in `not {{Archived}}`.
+  Writing `!{{Archived}}` does something else entirely.
+
+Comparing against a string literal is the ordinary case, including for `select`
+fields, whose value is the option string:
+
+```text
+IF(CURRCELL == 'High', '#FF0000', IF(CURRCELL == 'Medium', '#FFA500', '#00FF00'))
+IF({{Status}} == 'Approved' and {{Amount}} > 1000, 'Review', 'Auto')
+IF(not {{Archived}} or {{Owner}} == M@CREATEDBY, 'Visible', 'Hidden')
+```
+
+Quotes may be single or double, and both `{{Field Key}}` and `CURRCELL` hold the
+plain value, so they compare against literals directly.
+
+Script actions and `findRecords` conditions are a **separate, smaller** language
+described under Script Actions. They share `==` and `!=`, but do not assume
+anything else carries across in either direction.
 
 ### Referring to a Cell: Key or Position
 
