@@ -13,6 +13,177 @@ can deploy the code first and verify it changed nothing.
 
 ---
 
+## Phase L — Run it locally first
+
+Verified on this dev machine on 2026-08-27. Do this before touching production —
+it exercises the same code paths in about ten minutes.
+
+### L1. Prerequisites
+
+```bash
+cd anydb-server
+docker compose up -d          # mongo, redis, dynamodb-local, nats, opensearch
+docker ps | grep dynamodb     # must be running AND healthy
+```
+
+> If DynamoDB has been up a long time, check `docker logs dynamodb-local | tail`.
+> A `SQLiteException: unable to open database file` loop means it is wedged and
+> every request will hang; `docker restart dynamodb-local` fixes it without data
+> loss. This had happened on this machine.
+
+### L2. Branches
+
+| Repo | Branch |
+| --- | --- |
+| `anydb-server` | `feat/ext-bearer-scopes-phase-3` |
+| `anydb-mcp-service` | `feat/mcp-http-oauth-phase-0-1` |
+
+### L3. Configure and start the API
+
+Add to `anydb-server/.env` and use your normal workflow — no inline variables
+needed. `Settings` loads `.env` on boot.
+
+```bash
+OAUTH_AS_ENABLED=true
+OAUTH_ISSUER_URL=http://localhost:3000     # must match PORT in the same file
+OAUTH_MCP_RESOURCE=http://localhost:3001
+```
+
+```bash
+cd anydb-server
+npm run dev                # terminal 1
+npm run dev:worker         # terminal 2, as usual
+```
+
+⚠️ **`OAUTH_ISSUER_URL` is what makes local work.** The issuer defaults to
+`APP_URL`, which points at the UI dev server (4000), not the API. Without the
+override every token fails with "unexpected iss". Set it to whatever port
+`npm run dev` actually listens on.
+
+**Workers need nothing.** `src/worker.ts` never calls `loadRoutes`, so it does
+not mount the authorization server; the variables are simply unused there.
+
+`OAUTH_JWKS` stays unset locally — the library generates development keys and
+says so loudly. Fine here, refused in production.
+
+> `OAUTH_AS_ENABLED=true` in `.env` leaves the authorization server on for all
+> your local work. Harmless, but persistent — set it back to `false` if you would
+> rather opt in per session.
+
+Check it came up:
+
+```bash
+curl -s http://localhost:3000/oauth/.well-known/oauth-authorization-server | jq \
+  '{issuer, jwks_uri, registration_endpoint, code_challenge_methods_supported, grant_types_supported}'
+```
+
+Expect `issuer: http://localhost:3000/oauth`, PKCE `["S256"]`, and grants
+without `implicit`.
+
+### L4. Configure and start the MCP service
+
+`anydb-mcp-service` already has a `.env` and loads it. Add:
+
+```bash
+MCP_HTTP_PORT=3001
+MCP_HTTP_HOST=127.0.0.1
+MCP_RESOURCE_URI=http://localhost:3001
+MCP_OAUTH_ISSUER=http://localhost:3000/oauth   # server port, plus /oauth
+MCP_OAUTH_ENABLED=true
+ANYDB_API_URL=http://localhost:3000/api
+```
+
+```bash
+cd anydb-mcp-service
+npm run start:http         # = npm run build && node dist/http.js
+```
+
+There is no watch mode for the HTTP transport — `npm run dev` there is only
+`tsc --watch`. For reload-on-change, run `tsc --watch` in one terminal and
+re-run `node dist/http.js` as needed.
+
+**Three values must agree across the two files.** This is where local setups
+usually break:
+
+| | `anydb-server/.env` | `anydb-mcp-service/.env` |
+| --- | --- | --- |
+| Issuer | `OAUTH_ISSUER_URL=http://localhost:3000` | `MCP_OAUTH_ISSUER=http://localhost:3000/oauth` |
+| Audience | `OAUTH_MCP_RESOURCE=http://localhost:3001` | `MCP_RESOURCE_URI=http://localhost:3001` |
+
+Note the **`/oauth` suffix on the MCP side only** — there the issuer is the
+mount path, while on the server side it is the base URL. Any mismatch fails
+tokens with "unexpected iss" or an audience error.
+
+Expect on startup:
+
+```
+AnyDB MCP HTTP transport 2.1.0 listening on http://127.0.0.1:3001
+  auth: bearer (aud http://localhost:3001) + API key
+```
+
+Then:
+
+```bash
+curl -s http://127.0.0.1:3001/health
+curl -s http://127.0.0.1:3001/.well-known/oauth-protected-resource | jq
+curl -s -i -X POST http://127.0.0.1:3001/ -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | grep -i 'HTTP/\|www-authenticate'
+```
+
+`authorization_servers` must read `["http://localhost:3000/oauth"]`, and the
+last call must return 401 with a `WWW-Authenticate` header.
+
+### L5. Register a client and start the flow
+
+```bash
+curl -s -X POST http://localhost:3000/oauth/reg \
+  -H 'Content-Type: application/json' \
+  -d '{"client_name":"Local Test","redirect_uris":["https://example.com/callback"],
+       "grant_types":["authorization_code","refresh_token"],"response_types":["code"],
+       "token_endpoint_auth_method":"none"}' | jq -r .client_id
+```
+
+Generate a PKCE pair:
+
+```bash
+V=$(openssl rand -base64 32 | tr -d '=+/' | cut -c1-43)
+C=$(printf %s "$V" | openssl dgst -binary -sha256 | openssl base64 | tr '+/' '-_' | tr -d '=')
+echo "verifier=$V"; echo "challenge=$C"
+```
+
+Open in a browser, substituting `CLIENT_ID` and `$C`:
+
+```
+http://localhost:3000/oauth/auth?client_id=CLIENT_ID&response_type=code&redirect_uri=https%3A%2F%2Fexample.com%2Fcallback&scope=openid%20mcp%3Aread&resource=http%3A%2F%2Flocalhost%3A3001&code_challenge=CHALLENGE&code_challenge_method=S256
+```
+
+You should get the **AnyDB sign-in page** (verified rendering locally), then a
+consent screen, then a redirect to `example.com` carrying `?code=…`. The page
+will not load — copy the `code` out of the URL bar.
+
+Sign in with any account that exists in your local database.
+
+### L6. Finish the flow
+
+```bash
+curl -s -X POST http://localhost:3000/oauth/token \
+  -d grant_type=authorization_code -d code=THE_CODE \
+  -d redirect_uri=https://example.com/callback -d client_id=CLIENT_ID \
+  -d resource=http://localhost:3001 -d code_verifier=$V | jq
+```
+
+Then run **D4 through D7** below against the local hosts — inspect the claims,
+call the MCP server, prove `mcp:read` cannot write, and revoke.
+
+### L7. Point a real client at it (optional)
+
+Hosted connectors need a public HTTPS URL. Expose both ports with a tunnel and
+restart with the tunnel hostnames in `OAUTH_ISSUER_URL`, `OAUTH_MCP_RESOURCE`,
+`MCP_RESOURCE_URI`, and `MCP_OAUTH_ISSUER` — they must match exactly, or
+audience and issuer checks will reject the token.
+
+---
+
 ## Phase A — Prepare (before any deploy)
 
 ### A1. Merge in order
