@@ -366,7 +366,6 @@ an existing workflow's script instead of writing a new one.
 - [AnyDB MCP and Claude integration guide](https://www.anydb.com/support/integrations/mcp-claude)
 - [AnyDB documentation](https://www.anydb.com/support)
 - [AnyDB website](https://www.anydb.com)
-- [GitHub issues](https://github.com/HumanlyInc/anydb-mcp-service/issues)
 
 ## License
 
