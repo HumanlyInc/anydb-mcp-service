@@ -1,6 +1,9 @@
 # OAuth 2.1 — Production Deployment and Test Runbook
 
-**For:** first deployment of the MCP OAuth authorization server · **Date:** 2026-08-26
+**For:** first deployment of the MCP OAuth authorization server · **Updated:** 2026-08-27
+
+Every step below has been exercised against a live server; the failure table
+near the end lists what actually went wrong while doing so.
 
 Follow this in order. Every step has a check that tells you whether to continue.
 Substitute your real hosts for `app.anydb.com` and `mcp.anydb.com`.
@@ -33,10 +36,12 @@ docker ps | grep dynamodb     # must be running AND healthy
 
 ### L2. Branches
 
-| Repo | Branch |
-| --- | --- |
-| `anydb-server` | `feat/ext-bearer-scopes-phase-3` |
-| `anydb-mcp-service` | `feat/mcp-http-oauth-phase-0-1` |
+Everything is on `main` in both repos as of 2026-08-27 — the feature branches
+are no longer needed.
+
+```bash
+git checkout main && git pull   # in both repos
+```
 
 ### L3. Configure and start the API
 
@@ -186,13 +191,29 @@ audience and issuer checks will reject the token.
 
 ## Phase A — Prepare (before any deploy)
 
-### A1. Merge in order
+### A1. Confirm the code is in `main`
 
-| Order | PR | Repo |
+All of it is merged as of 2026-08-27:
+
+| Repo | PR | Status |
 | --- | --- | --- |
-| 1 | anydb-server #2072 — authorization server | `anydb-server` |
-| 2 | anydb-server #2073 — bearer + scopes (retarget to `main` after #2072) | `anydb-server` |
-| 3 | anydb-mcp-service #21 — resource server | `anydb-mcp-service` |
+| `anydb-server` | #2072 authorization server, #2073 bearer + scopes, #2075 Phase 3 and fixes | merged |
+| `anydb-server` | #2076 — OAuth screen styling | **check before deploying**; cosmetic only, safe to deploy without |
+| `anydb-mcp-service` | #21 — resource server | merged |
+
+Sanity-check the deploy commit actually contains it — two earlier merges raced
+and left Phase 3 out of `main` without anyone noticing:
+
+```bash
+# in anydb-server, against the commit you are deploying
+test -f src/modules/integrations/ext/ext.auth.ts && echo "Phase 3 present"
+test -f scripts/generate-oauth-jwks.cjs && echo "key generator present"
+```
+
+⚠️ **`anydb-mcp-service` must be deployed from source, not from npm.** The
+published `2.2.0` predates this work and contains no OAuth files at all —
+`npx anydb-mcp-service` would silently give you a build with no bearer support.
+A release is pending.
 
 ### A2. Generate the signing key
 
@@ -222,6 +243,11 @@ OAUTH_JWKS=<from A2>
 OAUTH_DB_IMPL=DYNAMO            # must match the rest of the deployment
 OAUTH_ACCESS_TOKEN_TTL=3600
 OAUTH_REFRESH_TOKEN_TTL=2592000
+
+# Only when the API is not reached at APP_URL — for example a test
+# environment where the SPA and the API sit on different hostnames.
+# Defaults to APP_URL, which is correct when one host serves both.
+# OAUTH_ISSUER_URL=https://app.anydb.com
 ```
 
 **anydb-mcp-service:**
@@ -235,7 +261,16 @@ MCP_OAUTH_ENABLED=true
 ```
 
 ⚠️ **`MCP_OAUTH_ISSUER` includes `/oauth`.** The issuer is the mount path, not
-the bare host. A mismatch fails every token with "unexpected iss".
+the bare host. A mismatch fails every token with "unexpected iss". It must
+equal the `issuer` in the discovery document exactly — C3 checks this.
+
+⚠️ **In a test environment, whatever you set `OAUTH_ISSUER_URL` to on the server
+must match `MCP_OAUTH_ISSUER` minus the `/oauth` suffix.** These are the two
+values most likely to disagree when hostnames differ from production.
+
+`MCP_OAUTH_JWKS_URI` is not normally needed — it defaults to `<issuer>/jwks`,
+which is where the authorization server publishes. Set it only when pointing at
+a different authorization server.
 
 ⚠️ **`OAUTH_DB_IMPL=DYNAMO` also belongs in the `ANYDB_SERVER_DYNAMODB_TEST_ENV`
 GitHub secret.** Otherwise the DynamoDB CI job tests OAuth against Mongo and
@@ -388,6 +423,10 @@ Open, replacing `CLIENT_ID`:
 https://app.anydb.com/oauth/auth?client_id=CLIENT_ID&response_type=code&redirect_uri=https%3A%2F%2Fexample.com%2Fcallback&scope=openid%20mcp%3Aread&resource=https%3A%2F%2Fmcp.anydb.com&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256
 ```
 
+**Use a private/incognito window.** If you are already signed in to AnyDB, the
+sign-in step is skipped by design and you land straight on consent — which is
+correct behaviour, but means you will not see the sign-in screen.
+
 You should see, in order:
 
 1. **AnyDB sign-in** — try a **password account** and a **Google/Microsoft/Apple
@@ -506,6 +545,31 @@ Each connector should appear under connected apps, and revoking one there must
 stop it working.
 
 ---
+
+## If something fails
+
+Symptoms seen during development, and what each one means.
+
+| Symptom | Cause |
+| --- | --- |
+| Connector reports **no authorization server found** | The RFC 8414 alias (C3) is not resolving. A client derives the metadata URL by *inserting* the well-known segment into a path-based issuer; only the appended form is native to the library |
+| **Every token rejected, "unexpected iss"** | `MCP_OAUTH_ISSUER` does not exactly equal the `issuer` in the discovery document — usually a missing `/oauth`, or `OAUTH_ISSUER_URL` disagreeing with it |
+| Tool calls fail though login worked | JWKS unreachable from the MCP service. It fetches `<issuer>/jwks`; confirm the MCP host can reach the API host |
+| **Allow button** returns "Not allowed by CORS" | Fixed in #2075. If it reappears, the OAuth paths are being run through the API's CORS policy again |
+| **Allow button** returns "This request did not come from AnyDB" | Fixed in #2075 (CSRF token replaced an Origin check). If it reappears, the consent form's cookie is not surviving — check that the `/oauth` path cookie is not being stripped by a proxy |
+| A previously working API-key integration returns 401 | It is sending an `Authorization` header alongside the API key. Fixed in #2075; if seen, that fix is not deployed |
+| Consent screen appears again immediately after approving | The grant is being recorded against a different resource than the request named. Confirm `OAUTH_MCP_RESOURCE` matches the `resource` parameter clients send |
+
+**A note for whoever runs the test suite.** The `oauth` and `ext.auth` suites
+fail intermittently under `npm run test`, which uses `--runInBand`. This is a
+known pre-existing test-isolation problem — Node caches an ESM module
+process-wide while jest gives each test file its own realm — and **not** a
+defect in the OAuth code. The same tests pass consistently in separate
+processes:
+
+```bash
+NODE_OPTIONS="--experimental-vm-modules" npx jest --forceExit oauth ext.auth
+```
 
 ## Rollback
 
