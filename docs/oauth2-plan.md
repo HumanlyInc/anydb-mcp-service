@@ -74,6 +74,8 @@ anydb-server /api/integrations/ext (bearer guard, scope-checked, resolves User)
 | Scopes | `mcp:read` (discovery/read tools), `mcp:write` (record mutations), `mcp:author` (creating/changing types, workflows incl. scripts, and — when they ship — reports) | This server exposes workflow and type mutation; "connected app can rewrite your automations" must be an explicit grant, not the default. Scope strings are extensible: report authoring lands under `mcp:author` without a new grant round. |
 | Consent | Per-client consent screen naming the client and requested scopes; grants stored; user-visible list + revocation in AnyDB account settings | Baseline for delegating to third-party AI vendors |
 | API-key path | Unchanged, still supported on both MCP server and ext API | Existing integrations (incl. Zapier) keep working |
+| AS implementation | **Decided: [`oidc-provider`](https://github.com/panva/node-oidc-provider) v9.11.5 (MIT)**, mounted in `anydb-server` via `provider.callback()`. We write the Mongo adapter, the signing keys, and the interactions handler — nothing protocol-level | OpenID-certified. PKCE enforcement, DCR, discovery, JWKS, refresh rotation with reuse detection, revocation, and RFC 8707 resource indicators all come from the library. Hand-rolling this surface is how confused-deputy and code-replay holes get shipped |
+| Node runtime | **Decided: stay on Node 20 for this work.** The Node 22 upgrade is tracked separately, on its own merits | `oidc-provider` v9 runs correctly on Node 20 — verified end-to-end (discovery, JWKS, DCR, S256-only PKCE, `plain` rejected). Its `Unsupported runtime` notice is an advisory LTS-codename check that calls `attention.warn` and gates nothing. **No rollup or bundler change is needed either**: rollup emits `require()` for externals, and Node 20.19 backported `require(esm)` |
 
 ## 5. Phased delivery
 
@@ -109,6 +111,20 @@ expired token rejected; discovery doc served; API-key path still green.
 
 ### Phase 2 — Authorization Server in `anydb-server` *(the bulk: ~2–3 weeks)*
 
+Built on `oidc-provider` (see §4). The protocol endpoints below are the
+library's; our work is the three integration pieces it explicitly requires —
+a persistent adapter, real signing keys, and an interactions handler — plus
+the consent UI and connected-apps management.
+
+**Runtime:** no prerequisite. Stays on Node 20; `oidc-provider` was verified
+working there. Two consequences to expect: the library logs an
+`Unsupported runtime` advisory on every boot (harmless, but tell whoever watches
+the logs), and any library bug hit on Node 20 will likely be answered upstream
+with "upgrade Node", since the maintainer supports current LTS only. The Node 22
+upgrade is tracked as separate work.
+
+**What we configure rather than write:**
+
 - `/.well-known/oauth-authorization-server` metadata + JWKS endpoint
 - `GET /oauth/authorize`: validates client + PKCE challenge + `resource`;
   authenticates the user via the **existing passport session/login flow** — any
@@ -124,9 +140,25 @@ expired token rejected; discovery doc served; API-key path still green.
   + reuse detection; issues RS256 JWTs per §4
 - `POST /oauth/register`: DCR with validation (redirect-URI allowrules, rate
   limits) and admin visibility
-- Persistence: client registrations, auth codes, refresh-token families,
-  consent grants (Mongo, consistent with existing stores)
-- Revocation endpoint (RFC 7009) + "Connected apps" management in account
+- Revocation endpoint (RFC 7009)
+
+**Delivery slices:** 2a (provider mounted, adapter, discovery/DCR/JWKS/revocation)
+· 2b (interactions handler wired to passport login) · 2c (consent UI +
+connected-apps management).
+
+**What we actually write:**
+
+- **Storage for both backends**, following the repo's per-entity `db/` pattern
+  (`interface` / `factory` / `mongo/` / `dynamo/`), selected by `OAUTH_DB_IMPL`.
+  **Production runs DynamoDB**, so a Mongo-only adapter would put tokens,
+  grants, and revocations in a different store from every other entity. Backs
+  client registrations, auth codes, refresh-token families, grants, and sessions
+- **Signing keys**: real RS256 JWKS in configuration, sourced from secrets
+  rather than the library's dev keys, with a rotation story
+- **Interactions handler**: replaces `devInteractions`. Resumes at
+  `/oauth/authorize`, delegates to the existing passport login when there is no
+  session, renders consent, then calls `interactionFinished`
+- **Consent UI** + "Connected apps" management and revocation in account
   settings
 
 **Exit:** full authorize→token→refresh→revoke cycle passes an OAuth 2.1
@@ -187,3 +219,94 @@ in §4 reflects them.
    untouched; the AS endpoints are purely additive, so current behavior cannot
    change. Migrating the app onto the AS is a separate future project.
 5. **Token TTLs confirmed: 1 h access / 30 d refresh** (with rotation per §4).
+
+Added 2026-08-26 while scoping Phase 2:
+
+6. **AS built on `oidc-provider` v9.11.5 (MIT), not hand-rolled.** Verified it
+   instantiates against our exact §4 contract — PKCE S256 required, DCR,
+   revocation, resource indicators binding `aud: https://mcp.anydb.com`, JWT
+   access tokens, 1 h / 30 d TTLs — and exposes `provider.callback()` for
+   Express mounting.
+7. **Stay on Node 20; the Node 22 upgrade is decoupled from this project.**
+   `oidc-provider` v9 was verified working on Node 20.19.4 end to end: discovery
+   served, JWKS served, DCR issued a client for a ChatGPT redirect URI, PKCE
+   advertised as `S256` only, and a `plain` challenge rejected. Its
+   `Unsupported runtime` notice is an advisory LTS-codename comparison
+   (`Iron` < `Jod`) that calls `attention.warn` and gates nothing. The RS256
+   signing path is independently proven on Node 20 by the Phase 1 test suite.
+
+   **No rollup or bundler change is required either.** An earlier reading that
+   the CJS/ESM boundary would block the import was wrong: rollup emits
+   `require()` for external packages and Node 20.19 backported `require(esm)`,
+   so it already loads.
+
+   Two consequences accepted: the advisory line appears in production logs on
+   every boot, and a library bug encountered on Node 20 will likely be answered
+   upstream with "upgrade Node". Worth noting separately that Node 20 is at or
+   past end-of-life, which is an argument for scheduling the Node 22 upgrade on
+   its own merits — confirm against the current release schedule.
+
+Added 2026-08-26 while building Phase 2a:
+
+8. **`devInteractions` must be explicitly disabled.** The library ships a
+   development login screen that authenticates whoever submits it, **enabled by
+   default**. Until the Phase 2b interactions handler exists, it is off
+   everywhere except local dev, and a test pins the safe value as the default.
+9. **`responseTypes` pinned to `["code"]`.** The library derives
+   `grant_types_supported` from response types, and the defaults advertised
+   `implicit` — a flow OAuth 2.1 removes. Caught by a discovery-document test,
+   not by reading the config.
+10. **ESM loading needs one escape hatch** (`oauth.import.ts`). A plain
+    `await import()` is rewritten into `require()` by both the rollup CJS output
+    and jest's transform, and neither can load an ES module. Building the import
+    through `new Function` keeps a real native `import()` in every environment,
+    so the code under test is the code that ships.
+11. **Jest needs `--experimental-vm-modules`.** Added to `test` and
+    `test:clean`, matching what `testci`/`testci:clean` already set. CI runs
+    `npm run test`, which lacked it.
+12. **AS lives at `src/modules/user/oauth/`**, not a new top-level module —
+    it is identity work and reuses the passport session, and the repo already
+    carries 32 top-level modules.
+
+Added 2026-08-26 while building Phase 2b and the storage layer:
+
+13. **OAuth storage must support both backends, selected by `OAUTH_DB_IMPL`.**
+    The first cut was Mongo-only, which would have split OAuth state away from
+    the DynamoDB the rest of production uses. The DynamoDB table needs three
+    sparse GSIs, because the library looks records up by grant id, session uid,
+    and device user code — otherwise those reads are table scans. Two gaps the
+    repo had no precedent for: nothing enables DynamoDB **TTL** (so expired
+    tokens would accumulate forever), and `ensureTableExists` does not wait for
+    a table to go **ACTIVE** (a fresh deploy with three GSIs would fail logins
+    until it settled). Expiry is enforced on read in both backends — Mongo's
+    sweeper lags about a minute, DynamoDB's up to 48 hours.
+14. **Consent grants the resource the request named**, not the configured one.
+    Recording scopes against `OAUTH_MCP_RESOURCE` left the requested resource
+    still missing, so the provider re-prompted for consent forever. Only the
+    full flow exposed this; the code read correctly.
+15. **Refresh tokens are issued to any client allowed the grant.** The library
+    additionally requires the `offline_access` scope, which OIDC honours only
+    when the client sends `prompt=consent`. Hosted MCP clients vary, and
+    without a refresh token users would re-authenticate hourly, contradicting
+    the 30-day refresh above. The consent screen therefore states staying
+    connected unconditionally rather than letting a request parameter decide
+    whether the user is told.
+16. **Login reuses `/api/auth/login/password`** rather than adding a second
+    credential path, so rate limiting and allowlisting still apply. Social
+    logins started inside the flow return via a **relative, pattern-matched**
+    interaction path — an absolute URL there would turn AnyDB login into an
+    open redirect.
+
+## 8. Deployment actions outstanding
+
+These need someone with access; they cannot be done from the repo.
+
+- **`OAUTH_DB_IMPL=DYNAMO`** must be set in every DynamoDB environment, and
+  added to the `ANYDB_SERVER_DYNAMODB_TEST_ENV` GitHub secret. Until then the
+  DynamoDB CI job exercises OAuth against Mongo.
+- **`OAUTH_JWKS`** must hold real RS256 signing keys in production. The server
+  refuses to mount without it there, because the library's fallback development
+  keys are identical in every install.
+- **`OAUTH_AS_ENABLED=true`** to turn the endpoints on at all; off by default.
+- **DNS for `mcp.anydb.com`**, the canonical resource identifier and token
+  audience.
