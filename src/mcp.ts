@@ -98,19 +98,24 @@ import {
  * File Upload Workflow
  * =============================================================================
  *
- * Uploading small files is simple with the upload_file tool:
- * 1. Prepare your file content as a base64-encoded string
- * 2. Call upload_file with filename, fileContent, teamid, adbid, adoid, and optional cellpos
- * 3. The tool creates a separate child File record attached to the supplied parent adoid
- * 4. Upload preparation and completion target the child File record, not the parent
- * 5. Returns the created child File record ID after completing the upload
+ * Upload every file, of any size, with the signed-URL flow:
+ * 1. prepare_file_upload with filename, filesize, teamid, adbid, and the PARENT adoid.
+ *    It creates a child File record and returns { url, adoid, cellpos, contentType }.
+ * 2. PUT the raw bytes to that url, sending the returned contentType as the
+ *    Content-Type header. The bytes go straight to storage.
+ * 3. complete_file_upload with the adoid PREPARE RETURNED (the File record, not
+ *    the parent), plus the same filesize and cellpos.
+ *
+ * The bytes never pass through the calling model's context, which is the point.
+ * upload_file exists only for callers that cannot issue an HTTP PUT of their
+ * own: it runs this identical flow server-side, but the base64 payload costs
+ * the caller ~33% inflation in its own token budget on the way in.
  *
  * Example: Upload a text file
- *   - filename: "document.txt"
- *   - fileContent: Base64-encoded file content
- *   - teamid, adbid, adoid: IDs from your records
- *   - cellpos: "A1" (optional, defaults to A1)
- *   - contentType: "text/plain" (optional, helps with file handling)
+ *   - prepare_file_upload: filename "document.txt", filesize "11",
+ *     teamid/adbid/adoid from your records, cellpos "A1" (optional)
+ *   - PUT the bytes to the returned url with Content-Type: text/plain
+ *   - complete_file_upload: filesize "11", teamid, adbid, the returned adoid
  *
  * =============================================================================
  */
@@ -778,7 +783,7 @@ const TOOLS: Tool[] = [
   {
     name: "upload_file",
     description:
-      "Upload a small file inline using the supported single-call workflow. This creates a separate child File record attached to the supplied parent adoid; it does not write into the parent record's content. Base64 is the default encoding; set contentEncoding to 'utf8' for plain text. For large files, use prepare_file_upload and complete_file_upload instead.",
+      "Fallback upload for callers that cannot issue an HTTP PUT. Prefer prepare_file_upload + complete_file_upload for files of ANY size: this tool runs that identical flow server-side, so the only thing the inline path adds is a base64 payload that inflates the content ~33% and spends that inflation in your own context budget. Size is not the deciding factor; whether you can PUT is. Creates a separate child File record attached to the supplied parent adoid; it does not write into the parent record's content. Base64 is the default encoding; set contentEncoding to 'utf8' for plain text.",
     inputSchema: {
       type: "object",
       properties: {
@@ -828,7 +833,7 @@ const TOOLS: Tool[] = [
   {
     name: "prepare_file_upload",
     description:
-      "Create a file record and return a presigned URL for uploading bytes directly with HTTP PUT. Use this for large files, then call complete_file_upload after the PUT succeeds.",
+      "The standard way to upload a file of ANY size. Creates a child File record under the parent adoid and returns { url, adoid, cellpos, contentType }. PUT the raw bytes to url, sending the returned contentType as the Content-Type header, then call complete_file_upload with the adoid RETURNED HERE - that is the File record, not the parent you passed in. The bytes go straight to storage and never enter your context.",
     inputSchema: {
       type: "object",
       properties: {
@@ -859,7 +864,7 @@ const TOOLS: Tool[] = [
   {
     name: "complete_file_upload",
     description:
-      "Complete a presigned file upload after the client has PUT the bytes to the URL returned by prepare_file_upload.",
+      "Finalize a signed-URL upload once the PUT has succeeded. Pass the adoid that prepare_file_upload returned - the File record it created - not the parent adoid you gave prepare_file_upload, and the same filesize and cellpos. Until this is called the File record exists but has no usable content.",
     inputSchema: {
       type: "object",
       properties: {
