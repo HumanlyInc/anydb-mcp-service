@@ -150,7 +150,10 @@ Important format rules:
 
 - A `percentage` field stores a fraction from `0` to `1`, not a human percentage from `0` to `100`. Store 25% as `0.25`, not `25`; convert user-entered percentage points before writing record values.
 - `date`, `datetime`, and `time` record values use integer seconds since the Unix epoch. Do not write ISO date strings or JavaScript millisecond timestamps. In JavaScript, convert the current time with `Math.floor(Date.now() / 1000)`, not `Date.now()`.
-- `ref` selects an independent record and requires an exact `targetType` name.
+- `ref` selects an independent record and requires a `targetType`. A string
+  names a fixed target and must match an existing type exactly. To vary the
+  target per record, pass an object with an `expr` instead — see Polymorphic
+  References below.
 - `lookup` mirrors a field through a `ref`; provide `lookup.fromField`, `lookup.targetField`, and an optional `lookup.mode` of `snapshot` or `live`. The default is `snapshot`.
 - `attachments` embeds child records and requires the child `targetType`. Give it enough space, normally full width and 6-7 rows high.
 - `select` and `multi-select` require stable `options`.
@@ -226,6 +229,44 @@ Three rules the server enforces:
   is the supported path, or bind per-role permissions.
 - **An unknown property name is rejected**, so a typo fails validation rather
   than being silently ignored. Run `validateOnly` first when unsure.
+
+### Polymorphic References
+
+A `ref` or `attachments` field usually points at one fixed type. To point at a
+different type per record, give `targetType` an object with an `expr` instead
+of a string:
+
+```json
+{
+  "key": "Payer",
+  "valueType": "ref",
+  "format": "ref",
+  "targetType": {
+    "value": "Employer",
+    "expr": "IF({{Payer Kind}}=='Insurer', 'Insurer', 'Employer')"
+  },
+  "layout": { "position": "A6", "colspan": 3, "rowspan": 1 }
+}
+```
+
+The `expr` is an ordinary cell-property expression — the same language as
+conditional formatting above — and must evaluate to the name of an existing
+type. `value` is the target the field shows until the expression first
+evaluates; it is optional, but supplying it keeps the field usable in the
+meantime.
+
+Two things to know:
+
+- The referenced types must already exist, and the server can only verify the
+  one named by `value`. A name that only ever appears inside the `expr` is not
+  checked at authoring time, so create every possible target before the
+  expression can select it.
+- `targetType` still owns `ATTACHMENTS_TEMPLATE_NAME`. The expression goes
+  through `targetType`, not through `props` — sending the property directly is
+  still rejected.
+
+Read a type back with `anydb_get_type_definition` and a fixed target returns as
+a plain string, while an expression-driven one returns the same object form.
 
 On `anydb_update_type`, `props` replaces the whole map for that field. Omit it to
 leave existing properties untouched; to change one property, read the field with

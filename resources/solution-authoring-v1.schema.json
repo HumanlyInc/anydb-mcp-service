@@ -132,9 +132,19 @@
           "minLength": 1
         },
         "targetType": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 120
+          "oneOf": [
+            { "type": "string", "minLength": 1, "maxLength": 120 },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "minProperties": 1,
+              "properties": {
+                "value": { "type": "string", "minLength": 1, "maxLength": 120 },
+                "expr": { "type": "string", "minLength": 1 }
+              }
+            }
+          ],
+          "description": "The type a ref or attachments field points at. A string names a fixed target. To vary the target per record - a polymorphic reference, the same thing the type designer offers as a computed property - pass an object with expr, and optionally value for the target it should show until the expression first evaluates. Example: {\"value\": \"Employer\", \"expr\": \"IF({{Payer Kind}}=='Insurer', 'Insurer', 'Employer')\"}. Do not set ATTACHMENTS_TEMPLATE_NAME through props; this field owns it."
         },
         "lookup": {
           "type": "object",
@@ -993,8 +1003,19 @@
           "type": "string"
         },
         "targetType": {
-          "type": "string",
-          "minLength": 1
+          "oneOf": [
+            { "type": "string", "minLength": 1, "maxLength": 120 },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "minProperties": 1,
+              "properties": {
+                "value": { "type": "string", "minLength": 1, "maxLength": 120 },
+                "expr": { "type": "string", "minLength": 1 }
+              }
+            }
+          ],
+          "description": "The type a ref or attachments field points at. A string names a fixed target. To vary the target per record - a polymorphic reference, the same thing the type designer offers as a computed property - pass an object with expr, and optionally value for the target it should show until the expression first evaluates. Example: {\"value\": \"Employer\", \"expr\": \"IF({{Payer Kind}}=='Insurer', 'Insurer', 'Employer')\"}. Do not set ATTACHMENTS_TEMPLATE_NAME through props; this field owns it."
         },
         "lookup": {
           "$ref": "#/$defs/field/properties/lookup"

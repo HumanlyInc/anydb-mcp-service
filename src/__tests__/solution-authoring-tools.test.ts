@@ -149,6 +149,22 @@ describe("solution authoring tools", () => {
       expect(iconDescription).toContain("#FAFAFA");
       expect(iconDescription).toContain("BACKGROUND_COLOR");
     }
+    // targetType accepts a fixed name or { value, expr } for a ref whose
+    // target varies per record (ISSUE - 2). Both create and update carry it.
+    for (const targetType of [
+      (tool.inputSchema as any).properties.type.properties.fields.items
+        .properties.targetType,
+      (SOLUTION_AUTHORING_TOOLS[2].inputSchema as any).properties.changes
+        .properties.addFields.items.properties.targetType,
+    ]) {
+      expect(targetType?.oneOf).toHaveLength(2);
+      expect(targetType.oneOf[0]).toMatchObject({ type: "string" });
+      expect(targetType.oneOf[1]).toMatchObject({
+        type: "object",
+        properties: { expr: { type: "string" } },
+      });
+      expect(targetType.description).toContain("polymorphic");
+    }
     expect(isSolutionAuthoringTool("anydb_update_type")).toBe(true);
   });
 
