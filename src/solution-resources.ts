@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 export const SOLUTION_BUILDING_GUIDE_URI =
   "anydb://guides/solution-building/v1";
 export const ANYDB_SETUP_GUIDE_URI = "anydb://guides/setup/v1";
+export const ANYDB_PERMISSIONS_GUIDE_URI = "anydb://guides/permissions/v1";
 export const SOLUTION_AUTHORING_SCHEMA_URI =
   "anydb://schemas/solution-authoring/v1";
 
@@ -15,6 +16,14 @@ const RESOURCES = [
       "API-key retrieval, MCP client configuration, verification, and troubleshooting.",
     mimeType: "text/markdown",
     filename: "setup-guide-v1.md",
+  },
+  {
+    uri: ANYDB_PERMISSIONS_GUIDE_URI,
+    name: "AnyDB permissions guide",
+    description:
+      "How AnyDB access control works: permission types crossed with levels, why attaching a child is OBJECT_ATTACHED/PERM_CREATE on the parent, and which key not to trust.",
+    mimeType: "text/markdown",
+    filename: "permissions-v1.md",
   },
   {
     uri: SOLUTION_BUILDING_GUIDE_URI,
