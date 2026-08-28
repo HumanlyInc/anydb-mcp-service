@@ -523,6 +523,18 @@ Two functions must stand alone and must never be wrapped by another function,
 not `IFERROR(DYNREF(A2, {{Email}}, 'GO'), "")`. The `IFERROR` guidance above
 applies to aggregations, not to these two.
 
+`CONCAT_A` around `SEQNUM` is the one exception, and it is the only way to
+build a prefixed ID. `SEQNUM` is asynchronous, and the plain text functions are
+not: `CONCAT('INV-', SEQNUM('Invoice', 10001))` stores the literal
+`INV-[object Promise]` and reports no error at all. Write
+`CONCAT_A('INV-', SEQNUM('Invoice', 10001))` instead, which yields `INV-10001`.
+
+Three functions are asynchronous — `SEQNUM`, `AIPROMPT`, and `REPORT` — and two
+async-aware text functions exist for them: `CONCAT_A` and `TEXT_A`. Join the
+output of an async function only with those. Every other text function
+stringifies the pending value rather than failing, so the mistake surfaces as
+`[object Promise]` in stored data rather than as an error at authoring time.
+
 Connected child and parent references return arrays. Pass child arrays to aggregations such as `SUM`, `COUNT`, `MAX`, `FILTER`, `SUMBY`, or `MAXBY`. When exactly one parent or child value is intended, select it explicitly with zero-based `[0]`, for example `A@CURRREC!{{Budget}}[0]`. Do not use `[0]` when all connected values must participate.
 
 Reference examples:

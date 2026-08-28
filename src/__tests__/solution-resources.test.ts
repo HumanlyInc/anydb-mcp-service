@@ -631,6 +631,17 @@ describe("cell properties and conditional formatting", () => {
     expect(guide).toContain("trigger_on_schedule");
   });
 
+  // SEQNUM is async and CONCAT is not, so CONCAT('INV-', SEQNUM(...)) stores
+  // "INV-[object Promise]" and reports nothing. The engine is staying that way
+  // (ISSUE - 9), so the guide is the only thing standing between an author and
+  // that string. It previously carried the standalone-only rule with no
+  // CONCAT_A exception, which forbade the one pattern that works.
+  it("carves CONCAT_A out of the SEQNUM standalone rule", () => {
+    expect(guide).toContain("`CONCAT_A` around `SEQNUM` is the one exception");
+    expect(guide).toContain("INV-[object Promise]");
+    expect(guide).toContain("TEXT_A");
+  });
+
   it("explains how to make a computed cell overridable", () => {
     expect(guide).toContain("VALUE_OVERRIDE_ENABLED");
   });
