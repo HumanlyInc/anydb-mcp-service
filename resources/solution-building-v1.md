@@ -378,6 +378,41 @@ Example private record share:
 }
 ```
 
+## File Uploads
+
+Attach a file with the signed-URL flow, whatever its size:
+
+1. `prepare_file_upload` with `filename`, `filesize` (exact bytes, as a numeric
+   string), `teamid`, `adbid`, and the **parent** `adoid`. It creates a child
+   File record under that parent and returns
+   `{ url, adoid, cellpos, contentType }`.
+2. `PUT` the raw bytes to `url`, sending the returned `contentType` as the
+   `Content-Type` header. The bytes go straight to storage; they do not pass
+   back through the MCP server or through your context.
+3. `complete_file_upload` with the **`adoid` step 1 returned** — the File
+   record, not the parent you passed in — plus the same `filesize` and
+   `cellpos`.
+
+Step 3 is not optional. Until it runs, the File record exists but its content
+is not usable, so an upload that skips it looks like it worked and is not
+there.
+
+Two details that are easy to get wrong:
+
+- The `adoid` changes meaning between the calls. You pass the parent to
+  `prepare_file_upload` and the returned File record id to
+  `complete_file_upload`. Passing the parent to step 3 fails or completes the
+  wrong record.
+- A file becomes its own child record attached to the parent. It is not written
+  into a cell of the parent record, so do not try to `anydb_update_record` a
+  parent cell with file content.
+
+Do not reach for `upload_file` by default. It runs this same flow server-side
+and exists only for callers that cannot issue an HTTP PUT; its base64 payload
+inflates the content by about a third and spends that inflation in the calling
+model's own token budget. Size is not what decides between the two — whether
+you can PUT is.
+
 ## Formulas
 
 One formula language drives four different things, so the same syntax applies
