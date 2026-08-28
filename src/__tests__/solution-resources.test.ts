@@ -662,6 +662,19 @@ describe("cell properties and conditional formatting", () => {
     expect(guide).toContain("`IFERROR` never fires");
   });
 
+  // A ref can point at a different type per record, which the designer has
+  // always allowed and this API did not (ISSUE - 2). The guide used to say a
+  // ref "requires an exact targetType name", contradicting it outright.
+  it("documents an expression-driven ref target", () => {
+    expect(guide).toContain("### Polymorphic References");
+    // The trap worth stating: only the fixed name can be verified up front.
+    expect(guide).toContain(
+      "A name that only ever appears inside the `expr` is not",
+    );
+    // targetType still owns the property; the expr does not go via props.
+    expect(guide).toContain("through `targetType`, not through `props`");
+  });
+
   it("explains how to make a computed cell overridable", () => {
     expect(guide).toContain("VALUE_OVERRIDE_ENABLED");
   });
