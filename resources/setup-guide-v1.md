@@ -39,6 +39,8 @@ Restart the MCP client after saving. MCP server configuration changes are not lo
 
 Ask the assistant: **List my AnyDB teams.** It should call `list_teams` and return the teams available to the configured user. A 4xx response usually indicates an incorrect key, email, or API URL. An unexpected empty list can indicate valid credentials for a user with no accessible teams or a connection to the wrong environment.
 
+To check *which account* the connection is using, call `anydb_whoami`. It reports the authenticated user, how they authenticated, and what the connection is permitted to do, and it answers even when no credential is configured. Recognising an account from its team list is unreliable, because two accounts that share a team look alike.
+
 ## Troubleshooting
 
 | Symptom                                            | Likely cause                            | Resolution                                                                                                                |
@@ -48,3 +50,4 @@ Ask the assistant: **List my AnyDB teams.** It should call `list_teams` and retu
 | Old package behavior                               | Stale `npx` package cache               | Keep `@latest` in the package argument. If needed, remove the relevant cache under `~/.npm/_npx/` and restart the client. |
 | MCP server reports missing credentials             | Key or email is absent from `env`       | Set both `ANYDB_DEFAULT_API_KEY` and `ANYDB_DEFAULT_USER_EMAIL`, then restart.                                            |
 | `list_teams` returns a 4xx error                   | Key/email mismatch or incorrect API URL | Re-copy the integration key, verify the associated email, and confirm `ANYDB_API_URL`.                                    |
+| Results belong to a different AnyDB account than expected | Client is still using a previously authorized connection | Call `anydb_whoami` to confirm the active account. If it is the wrong one, disconnect and reconnect the MCP server in the client, signing in as the intended account, then restart the client. |

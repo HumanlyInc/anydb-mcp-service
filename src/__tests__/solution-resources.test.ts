@@ -327,6 +327,9 @@ describe("solution resources", () => {
     expect(resource.text).toContain("Do not use `ANYDB_API_BASE_URL`");
     expect(resource.text).toContain("Restart the MCP client");
     expect(resource.text).toContain("List my AnyDB teams");
+    // Recognising an account from its team list is what fails when two
+    // accounts share a team, so the guide points at anydb_whoami instead.
+    expect(resource.text).toContain("anydb_whoami");
     expect(resource.text).not.toContain("## Example User Requests");
   });
 

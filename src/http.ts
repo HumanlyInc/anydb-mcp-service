@@ -186,6 +186,9 @@ app.post("/", async (req, res) => {
     apiKey: credentials.apiKey,
     userEmail: credentials.userEmail,
     accessToken: credentials.accessToken,
+    // Already verified in authenticate(); anydb_whoami reports from these
+    // claims rather than decoding the token a second time.
+    token: credentials.token,
     // Stateless transport: this server may never see an initialize, so seed
     // the identity from the HTTP request. oninitialized upgrades it to the
     // MCP clientInfo on the request that does carry the handshake.
