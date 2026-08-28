@@ -25,6 +25,12 @@ import {
   SOLUTION_DISCOVERY_TOOLS,
 } from "./solution-discovery-tools.js";
 import { getSolutionPrompt, listSolutionPrompts } from "./solution-prompts.js";
+import {
+  callIdentityTool,
+  IDENTITY_TOOLS,
+  isIdentityTool,
+} from "./identity.js";
+import type { VerifiedToken } from "./oauth/token-verifier.js";
 import { callSetupTool, isSetupTool, SETUP_TOOLS } from "./setup-tools.js";
 import {
   callSemanticSearchTool,
@@ -112,6 +118,7 @@ import {
 // Define available tools
 const TOOLS: Tool[] = [
   ...SETUP_TOOLS,
+  ...IDENTITY_TOOLS,
   ...SOLUTION_AUTHORING_TOOLS,
   ...SOLUTION_DISCOVERY_TOOLS,
   ...SEMANTIC_SEARCH_TOOLS,
@@ -183,10 +190,16 @@ const TOOLS: Tool[] = [
   {
     name: "list_teams",
     description:
-      "List all teams that the provided API key has access to. A team is like an organization or workspace with its own databases and users. Use this first to discover available teamid values for other operations.",
+      "List the teams this connection can access, as teamid, name, and plan. A team is like an organization or workspace with its own databases and users. Use this first to discover available teamid values for other operations. Access control and policy detail are omitted; ask for them only if you genuinely need them, as they are large.",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        includeRawTeamMetadata: {
+          type: "boolean",
+          description:
+            "Return the complete team documents, including ACL and policy. Very large — tens of thousands of characters for a handful of teams. Leave unset unless you specifically need permission data.",
+        },
+      },
       required: [],
     },
   },
@@ -802,10 +815,39 @@ const TOOLS: Tool[] = [
   },
 ];
 
+/** What list_teams returns by default. */
+export interface TeamSummary {
+  teamid: string;
+  name: string;
+  plan?: string;
+}
+
+/**
+ * Reduce a team to what a caller actually chooses between.
+ *
+ * The ext API returns the whole team document, and most of it is the ACL: a
+ * permission bitmask per group and per user, per team. Ten teams came to
+ * roughly 69,000 characters, nearly all of it unreadable to a model and
+ * unusable as an answer to "which team?". That cost is paid on the first call
+ * of most sessions, since list_teams is where every other id comes from.
+ *
+ * The full document is still one flag away, so nothing is lost — it just is
+ * not the default any more.
+ */
+export function summariseTeam(team: Record<string, any>): TeamSummary {
+  const plan = team?.license?.planName;
+  return {
+    teamid: String(team?.teamid ?? ""),
+    name: String(team?.name ?? ""),
+    ...(typeof plan === "string" && plan ? { plan } : undefined),
+  };
+}
+
 export function createMcpServer({
   apiKey,
   userEmail,
   accessToken,
+  token,
   baseURL,
   originClient,
 }: {
@@ -814,6 +856,14 @@ export function createMcpServer({
   userEmail?: string;
   /** OAuth 2.1 bearer token, forwarded verbatim to the ext API. */
   accessToken?: string;
+  /**
+   * Claims from that token, already verified by the caller.
+   *
+   * Carried so anydb_whoami can answer from a credential that has actually
+   * been checked, rather than decoding the token again and trusting whatever
+   * it says.
+   */
+  token?: VerifiedToken;
   baseURL?: string;
   /**
    * Client this server is acting for, when the caller already knows it.
@@ -834,6 +884,10 @@ export function createMcpServer({
     originClient,
     clientVersion: config.serverVersion,
   });
+
+  // Mirrors what the ext client is sending, so anydb_whoami can report who
+  // this service is acting for without reaching into the client's internals.
+  let actingFor = originClient;
 
   // Create MCP server
   const server = new Server(
@@ -862,6 +916,7 @@ export function createMcpServer({
       ? `${client.name}/${client.version}`
       : client.name;
     extApiClient.setOriginClient(identity);
+    actingFor = identity;
     console.error(`[anydb-mcp] serving MCP client ${identity}`);
   };
 
@@ -902,6 +957,22 @@ export function createMcpServer({
     try {
       if (isSetupTool(name)) {
         return callSetupTool(name);
+      }
+
+      // Ahead of the credential gate, like the setup guide: "nothing is
+      // connected" is one of the answers this tool exists to give, and a
+      // diagnostic that only runs once you are already authenticated cannot
+      // help you find out why you are not.
+      if (isIdentityTool(name)) {
+        return callIdentityTool(name, {
+          token,
+          apiKey,
+          userEmail,
+          originClient: actingFor,
+          serverName: config.serverName,
+          serverVersion: config.serverVersion,
+          apiBaseUrl: baseURL || config.anydbApiBaseUrl,
+        });
       }
 
       // An OAuth bearer is a complete credential on its own. Requiring the
@@ -980,11 +1051,16 @@ export function createMcpServer({
 
         case "list_teams": {
           const teams = await extApiClient.listTeams();
+          const raw = args?.includeRawTeamMetadata === true;
           return {
             content: [
               {
                 type: "text",
-                text: JSON.stringify(teams, null, 2),
+                text: JSON.stringify(
+                  raw ? teams : teams.map(summariseTeam),
+                  null,
+                  2,
+                ),
               },
             ],
           };

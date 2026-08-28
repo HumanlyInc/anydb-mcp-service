@@ -181,6 +181,7 @@ The service exposes 44 tools.
 | Tool                    | Description                                                                                                                   |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `anydb_get_setup_guide` | Return API-key, MCP client configuration, verification, and troubleshooting guidance without requiring configured credentials |
+| `anydb_whoami`          | Report which AnyDB account this connection is authenticated as, how, and with what scopes — also without requiring configured credentials |
 
 ### Solution Discovery
 
@@ -267,7 +268,7 @@ then resend the complete action chain through `anydb_update_workflow`.
 | Tool                      | Description                                                  |
 | ------------------------- | ------------------------------------------------------------ |
 | `anydb_semantic_search`   | Search authorized records by content meaning                 |
-| `list_teams`              | List accessible teams                                        |
+| `list_teams`              | List accessible teams as id, name, and plan                  |
 | `list_databases_for_team` | List databases in a team                                     |
 | `list_templates`          | List workspace templates/types                               |
 | `get_template`            | Get a template schema by stable `templatename`               |
