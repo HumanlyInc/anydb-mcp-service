@@ -878,7 +878,7 @@
         },
         "icon": {
           "type": "string",
-          "description": "Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>, for example icon::clipboard-check::#1565C0::#FFFFFF."
+          "description": "Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>, for example icon::clipboard-check::#1565C0::#FFFFFF. The background hex is not decorative metadata: it is painted as the type card's background in the workspace type list, in both the grid and hierarchy views, and the card border is derived from it, so it is how a type is color-coded or pastel-tinted. Use #FAFAFA as the background to leave the card neutral; that exact value is the no-tint sentinel and renders as a plain white card. This is unrelated to the per-field BACKGROUND_COLOR property, which tints a single cell inside a record and has no effect on the card."
         },
         "titleFormula": {
           "type": "string",
@@ -1066,7 +1066,7 @@
             },
             "icon": {
               "type": "string",
-              "description": "Replacement Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>."
+              "description": "Replacement Lucide icon and colors in the canonical format icon::<lucide-icon-name>::<foreground-hex>::<background-hex>. The background hex is not decorative metadata: it is painted as the type card's background in the workspace type list, in both the grid and hierarchy views, and the card border is derived from it, so it is how a type is color-coded or pastel-tinted. Use #FAFAFA as the background to leave the card neutral; that exact value is the no-tint sentinel and renders as a plain white card. This is unrelated to the per-field BACKGROUND_COLOR property, which tints a single cell inside a record and has no effect on the card."
             },
             "titleFormula": {
               "type": "string",
