@@ -223,12 +223,49 @@ Three rules the server enforces:
   `required`, `options`, and `targetType`. Sending them in `props` is rejected
   and names the field to use instead.
 - **Some properties are not available.** `SCRIPT_SOURCE`,
-  `ATTACHMENTS_TEMPLATE_ID`, `ATTACHMENTS_PARENT`, `VALUE_OVERRIDE`,
-  `CELL_HIDDEN_ACCESS`, and `CELL_LOCKED_ACCESS` stay editor-only — they are
-  unreachable by any authorable format, address records by raw id where a name
-  is the supported path, or bind per-role permissions.
+  `ATTACHMENTS_TEMPLATE_ID`, `ATTACHMENTS_PARENT`, and `VALUE_OVERRIDE` stay
+  editor-only — they are unreachable by any authorable format, or address
+  records by raw id where a name is the supported path.
 - **An unknown property name is rejected**, so a typo fails validation rather
   than being silently ignored. Run `validateOnly` first when unsure.
+
+### Per-Viewer Cell Access (advanced)
+
+Two properties decide what a *particular viewer* sees, rather than how a cell
+looks: `CELL_HIDDEN_ACCESS` hides it, `CELL_LOCKED_ACCESS` makes it read-only.
+Reach for them only when a requirement actually names who may see or edit a
+field — most types need neither.
+
+```json
+"props": {
+  "CELL_HIDDEN_ACCESS": { "expr": "NOTINGROUP(\"Finance\")" },
+  "CELL_LOCKED_ACCESS": { "expr": "NOTINGROUP(\"Approvers\")" }
+}
+```
+
+The rule is true when the cell **is** hidden or locked, so the expression above
+hides the field from everyone outside `Finance`.
+
+**Their `expr` is not the formula language.** It is a separate, deliberately
+tiny one, and nothing else parses:
+
+- Four predicates only: `INGROUP`, `NOTINGROUP`, `ROLE`, `HASPERM`.
+- Two operators only: `and` / `or` (`&&` and `||` are accepted as synonyms).
+- String and boolean literals only. No field references, no `IF`, no
+  arithmetic, no `{{Field Key}}`.
+
+**Use `INGROUP` and `NOTINGROUP`.** `ROLE` and `HASPERM` parse, and always
+evaluate to false: the server builds the viewer context with an empty role and
+permission list, so nothing can ever match. A rule written with them is not
+rejected — it simply never fires, which for `CELL_HIDDEN_ACCESS` means the
+field stays visible to everyone. Group names are matched case-insensitively.
+
+These properties set visibility on a type you are authoring. They do not grant
+anything: there is no way to create a group, assign a member, or change an ACL
+through this API. To inspect what someone can actually do with a record, use
+`anydb_get_permissions` and `anydb_check_permissions`, and read
+`anydb://guides/permissions/v1` — that guide covers the ACL model, and is
+read-only as well.
 
 ### Polymorphic References
 
@@ -344,6 +381,11 @@ Use `anydb_create_view` to create a saved filtered listing after its target type
 - Use `validateOnly: true` to validate scope, parent access, target names, and filters without creating the View.
 - Use `anydb_update_view` with the returned `viewId` to rename a View or change its criteria. `changes.targets` replaces the complete existing target/filter set; include every target and filter that should remain. Omit `changes.targets` for a name-only update.
 - View placement is immutable during update. To change between workspace and children scope, create a new View in the desired location.
+- **A filter cannot reference whoever is viewing.** The three sources are the
+  only ones there are, and none resolves to the current user, so an
+  "assigned to me" or "my records" View is not expressible. Filter on a
+  concrete value instead, or use per-viewer cell access to hide fields — that
+  works per cell, not per row.
 
 Example child View:
 

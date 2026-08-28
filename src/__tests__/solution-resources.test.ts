@@ -547,12 +547,26 @@ describe("cell properties and conditional formatting", () => {
     for (const restricted of [
       "SCRIPT_SOURCE",
       "VALUE_OVERRIDE",
-      "CELL_LOCKED_ACCESS",
+      "ATTACHMENTS_PARENT",
     ]) {
       expect(schema.$defs.field.properties.props.description).toContain(
         restricted,
       );
     }
+    // The access props moved OUT of this list (ISSUE - 3). Naming them here
+    // again would pass on a substring match while saying the opposite of what
+    // is true, so assert the sentence that grants them instead.
+    expect(schema.$defs.field.properties.props.description).toContain(
+      "CELL_HIDDEN_ACCESS and CELL_LOCKED_ACCESS control what a particular viewer sees and can be set",
+    );
+  });
+
+  it("warns that ROLE and HASPERM never fire in an access rule", () => {
+    // They parse, so nothing is rejected — the rule just never matches, which
+    // for CELL_HIDDEN_ACCESS means the field stays visible to everyone.
+    expect(schema.$defs.field.properties.props.description).toContain(
+      "always evaluate false",
+    );
   });
 
   it("documents the properties that authorable formats require", () => {
@@ -673,6 +687,20 @@ describe("cell properties and conditional formatting", () => {
     );
     // targetType still owns the property; the expr does not go via props.
     expect(guide).toContain("through `targetType`, not through `props`");
+  });
+
+  it("documents per-viewer cell access as an advanced feature", () => {
+    expect(guide).toContain("### Per-Viewer Cell Access (advanced)");
+    // The restricted language is the thing an author will otherwise assume is
+    // the formula language.
+    expect(guide).toContain("Their `expr` is not the formula language");
+    expect(guide).toContain("Use `INGROUP` and `NOTINGROUP`");
+    // Setting visibility is not granting access; point at the ACL guide.
+    expect(guide).toContain("anydb://guides/permissions/v1");
+  });
+
+  it("states that a View filter cannot reference the viewer", () => {
+    expect(guide).toContain("A filter cannot reference whoever is viewing");
   });
 
   it("explains how to make a computed cell overridable", () => {
