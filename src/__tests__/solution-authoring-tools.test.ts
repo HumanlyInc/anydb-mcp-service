@@ -136,6 +136,19 @@ describe("solution authoring tools", () => {
       type: "string",
       description: expect.stringContaining("icon::<lucide-icon-name>"),
     });
+    // The icon background hex doubles as the type card's background in the
+    // workspace type list (anydb-ui type/list/item.tsx and type/hierarchy.tsx,
+    // which skip the tint for the #FAFAFA sentinel). Authors have no other way
+    // to learn that, so both icon descriptions must keep saying so.
+    for (const iconDescription of [
+      (tool.inputSchema as any).properties.type.properties.icon.description,
+      (SOLUTION_AUTHORING_TOOLS[2].inputSchema as any).properties.changes
+        .properties.icon.description,
+    ]) {
+      expect(iconDescription).toContain("type card's background");
+      expect(iconDescription).toContain("#FAFAFA");
+      expect(iconDescription).toContain("BACKGROUND_COLOR");
+    }
     expect(isSolutionAuthoringTool("anydb_update_type")).toBe(true);
   });
 
