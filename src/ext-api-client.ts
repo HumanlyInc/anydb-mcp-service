@@ -21,6 +21,13 @@ interface ExtApiClientConfig {
   userEmail?: string;
   /** OAuth 2.1 bearer token. Takes precedence over the API key. */
   accessToken?: string;
+  /**
+   * Client this service is acting for, e.g. "claude-ai/0.1.0". Over MCP it is
+   * usually set later via setOriginClient, once initialize has run.
+   */
+  originClient?: string;
+  /** This service's own version, from config.serverVersion. */
+  clientVersion?: string;
 }
 
 interface ExtApiResponse<T> {
@@ -593,22 +600,85 @@ export interface BulkUpdateRecordInput {
   content?: Record<string, unknown>;
 }
 
+/**
+ * Identifies this service to the AnyDB server.
+ *
+ * The version is supplied by the caller (which reads package.json via config)
+ * rather than read here. Reading it here would need import.meta.url, and
+ * ts-jest compiles this file under a module setting that rejects import.meta
+ * (TS1343) -- it would break every unit test that constructs a client. The
+ * literal is only a fallback for callers that pass nothing.
+ */
+const CLIENT_NAME = "anydb-mcp-service";
+const FALLBACK_VERSION = "2.3.0";
+
+function clientIdentity(version?: string): string {
+  return `${CLIENT_NAME}/${version || FALLBACK_VERSION} (node/${
+    process.versions.node
+  })`;
+}
+
+/**
+ * Header the server reads to attribute a call to a first-party client.
+ *
+ * User-Agent carries the same string, but proxies rewrite it freely, so this
+ * is the one that reliably survives. Both are self-declared: the server treats
+ * them as telemetry and uses the OAuth client_id for attribution.
+ */
+const CLIENT_HEADER = "x-anydb-client";
+
+/**
+ * Header naming the client this service is acting *for*.
+ *
+ * This service is a proxy: an LLM client (Claude.ai, Claude Desktop, Cursor,
+ * ChatGPT via the REST bridge) talks to it, and it talks to AnyDB. So
+ * x-anydb-client identifies the proxy and answers "how did this call reach
+ * us", while this one answers "who actually asked" -- which is usually the
+ * more interesting question. Taken from the MCP initialize handshake's
+ * clientInfo, so it is whatever the client chose to call itself.
+ */
+const ORIGIN_CLIENT_HEADER = "x-anydb-origin-client";
+
 export class ExtApiClient {
   private client: AxiosInstance;
+  private originClient?: string;
 
   constructor(config: ExtApiClientConfig) {
     this.client = axios.create({
       baseURL: config.baseURL,
       headers: {
         "Content-Type": "application/json",
+        [CLIENT_HEADER]: clientIdentity(config.clientVersion),
+        "User-Agent": clientIdentity(config.clientVersion),
         ...ExtApiClient.authHeaders(config),
       },
       timeout: 30000,
+    });
+    // Injected per request rather than fixed at construction: over MCP the
+    // client only names itself during initialize, which happens after this
+    // client already exists.
+    this.client.interceptors.request.use((request) => {
+      if (this.originClient) {
+        request.headers.set(ORIGIN_CLIENT_HEADER, this.originClient);
+      }
+      return request;
     });
     this.client.interceptors.response.use(
       (response) => response,
       (error: unknown) => Promise.reject(this.toRequestError(error)),
     );
+
+    if (config.originClient) this.setOriginClient(config.originClient);
+  }
+
+  /**
+   * Name the client this service is acting for, e.g. "claude-ai/0.1.0".
+   *
+   * Safe to call after construction and more than once; a session is normally
+   * initialized once, but a reconnect re-announces.
+   */
+  setOriginClient(identity: string | undefined): void {
+    this.originClient = identity?.trim() || undefined;
   }
 
   /**

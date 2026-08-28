@@ -807,6 +807,7 @@ export function createMcpServer({
   userEmail,
   accessToken,
   baseURL,
+  originClient,
 }: {
   /** Legacy API-key auth. Ignored when accessToken is present. */
   apiKey?: string;
@@ -814,12 +815,24 @@ export function createMcpServer({
   /** OAuth 2.1 bearer token, forwarded verbatim to the ext API. */
   accessToken?: string;
   baseURL?: string;
+  /**
+   * Client this server is acting for, when the caller already knows it.
+   *
+   * The streamable-HTTP transport is stateless -- a server is built per POST,
+   * so a tool call arrives on a server that never saw an initialize and whose
+   * oninitialized therefore never fires. That path passes the identity from
+   * the HTTP request instead. Over stdio the handshake does run, and
+   * oninitialized replaces this with the richer clientInfo.
+   */
+  originClient?: string;
 }) {
   const extApiClient = new ExtApiClient({
     apiKey,
     userEmail,
     accessToken,
     baseURL: baseURL || config.anydbApiBaseUrl,
+    originClient,
+    clientVersion: config.serverVersion,
   });
 
   // Create MCP server
@@ -837,6 +850,20 @@ export function createMcpServer({
       instructions: `For installation, credentials, client configuration, or connection troubleshooting, read ${ANYDB_SETUP_GUIDE_URI} or call anydb_get_setup_guide. Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read.`,
     },
   );
+
+  // The client names itself during initialize, which is the only point this
+  // service learns whether it is serving Claude.ai, Claude Desktop, Cursor or
+  // something else. Forward that on to AnyDB so an API call can be attributed
+  // to the client that actually asked, not just to this proxy.
+  server.oninitialized = () => {
+    const client = server.getClientVersion();
+    if (!client?.name) return;
+    const identity = client.version
+      ? `${client.name}/${client.version}`
+      : client.name;
+    extApiClient.setOriginClient(identity);
+    console.error(`[anydb-mcp] serving MCP client ${identity}`);
+  };
 
   server.setRequestHandler(ListResourcesRequestSchema, async () => ({
     resources: listSolutionResources(),

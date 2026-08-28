@@ -63,6 +63,13 @@ function getExtApiClient(req: Request): ExtApiClient {
     apiKey,
     userEmail,
     baseURL: config.anydbApiBaseUrl,
+    // The REST bridge has no MCP handshake to read clientInfo from, so the
+    // caller identifies itself over HTTP instead -- explicitly if it can, and
+    // otherwise by whatever User-Agent it sent.
+    originClient:
+      (req.headers["x-anydb-origin-client"] as string | undefined) ||
+      (req.headers["user-agent"] as string | undefined),
+    clientVersion: config.serverVersion,
   });
 }
 
