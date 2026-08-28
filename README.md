@@ -269,6 +269,8 @@ then resend the complete action chain through `anydb_update_workflow`.
 | ------------------------- | ------------------------------------------------------------ |
 | `anydb_semantic_search`   | Search authorized records by content meaning                 |
 | `list_teams`              | List accessible teams as id, name, and plan                  |
+| `anydb_get_permissions`   | What a user may do with a team, database, or record          |
+| `anydb_check_permissions` | Check specific permission type/level pairs for a user        |
 | `list_databases_for_team` | List databases in a team                                     |
 | `list_templates`          | List workspace templates/types                               |
 | `get_template`            | Get a template schema by stable `templatename`               |

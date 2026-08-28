@@ -204,6 +204,74 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_get_permissions",
+    description:
+      "Report what a user may do with a team, database, or record: read it, update it, delete it, add records underneath it, and share it. Omit userid to ask about the authenticated user. Read the `can` block for the answer; the raw permission matrix is included for detail. Note that being able to update a record and being able to add records under it are independent — see anydb://guides/permissions/v1.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: {
+          type: "string",
+          description: "The team ID. Get from list_teams.",
+        },
+        adbid: {
+          type: "string",
+          description:
+            "Database ID. Omit to ask about the team itself.",
+        },
+        adoid: {
+          type: "string",
+          description:
+            "Record ID. Omit to ask about the database or team.",
+        },
+        userid: {
+          type: "string",
+          description:
+            "Whose access to report. Defaults to the authenticated user. Refused unless you can already read the resource.",
+        },
+      },
+      required: ["teamid"],
+    },
+  },
+  {
+    name: "anydb_check_permissions",
+    description:
+      "Check specific permission type/level pairs for a user on a team, database, or record — for example OBJECT_ATTACHED at PERM_CREATE to ask whether they may add records underneath it. Use anydb_get_permissions instead when you want the whole picture. Permission names and what they mean are in anydb://guides/permissions/v1.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "Database ID, when asking about a database or record." },
+        adoid: { type: "string", description: "Record ID, when asking about a record." },
+        userid: {
+          type: "string",
+          description: "Whose access to check. Defaults to the authenticated user.",
+        },
+        checks: {
+          type: "array",
+          description: "Up to 50 permission questions.",
+          items: {
+            type: "object",
+            properties: {
+              permission: {
+                type: "string",
+                description:
+                  "Permission type, e.g. OBJECT_SELF, OBJECT_ATTACHED, OBJECT_SHARE, DB_SELF, DB_ATTACHED, TEAM_SELF.",
+              },
+              level: {
+                type: "string",
+                description:
+                  "PERM_READ, PERM_CREATE, PERM_UPDATE, PERM_DELETE, or PERM_ALL.",
+              },
+            },
+            required: ["permission", "level"],
+          },
+        },
+      },
+      required: ["teamid", "checks"],
+    },
+  },
+  {
     name: "list_databases_for_team",
     description:
       "Get all ADBs (databases) for a specific team. An ADB is like a spreadsheet file or a database table containing records. Use this to discover available adbid values within a team.",
@@ -1063,6 +1131,39 @@ export function createMcpServer({
                 ),
               },
             ],
+          };
+        }
+
+        case "anydb_get_permissions": {
+          const permissions = await extApiClient.getEffectivePermissions({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string | undefined,
+            adoid: args?.adoid as string | undefined,
+            userid: args?.userid as string | undefined,
+          });
+          return {
+            content: [
+              { type: "text", text: JSON.stringify(permissions, null, 2) },
+            ],
+          };
+        }
+
+        case "anydb_check_permissions": {
+          const checks = args?.checks as
+            | Array<{ permission: string; level: string }>
+            | undefined;
+          if (!Array.isArray(checks) || checks.length === 0) {
+            throw new Error("checks must be a non-empty array");
+          }
+          const result = await extApiClient.checkPermissions({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string | undefined,
+            adoid: args?.adoid as string | undefined,
+            userid: args?.userid as string | undefined,
+            checks,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           };
         }
 

@@ -1043,6 +1043,40 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  /**
+   * What one user may do with one resource.
+   *
+   * `userid` is optional and defaults, server-side, to the authenticated
+   * caller — which is the common case ("may I?").
+   */
+  async getEffectivePermissions(params: {
+    teamid: string;
+    adbid?: string;
+    adoid?: string;
+    userid?: string;
+  }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/permissions",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
+  /** Answer specific permission questions about one user and one resource. */
+  async checkPermissions(params: {
+    teamid: string;
+    adbid?: string;
+    adoid?: string;
+    userid?: string;
+    checks: Array<{ permission: string; level: string }>;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/permissions/check",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
   async listDatabasesForTeam(teamid: string): Promise<ADB[]> {
     const response = await this.client.get<ExtApiResponse<ADB[]>>(
       "/integrations/ext/listdbsforteam",
