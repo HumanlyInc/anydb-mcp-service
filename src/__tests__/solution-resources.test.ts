@@ -81,9 +81,13 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       "that read is the only confirmation that the formula evaluates",
     );
+    // Reworded from "avoid special characters such as %" into a table of the
+    // actual failure modes, since nothing rejects a bad key yet (ISSUE - 4).
+    // The % case is still called out, now with what it really does.
     expect(resource.text).toContain(
-      "Avoid special characters such as `%` in any key used inside `{{Field Key}}`",
+      "Field keys must contain only letters, numbers, underscores, and spaces",
     );
+    expect(resource.text).toContain("`Discount %`");
     expect(resource.text).toContain(
       "A `heading` field requires `headingLabel`",
     );
@@ -640,6 +644,22 @@ describe("cell properties and conditional formatting", () => {
     expect(guide).toContain("`CONCAT_A` around `SEQNUM` is the one exception");
     expect(guide).toContain("INV-[object Promise]");
     expect(guide).toContain("TEXT_A");
+  });
+
+  // Nothing rejects a bad field key today and blocking is deferred to the UI
+  // (ISSUE - 4), so the guide is the only guard. A bare rule is not enough
+  // when the penalty is a plausible wrong number, hence the consequences.
+  it("warns that a bad field key breaks formulas silently", () => {
+    expect(guide).toContain(
+      "Field keys must contain only letters, numbers, underscores, and spaces",
+    );
+    // Underscore works at runtime; the old wording omitted it.
+    expect(guide).toContain("`Invoice_Face_Value`");
+    // The two failure modes nobody would guess.
+    expect(guide).toContain("silently reads a **different field**");
+    expect(guide).toContain("the rest of the formula is discarded");
+    // IFERROR looks like a safety net here and is not one.
+    expect(guide).toContain("`IFERROR` never fires");
   });
 
   it("explains how to make a computed cell overridable", () => {
