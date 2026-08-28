@@ -186,6 +186,12 @@ app.post("/", async (req, res) => {
     apiKey: credentials.apiKey,
     userEmail: credentials.userEmail,
     accessToken: credentials.accessToken,
+    // Stateless transport: this server may never see an initialize, so seed
+    // the identity from the HTTP request. oninitialized upgrades it to the
+    // MCP clientInfo on the request that does carry the handshake.
+    originClient:
+      (req.headers["x-anydb-origin-client"] as string | undefined) ||
+      (req.headers["user-agent"] as string | undefined),
   });
 
   // Stateless: no session id is issued, and nothing is retained between
