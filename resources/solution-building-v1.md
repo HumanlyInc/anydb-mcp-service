@@ -519,7 +519,7 @@ Do not follow a write with a read to see computed values, and do not compute
 them yourself and write them in — a cell with a `formula` is owned by the
 formula. Read the write's response instead.
 
-Two consequences worth planning for:
+Three consequences worth planning for:
 
 - A formula that depends on another record's data reflects that data as of
   evaluation. A `lookup` in `snapshot` mode is copied once when the reference is
@@ -528,6 +528,15 @@ Two consequences worth planning for:
   did not evaluate — usually an ambiguous `{{key}}`, a reference to a field that
   does not exist yet, or an unguarded aggregation. Fix the formula rather than
   writing a value over it.
+- `TODAY()` and `NOW()` are read when the formula runs and then stored like any
+  other computed value. They are not a live clock, and nothing re-evaluates them
+  as days pass. They also take no arguments, so they create no dependency edge:
+  writing an unrelated field on the record does not refresh them. An
+  elapsed-time field such as "days outstanding" therefore freezes at the value
+  it held when its formula last ran. To keep one current, give it a
+  `trigger_on_schedule` workflow that writes a field the formula actually reads
+  — the start date, or a dedicated "recalculated at" field the formula
+  references. Touching some other field on the record will not re-evaluate it.
 
 ## Workflows
 

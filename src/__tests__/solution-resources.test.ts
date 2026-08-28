@@ -621,6 +621,16 @@ describe("cell properties and conditional formatting", () => {
     expect(guide).toContain("return the record after evaluation");
   });
 
+  // Verified against the engine in anydb-server
+  // test/computed/today.staleness.test.ts: a TODAY()-only cell is not
+  // refreshed even by writing another field on the same record, so the guide
+  // has to say which field a scheduled workflow must write.
+  it("warns that TODAY() and NOW() are snapshots rather than a live clock", () => {
+    expect(guide).toContain("`TODAY()` and `NOW()` are read when the formula runs");
+    expect(guide).toContain("create no dependency edge");
+    expect(guide).toContain("trigger_on_schedule");
+  });
+
   it("explains how to make a computed cell overridable", () => {
     expect(guide).toContain("VALUE_OVERRIDE_ENABLED");
   });
