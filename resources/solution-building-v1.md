@@ -118,7 +118,24 @@ Supported authoring formats are `general`, `number`, `currency`, `percentage`, `
 
 Important format rules:
 
-- Field keys referenced by formulas must use only letters, numbers, and spaces. Avoid special characters such as `%` in any key used inside `{{Field Key}}`; use a key such as `Discount Percentage` instead of `Discount %`.
+- **Field keys must contain only letters, numbers, underscores, and spaces.** Nothing else. Accented letters are fine (`Facturación Neta` works); every other character breaks any formula that references the key, and it breaks **silently** — no error, at authoring time or at evaluation. This rule is not enforced yet, so a bad key is accepted and the damage shows up later as a wrong number.
+
+  A `{{Field Key}}` reference becomes a single symbol only if the key parses as one. Any other character ends the symbol early and the remainder is parsed as separate tokens, which the formula language then joins by implicit multiplication. Observed:
+
+  | Key | Parses as | Result |
+  | --- | --- | --- |
+  | `Assigned Funded Invoice Face Value` | one symbol | correct |
+  | `Invoice_Face_Value` | one symbol | correct |
+  | `Assigned / Funded Invoice Face Value` | `Assigned`, `Funded`, `Invoice`, `Face`, `Value` | five undefined symbols multiplied together |
+  | `Invoice-Face-Value` | `Invoice - Face - Value` | subtraction between undefined symbols |
+  | `Discount %` | `Discount` | silently reads a **different field** if one named `Discount` exists |
+  | `Item #1` | `Item` | `#` starts a comment — **the rest of the formula is discarded** |
+  | `Total (USD)` | `Total(USD)` | parsed as a function call |
+  | `Client's Name` | `Client`, `s`, `Name` | three undefined symbols |
+
+  Wrapping the formula in `IFERROR` makes this worse, not better: the expression is valid, so `IFERROR` never fires and the fallback value is returned as though it were a real result. A `{{...}} * {{...}}` product that should be 4800 becomes 0, and nothing anywhere reports a problem.
+
+  Name the field `Discount Percentage`, not `Discount %`. If a key already contains a forbidden character, rename it before writing any formula that references it.
 - A `heading` field requires `headingLabel`. The `key` remains the stable field identifier, while `headingLabel` is the displayed text stored in the heading cell's `HEADING_LABEL` prop rather than its `value`. Do not put heading text in a default value or raw props. Example:
 
   ```json
