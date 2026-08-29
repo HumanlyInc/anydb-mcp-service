@@ -1077,6 +1077,60 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async createReport(params: {
+    teamid: string;
+    adbid: string;
+    name: string;
+    definition: Record<string, unknown>;
+    validateOnly?: boolean;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/reports",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listReports(params: {
+    teamid: string;
+    adbid: string;
+  }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/reports",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getReport(params: {
+    teamid: string;
+    adbid: string;
+    reportId: string;
+  }): Promise<unknown> {
+    const { reportId, ...query } = params;
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/reports/${encodeURIComponent(reportId)}`,
+      { params: query },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async updateReport(params: {
+    teamid: string;
+    adbid: string;
+    reportId: string;
+    name?: string;
+    definition?: Record<string, unknown>;
+    validateOnly?: boolean;
+  }): Promise<unknown> {
+    const { reportId, ...body } = params;
+    const response = await this.client.put<ExtApiResponse<unknown>>(
+      `/integrations/ext/reports/${encodeURIComponent(reportId)}`,
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
   async addComment(params: {
     teamid: string;
     adbid: string;

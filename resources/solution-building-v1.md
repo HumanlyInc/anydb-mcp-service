@@ -478,6 +478,50 @@ Example private record share:
 }
 ```
 
+## Reports
+
+A report is a saved, grouped, aggregated view over one type — the Reports tab
+in the product. Create one with `anydb_create_report`, and call
+`anydb_list_reports` first so an equivalent report is reused rather than
+duplicated.
+
+```json
+{
+  "name": "Revenue by company",
+  "definition": {
+    "templateName": "Invoice",
+    "groupBy": [{ "field": "Issued", "dateInterval": "month" }, "Company"],
+    "selectedFields": ["Company", "Amount"],
+    "metrics": [{ "field": "Amount", "operation": "sum", "alias": "Total" }],
+    "includeSubtotals": true,
+    "timezone": "America/New_York"
+  }
+}
+```
+
+`templateName` is the only required part. `groupBy` takes a field key, or
+`{field, dateInterval}` where the interval is `day`, `week`, `month`, `quarter`
+or `year` — date bucketing only applies to a date field. `metrics` operations
+are `sum`, `avg`, `min`, `max`, `count`.
+
+Four rules the server enforces, each of which otherwise fails only at create
+time:
+
+- `includeSubtotals` and `includeGrandTotal` need at least one metric.
+- `timezone` must be a real IANA zone. It decides where day, week and month
+  boundaries fall, so leaving it off buckets in UTC.
+- `maxCandidateRecords`, `maxGroups` and `maxCellDocs` must be positive
+  integers.
+- The same field cannot be grouped twice when either occurrence is a date
+  bucket — a year-then-month drilldown on one date field is refused rather than
+  silently dropping the coarser dimension from the output.
+
+Use `validateOnly: true` to check a definition without creating anything.
+
+`anydb_update_report` **replaces the whole definition** when you send one, the
+same way `anydb_update_view` replaces a View's targets — include every part that
+should remain. Omit `definition` to rename only.
+
 ## Comments
 
 Use `anydb_add_comment` to leave a comment, and `anydb_resolve_comment` to

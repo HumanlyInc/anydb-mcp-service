@@ -741,6 +741,91 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_create_report",
+    description:
+      "Create a saved report in a database. A report is a grouped, aggregated view over one type - the Reports tab in the product. Use validateOnly: true to check a definition without creating anything; the definition is checked with the same rules the report runtime enforces, so what this accepts is what will actually run.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        name: { type: "string", description: "The report's display name." },
+        definition: { type: "object", description: "The report definition. templateName (required) is the stable type name the report runs over. groupBy is an array of dimensions - a field key, or {field, dateInterval} where dateInterval is day|week|month|quarter|year and only valid on a date field. selectedFields lists the field keys to show. metrics is an array of {field, operation, alias?} where operation is sum|avg|min|max|count. Optional: filterExpression (Lucene-style, quote literals containing spaces), includeSubtotals, includeGrandTotal (both need at least one metric), maxCandidateRecords, maxGroups, maxCellDocs (positive integers), and timezone (an IANA zone such as America/New_York; defaults to UTC and decides where day/week/month boundaries fall). The same field cannot be grouped twice when either occurrence is a date bucket." },
+        validateOnly: {
+          type: "boolean",
+          description:
+            "Validate the definition and return without creating the report.",
+        },
+      },
+      required: ["teamid", "adbid", "name", "definition"],
+    },
+  },
+  {
+    name: "anydb_list_reports",
+    description:
+      "List the saved reports in a database, with their ids and names. Call this before creating one so an equivalent report is reused rather than duplicated.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+      },
+      required: ["teamid", "adbid"],
+    },
+  },
+  {
+    name: "anydb_get_report",
+    description:
+      "Read one report's complete definition. Returns an error if the id is a record that is not a report.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        reportId: {
+          type: "string",
+          description: "The report ID, from anydb_list_reports.",
+        },
+      },
+      required: ["teamid", "adbid", "reportId"],
+    },
+  },
+  {
+    name: "anydb_update_report",
+    description:
+      "Rename a report, replace its definition, or both. Sending a definition REPLACES the whole definition - include every part that should remain, the same way anydb_update_view replaces a View's targets. Omit definition to rename only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        reportId: {
+          type: "string",
+          description: "The report ID, from anydb_list_reports.",
+        },
+        name: { type: "string", description: "A new display name." },
+        definition: { type: "object", description: "The report definition. templateName (required) is the stable type name the report runs over. groupBy is an array of dimensions - a field key, or {field, dateInterval} where dateInterval is day|week|month|quarter|year and only valid on a date field. selectedFields lists the field keys to show. metrics is an array of {field, operation, alias?} where operation is sum|avg|min|max|count. Optional: filterExpression (Lucene-style, quote literals containing spaces), includeSubtotals, includeGrandTotal (both need at least one metric), maxCandidateRecords, maxGroups, maxCellDocs (positive integers), and timezone (an IANA zone such as America/New_York; defaults to UTC and decides where day/week/month boundaries fall). The same field cannot be grouped twice when either occurrence is a date bucket." },
+        validateOnly: {
+          type: "boolean",
+          description: "Validate without saving.",
+        },
+      },
+      required: ["teamid", "adbid", "reportId"],
+    },
+  },
+  {
     name: "anydb_add_comment",
     description:
       "Post a comment on a record, or on one cell of it. Use this rather than writing into a record's comments through update_record: the author is the authenticated user and cannot be set by the caller, the id and timestamp are assigned by the server, and mention notifications fire. Omit cellPosition to comment on the record itself; pass a grid position such as 'A8' to comment on that one cell. Returns the new commentId.",
@@ -1656,6 +1741,54 @@ export function createMcpServer({
                 text: JSON.stringify(result, null, 2),
               },
             ],
+          };
+        }
+
+        case "anydb_create_report": {
+          const result = await extApiClient.createReport({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            name: args?.name as string,
+            definition: args?.definition as Record<string, unknown>,
+            validateOnly: args?.validateOnly as boolean | undefined,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_list_reports": {
+          const result = await extApiClient.listReports({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_get_report": {
+          const result = await extApiClient.getReport({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            reportId: args?.reportId as string,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_update_report": {
+          const result = await extApiClient.updateReport({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            reportId: args?.reportId as string,
+            name: args?.name as string | undefined,
+            definition: args?.definition as Record<string, unknown> | undefined,
+            validateOnly: args?.validateOnly as boolean | undefined,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           };
         }
 
