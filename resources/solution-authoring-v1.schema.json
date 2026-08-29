@@ -1417,7 +1417,6 @@
       "required": [
         "teamid",
         "adbid",
-        "workflowId",
         "simulate"
       ],
       "properties": {
@@ -1428,11 +1427,18 @@
           "$ref": "#/$defs/objectId"
         },
         "workflowId": {
-          "$ref": "#/$defs/objectId"
+          "$ref": "#/$defs/objectId",
+          "description": "The workflow to run, by id. Supply this or workflowName, not both."
+        },
+        "workflowName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "The workflow to run, by name. This is what a button-format cell stores in its BUTTON_ACTION_VALUE prop, so pass that value here directly. Matching ignores surrounding space and case, and fails rather than guessing if two workflows in the database share the name."
         },
         "adoid": {
           "$ref": "#/$defs/objectId",
-          "description": "Optional record context for record-based workflow triggers."
+          "description": "Optional record context for record-based workflow triggers. Pass the record the button is on."
         },
         "simulate": {
           "type": "boolean",
