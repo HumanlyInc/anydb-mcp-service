@@ -1077,6 +1077,36 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async addComment(params: {
+    teamid: string;
+    adbid: string;
+    adoid: string;
+    text: string;
+    cellPosition?: string;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/comments",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async resolveComment(params: {
+    teamid: string;
+    adbid: string;
+    adoid: string;
+    commentId: string;
+    cellPosition?: string;
+    resolved?: boolean;
+  }): Promise<unknown> {
+    const { commentId, ...body } = params;
+    const response = await this.client.put<ExtApiResponse<unknown>>(
+      `/integrations/ext/comments/${encodeURIComponent(commentId)}`,
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
   async listDatabasesForTeam(teamid: string): Promise<ADB[]> {
     const response = await this.client.get<ExtApiResponse<ADB[]>>(
       "/integrations/ext/listdbsforteam",
