@@ -167,7 +167,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_execute_workflow",
     description:
-      "Execute an existing workflow. Set simulate=true to dry-run without side effects, or simulate=false for normal execution. Supply adoid when the workflow requires record context. Inspect the returned latest execution for artifact outputs and errors.",
+      "Execute an existing workflow, by workflowId or by workflowName. Set simulate=true to dry-run without side effects, or simulate=false for normal execution. Supply adoid when the workflow requires record context. Inspect the returned latest execution for artifact outputs and errors. THIS IS ALSO HOW YOU PRESS A BUTTON. A button-format cell stores BUTTON_ACTION_TYPE 'automation' and BUTTON_ACTION_VALUE, and BUTTON_ACTION_VALUE is the workflow's NAME, not its id - so read the button cell off the record with get_record and pass its BUTTON_ACTION_VALUE as workflowName, along with that record's adoid. There is no button-specific trigger; a button runs an ordinary workflow. This reaches the same server code a real click reaches, with the same record permissions and the same attribution to you as the caller. One difference: CELL_LOCKED and CELL_HIDDEN on a button only grey it out in the app, and are not checked here, so a button a person could not press can still be fired this way - check the cell's props yourself if that matters.",
     inputSchema: executeWorkflowInputSchema as unknown as Tool["inputSchema"],
   },
   {
@@ -321,6 +321,16 @@ export async function callSolutionAuthoringTool(
       normalized as unknown as UpdateWorkflowRequest,
     );
   } else if (name === "anydb_execute_workflow") {
+    if (!args.workflowId && !args.workflowName) {
+      throw new Error(
+        "anydb_execute_workflow needs workflowId or workflowName. A button-format cell stores the workflow's NAME in its BUTTON_ACTION_VALUE prop; pass that as workflowName.",
+      );
+    }
+    if (args.workflowId && args.workflowName) {
+      throw new Error(
+        "anydb_execute_workflow takes workflowId or workflowName, not both.",
+      );
+    }
     result = await client.executeWorkflow(
       args as unknown as ExecuteWorkflowRequest,
     );

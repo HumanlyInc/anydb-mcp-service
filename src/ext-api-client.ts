@@ -538,7 +538,9 @@ export interface UpdateWorkflowResult {
 export interface ExecuteWorkflowRequest {
   teamid: string;
   adbid: string;
-  workflowId: string;
+  /** Exactly one of workflowId or workflowName. A button cell carries a name. */
+  workflowId?: string;
+  workflowName?: string;
   adoid?: string;
   simulate: boolean;
 }
@@ -1006,11 +1008,25 @@ export class ExtApiClient {
   async executeWorkflow(
     params: ExecuteWorkflowRequest,
   ): Promise<ExecuteWorkflowResult> {
-    const { workflowId, ...body } = params;
+    const { workflowId, workflowName, ...body } = params;
+
+    // A button-format cell stores the workflow's NAME in BUTTON_ACTION_VALUE,
+    // so the by-name route exists to spend it. The server resolves the name
+    // inside the ADB and then runs the same code the by-id route runs.
+    if (workflowName) {
+      const response = await this.client.post<
+        ExtApiResponse<ExecuteWorkflowResult>
+      >("/integrations/ext/workflows/execute-by-name", {
+        ...body,
+        name: workflowName,
+      });
+      return this.unwrap(response.data);
+    }
+
     const response = await this.client.post<
       ExtApiResponse<ExecuteWorkflowResult>
     >(
-      `/integrations/ext/workflows/${encodeURIComponent(workflowId)}/execute`,
+      `/integrations/ext/workflows/${encodeURIComponent(workflowId ?? "")}/execute`,
       body,
     );
     return this.unwrap(response.data);

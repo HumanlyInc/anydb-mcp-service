@@ -1038,10 +1038,12 @@ describe("solution authoring tools", () => {
     const tool = SOLUTION_AUTHORING_TOOLS.find(
       (candidate) => candidate.name === "anydb_execute_workflow",
     );
+    // workflowId is no longer required: a workflowName does just as well, and
+    // is what a button-format cell gives you (ISSUE - 22). The call still has
+    // to carry one of the two, which callSolutionAuthoringTool enforces.
     expect((tool?.inputSchema as any).required).toEqual([
       "teamid",
       "adbid",
-      "workflowId",
       "simulate",
     ]);
     expect(tool?.description).toContain("simulate=false");

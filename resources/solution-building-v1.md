@@ -218,6 +218,25 @@ Commonly useful properties:
 An `ai` field needs `AI_PROMPT`, and a `button` field needs the two
 `BUTTON_ACTION_*` properties; neither format works without them.
 
+#### Buttons
+
+`BUTTON_ACTION_TYPE` is always `"automation"` — it is the only kind of action a
+button has. `BUTTON_ACTION_VALUE` is the workflow's **name**, not its id, and
+the name must match a workflow in the same database. There is no
+button-specific trigger: a button runs an ordinary workflow, normally one on
+`trigger_manual` scoped to this type.
+
+Because the link is by name, renaming a workflow silently breaks every button
+pointing at it, and two workflows sharing a name make the button ambiguous
+rather than picking one. Keep automation names unique within a database.
+
+To press a button yourself, read the cell with `get_record` and pass its
+`BUTTON_ACTION_VALUE` to `anydb_execute_workflow` as `workflowName`, together
+with the record's `adoid`. That reaches the same server code a real click
+reaches. `CELL_LOCKED` and `CELL_HIDDEN` on a button only grey it out in the
+app and are not checked on that path, so a button a person could not press can
+still be fired — check the props yourself if that matters.
+
 Three rules the server enforces:
 
 - **Do not set a property a named field owns.** `CELL_DESCRIPTION`,
