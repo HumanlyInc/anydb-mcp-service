@@ -458,7 +458,7 @@ const TOOLS: Tool[] = [
   {
     name: "update_record",
     description:
-      "Update an existing AnyDB record's metadata and content. Formulas run on write, and the response is the record after evaluation, so computed cells, property expressions, and the record name it returns are already current - do not follow this with a read to see them, and never compute a formula-owned cell yourself and write the result in. This is also the tool that changes a record's parents: meta.attach sets the record's complete parent list, so it is how you attach one record to several parents. Use move_record only for a single-parent reassignment.",
+      "Update an existing AnyDB record's metadata and content. Formulas run on write, and the response is the record after evaluation, so computed cells, property expressions, and the record name it returns are already current - do not follow this with a read to see them, and never compute a formula-owned cell yourself and write the result in. This is also the tool that changes a record's parents: meta.attach sets the record's complete parent list, so it is how you attach one record to several parents. Use move_record only for a single-parent reassignment. THREE meta fields are not inert bookkeeping and reach the outside world: meta.assignees emails the people you add, right now; meta.followup schedules an email for later; meta.locked blocks every later write to this record, including your own. Read their descriptions before setting any of them, and do not set them to record your own working state.",
     inputSchema: {
       type: "object",
       properties: {
@@ -493,11 +493,13 @@ const TOOLS: Tool[] = [
             },
             followup: {
               type: "number",
-              description: "Optional followup timestamp",
+              description:
+                "Optional reminder time, as epoch MILLISECONDS. SENDS REAL EMAIL: when that time arrives a follow-up reminder email and an in-app notification go to everyone currently in meta.assignees (group members included). It is not a note to yourself and there is no dry run - do not set it to track your own scheduling. With no assignees on the record nothing is sent at all, so the two fields are only meaningful together. Pass 0 to cancel a pending reminder; null and \"\" are ignored and leave it scheduled. The repeat schedule (followuprepeat) and the last-fired stamp (followedup) cannot be set through this API - a reminder set here fires once.",
             },
             locked: {
               type: "boolean",
-              description: "Optional locked status",
+              description:
+                "Optional. LOCKS YOU OUT: with locked true the server refuses every later write to this record - cell content AND metadata, so even a rename fails - with error 24005 'ADO is locked, update failed'. The only write it accepts is one that passes locked false, which may carry the change in the same call. If the record has a LOCKED_ACCESS rule the unlock itself can be refused, in which case you cannot undo it. This is an editing lock, not a permission: workflow scripts and incoming webhooks still write through it. Set it only when the user asked for the record to be locked.",
             },
             status: {
               type: "string",
@@ -513,17 +515,20 @@ const TOOLS: Tool[] = [
             },
             assignees: {
               type: "object",
-              description: "Optional assignees",
+              description:
+                "Optional. SENDS REAL EMAIL, IMMEDIATELY: everyone you ADD here gets an assignment email and an in-app notification during this call, and the record appears in their Inbox until they are unassigned. Groups expand to every member. Only newly added people are notified; assigning yourself notifies nobody. Ask the user before assigning a record to someone else. KNOWN DEFECT: the change is applied only when the NUMBER of assignees changes, so replacing one user with another one-for-one is silently dropped - no error, and the previous assignee stays. To swap, clear the list first with empty arrays, then assign in a second call.",
               properties: {
                 users: {
                   type: "array",
                   items: { type: "string" },
-                  description: "Array of user IDs",
+                  description:
+                    "User IDs. REPLACES the current list rather than adding to it, so include everyone who must stay assigned.",
                 },
                 groups: {
                   type: "array",
                   items: { type: "string" },
-                  description: "Array of group IDs",
+                  description:
+                    "Group IDs. REPLACES the current list. Every member of every group listed is notified and gets the record in their Inbox.",
                 },
               },
             },
@@ -542,7 +547,7 @@ const TOOLS: Tool[] = [
   {
     name: "bulk_update_records",
     description:
-      "Update up to 100 records in one request. Processing uses bounded concurrency and returns an ordered result for every input; failures do not roll back successful updates. Use clientref to correlate results.",
+      "Update up to 100 records in one request. Processing uses bounded concurrency and returns an ordered result for every input; failures do not roll back successful updates. Use clientref to correlate results. meta.assignees, meta.followup and meta.locked carry the same outside-world consequences here as in update_record, multiplied by the batch: a hundred records assigned is a hundred emails sent at once, and there is no rollback once they are out. See update_record for what each field does.",
     inputSchema: {
       type: "object",
       properties: {
@@ -566,8 +571,16 @@ const TOOLS: Tool[] = [
                   name: { type: "string" },
                   description: { type: "string" },
                   icon: { type: "string" },
-                  followup: { type: "number" },
-                  locked: { type: "boolean" },
+                  followup: {
+                    type: "number",
+                    description:
+                      "Epoch milliseconds. Schedules a real reminder email to this record's assignees. 0 cancels. See update_record.",
+                  },
+                  locked: {
+                    type: "boolean",
+                    description:
+                      "true blocks every later write to this record until an update passes false. See update_record.",
+                  },
                   status: { type: "string" },
                   attach: {
                     oneOf: [
@@ -577,7 +590,11 @@ const TOOLS: Tool[] = [
                     description:
                       "Optional parent record ID, or an array of parent IDs. Replaces the record's complete parent list; include every parent that must stay attached.",
                   },
-                  assignees: { type: "object" },
+                  assignees: {
+                    type: "object",
+                    description:
+                      "Emails everyone added, immediately, once per record in the batch. See update_record.",
+                  },
                 },
                 required: ["adoid", "adbid", "teamid"],
               },

@@ -157,7 +157,10 @@ Important format rules:
 - `lookup` mirrors a field through a `ref`; provide `lookup.fromField`, `lookup.targetField`, and an optional `lookup.mode` of `snapshot` or `live`. The default is `snapshot`.
 - `attachments` embeds child records and requires the child `targetType`. Give it enough space, normally full width and 6-7 rows high.
 - `select` and `multi-select` require stable `options`.
-- Computed fields use `formula` and should normally be `locked`.
+- Computed fields use `formula` and should normally be `locked`. A field's
+  `locked` makes that one cell read-only and is unrelated to a record's
+  `meta.locked`, which freezes the whole record against every later write —
+  see `update_record`.
 - Prefer the named fields — `description`, `headingLabel`, `required`, `locked`, `options`, `targetType` — over `props`. Each owns a cell property, and setting the same property through `props` is rejected. Use `props` for presentation and behaviour the named fields do not cover; see Cell Properties below.
 - Layout positions match `^[A-Z]+[1-9][0-9]*$`; `colspan` and `rowspan` are positive integers. Occupied grid areas must not overlap.
 
