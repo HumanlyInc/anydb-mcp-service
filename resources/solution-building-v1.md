@@ -408,6 +408,17 @@ Use `anydb_create_view` to create a saved filtered listing after its target type
   "assigned to me" or "my records" View is not expressible. Filter on a
   concrete value instead, or use per-viewer cell access to hide fields — that
   works per cell, not per row.
+- **A View is not a tab on a type's listing page.** Those tabs — `All`, and the
+  named filters beside it — are a separate construct stored on the database
+  root record, not Views, and no tool here reads or writes them. So
+  `anydb_create_view` cannot put one there, and `anydb_list_views` cannot show
+  you the ones a person already has. Both directions surprise people, because
+  the two look like the same feature and are not.
+
+  This matters most when the user asked to "add a filter they can see". A View
+  is reachable by passing its `viewId` as `parentid` to `list_records`, which
+  is real and useful, but it will not appear on the type page. Say which one
+  you made rather than letting them go looking for a tab that is not there.
 
 Example child View:
 

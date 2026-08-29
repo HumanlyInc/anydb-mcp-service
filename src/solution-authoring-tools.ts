@@ -185,7 +185,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_create_view",
     description:
-      "Create a filtered View using stable workspace type names that remain valid across type revisions. Each target's filters apply only to records of that type. Call anydb_list_views first and reuse or update a compatible View instead of creating a duplicate. Use scope workspace to attach the View to the database root for workspace-level type filtering, or scope children with parentRecordId to filter matching direct children of that record.",
+      "Create a filtered View using stable workspace type names that remain valid across type revisions. Each target's filters apply only to records of that type. Call anydb_list_views first and reuse or update a compatible View instead of creating a duplicate. Use scope workspace to attach the View to the database root for workspace-level type filtering, or scope children with parentRecordId to filter matching direct children of that record. THIS DOES NOT ADD A TAB TO A TYPE'S LISTING PAGE. The tabs a person sees along the top of a type page - All, and whatever named filters sit beside it - are a different construct entirely, stored on the database root record rather than as Views, and nothing in this API reads or writes them. A View created here is real and works: pass its viewId as parentid to list_records to get the filtered records. But it is reachable through the API, not through those tabs, so do not tell the user to look for it there.",
     inputSchema: createViewInputSchema as unknown as Tool["inputSchema"],
   },
   {
@@ -197,7 +197,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_list_views",
     description:
-      "List accessible Views in a database with decoded scope, parent, stable target type names, and structured filters. Call before creating a View to avoid duplicates.",
+      "List accessible Views in a database with decoded scope, parent, stable target type names, and structured filters. Call before creating a View to avoid duplicates. This lists Views only. The named tabs on a type's listing page are not Views and never appear here, so an empty or short result is not evidence that the user has no saved filters - it means this database has no Views. There is no way to read those tabs through this API.",
     inputSchema: listViewsInputSchema as unknown as Tool["inputSchema"],
   },
   {
