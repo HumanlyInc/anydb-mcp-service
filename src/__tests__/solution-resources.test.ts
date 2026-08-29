@@ -703,6 +703,16 @@ describe("cell properties and conditional formatting", () => {
     expect(guide).toContain("A filter cannot reference whoever is viewing");
   });
 
+  // Hand-splicing a comment through update_record forges the author and skips
+  // notifications (ISSUE - 14). The guide has to steer off it explicitly.
+  it("points comments at the comment tools, not update_record", () => {
+    expect(guide).toContain("## Comments");
+    expect(guide).toContain(
+      "Do not write into a record's `comments` through",
+    );
+    expect(guide).toContain("[Name](user://<userid>)");
+  });
+
   it("explains how to make a computed cell overridable", () => {
     expect(guide).toContain("VALUE_OVERRIDE_ENABLED");
   });

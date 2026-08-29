@@ -478,6 +478,31 @@ Example private record share:
 }
 ```
 
+## Comments
+
+Use `anydb_add_comment` to leave a comment, and `anydb_resolve_comment` to
+close one out. **Do not write into a record's `comments` through
+`anydb_update_record`.** That path looks like it works and gives up every
+guarantee a comment is supposed to carry: the author becomes whatever the
+payload says, the id and timestamp become the caller's invention, and the
+mention notification never fires.
+
+The tools take no author, id, or date. The server sets all three — the author
+from whoever is authenticated.
+
+- Omit `cellPosition` to comment on the record.
+- Pass a grid position such as `A8` to comment on that one cell's thread.
+- `anydb_resolve_comment` needs the same scope the comment was created with. A
+  record-level lookup will not find a comment that lives on a cell.
+- Mention someone with `[Name](user://<userid>)`. That is what notifies them.
+
+Resolving preserves the comment text; only the status changes. Pass
+`resolved: false` to reopen one.
+
+Note that `anydb_update_record` still replaces a `comments` map wholesale if you
+send one, so a partial write silently drops every comment already there. The
+comment tools exist so you never need to send one.
+
 ## File Uploads
 
 Attach a file with the signed-URL flow, whatever its size:

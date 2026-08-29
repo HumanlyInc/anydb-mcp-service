@@ -741,6 +741,75 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_add_comment",
+    description:
+      "Post a comment on a record, or on one cell of it. Use this rather than writing into a record's comments through update_record: the author is the authenticated user and cannot be set by the caller, the id and timestamp are assigned by the server, and mention notifications fire. Omit cellPosition to comment on the record itself; pass a grid position such as 'A8' to comment on that one cell. Returns the new commentId.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: {
+          type: "string",
+          description: "The team ID (MongoDB ObjectId). Get from list_teams.",
+        },
+        adbid: {
+          type: "string",
+          description:
+            "The database ID (MongoDB ObjectId). Get from list_databases_for_team.",
+        },
+        adoid: {
+          type: "string",
+          description: "The record ID (MongoDB ObjectId) to comment on.",
+        },
+        text: {
+          type: "string",
+          description:
+            "The comment text. Mention someone with [Name](user://<userid>), which is what triggers their notification.",
+        },
+        cellPosition: {
+          type: "string",
+          description:
+            "Optional grid position such as 'A8'. Given, the comment attaches to that cell's own thread; omitted, it attaches to the record.",
+        },
+      },
+      required: ["teamid", "adbid", "adoid", "text"],
+    },
+  },
+  {
+    name: "anydb_resolve_comment",
+    description:
+      "Mark a comment resolved, or reopen it with resolved: false. The comment's text is preserved. Scope must match where the comment lives: pass the same cellPosition used to create it, or omit it for a record-level comment - a record-level lookup will not find a comment that lives on a cell.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        adoid: {
+          type: "string",
+          description: "The record ID (MongoDB ObjectId) the comment is on",
+        },
+        commentId: {
+          type: "string",
+          description:
+            "The comment's id, as returned by anydb_add_comment or read from the record.",
+        },
+        cellPosition: {
+          type: "string",
+          description:
+            "The cell position the comment lives on, if it is a cell comment. Omit for a record-level comment.",
+        },
+        resolved: {
+          type: "boolean",
+          description:
+            "Defaults to true. Pass false to reopen a resolved comment.",
+        },
+      },
+      required: ["teamid", "adbid", "adoid", "commentId"],
+    },
+  },
+  {
     name: "download_file",
     description:
       "Download a file or get download URL from a record cell. Returns JSON with a 'url' field containing a presigned file link. Normal file URLs expire after approximately 60 seconds: fetch immediately and do not cache or reuse them. The MCP client/host should render the URL as a link for humans or fetch its bytes for LLM processing. First use get_record to find file cells and their cellpos values.",
@@ -1586,6 +1655,37 @@ export function createMcpServer({
                 type: "text",
                 text: JSON.stringify(result, null, 2),
               },
+            ],
+          };
+        }
+
+        case "anydb_add_comment": {
+          const result = await extApiClient.addComment({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            adoid: args?.adoid as string,
+            text: args?.text as string,
+            cellPosition: args?.cellPosition as string | undefined,
+          });
+          return {
+            content: [
+              { type: "text", text: JSON.stringify(result, null, 2) },
+            ],
+          };
+        }
+
+        case "anydb_resolve_comment": {
+          const result = await extApiClient.resolveComment({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            adoid: args?.adoid as string,
+            commentId: args?.commentId as string,
+            cellPosition: args?.cellPosition as string | undefined,
+            resolved: args?.resolved as boolean | undefined,
+          });
+          return {
+            content: [
+              { type: "text", text: JSON.stringify(result, null, 2) },
             ],
           };
         }
