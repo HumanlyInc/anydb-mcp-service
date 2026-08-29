@@ -209,6 +209,22 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_get_inbox",
+    description:
+      "List what is in YOUR Inbox for a team - the records assigned to the authenticated user, which is the same list the Inbox in the AnyDB app shows. Use it to check that an assignment you made through update_record actually landed, or to see what is waiting on you. A record gets here through meta.assignees on update_record; each entry says whether it was assigned to you directly or through a group you belong to. This reads your own Inbox only: there is no way to read another person's. The list is self-correcting, so a record that was deleted or reassigned away simply is not in it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: {
+          type: "string",
+          description:
+            "The team whose Inbox to read. Get from list_teams. An Inbox is per team, so a record assigned to you in another team will not appear here.",
+        },
+      },
+      required: ["teamid"],
+    },
+  },
+  {
     name: "anydb_get_permissions",
     description:
       "Report what a user may do with a team, database, or record: read it, update it, delete it, add records underneath it, and share it. Omit userid to ask about the authenticated user. Read the `can` block for the answer; the raw permission matrix is included for detail. Note that being able to update a record and being able to add records under it are independent — see anydb://guides/permissions/v1.",
@@ -1775,6 +1791,15 @@ export function createMcpServer({
             name: args?.name as string,
             definition: args?.definition as Record<string, unknown>,
             validateOnly: args?.validateOnly as boolean | undefined,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_get_inbox": {
+          const result = await extApiClient.listInbox({
+            teamid: args?.teamid as string,
           });
           return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

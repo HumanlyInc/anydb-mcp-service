@@ -1091,6 +1091,14 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async listInbox(params: { teamid: string }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/inbox",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
   async listReports(params: {
     teamid: string;
     adbid: string;
