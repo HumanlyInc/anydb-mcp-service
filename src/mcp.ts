@@ -458,7 +458,7 @@ const TOOLS: Tool[] = [
   {
     name: "update_record",
     description:
-      "Update an existing AnyDB record's metadata and content. Formulas run on write, and the response is the record after evaluation, so computed cells, property expressions, and the record name it returns are already current - do not follow this with a read to see them, and never compute a formula-owned cell yourself and write the result in. This is also the tool that changes a record's parents: meta.attach sets the record's complete parent list, so it is how you attach one record to several parents. Use move_record only for a single-parent reassignment. THREE meta fields are not inert bookkeeping and reach the outside world: meta.assignees emails the people you add, right now; meta.followup schedules an email for later; meta.locked blocks every later write to this record, including your own. Read their descriptions before setting any of them, and do not set them to record your own working state.",
+      "Update an existing AnyDB record's metadata and content. Formulas run on write, and the response is the record after evaluation, so computed cells, property expressions, and the record name it returns are already current - do not follow this with a read to see them, and never compute a formula-owned cell yourself and write the result in. This is also the tool that changes a record's parents: meta.attach sets the record's complete parent list, so it is how you attach one record to several parents. Use move_record only for a single-parent reassignment. THREE meta fields are not inert bookkeeping and reach the outside world: meta.assignees emails the people you add, right now; meta.followup schedules an email for later; meta.locked blocks every later write to this record, including your own. Read their descriptions before setting any of them, and do not set them to record your own working state. And meta is not the grid: every meta field is record-level and never touches a cell, even where the names line up. A type's Status or Assigned To field is data in `content`, so when the user asks you to change a record's status or its assignee, they almost always mean that cell - check the record's layout before reaching for meta.",
     inputSchema: {
       type: "object",
       properties: {
@@ -503,7 +503,9 @@ const TOOLS: Tool[] = [
             },
             status: {
               type: "string",
-              description: "Optional status",
+              enum: ["NOT_SET", "OPEN", "CLOSED"],
+              description:
+                "Optional. NOT the record's Status field. This is a separate three-value flag shown in the record header next to Assign and Follow-up, and it is the same three values on every record in AnyDB: NOT_SET, OPEN, CLOSED (exactly, uppercase). Most types define their own Status field in the grid, with whatever options the type's designer chose - 'In Progress', 'Shipped', 'Resolved'. That field is ordinary cell data and this flag is not a copy of it: setting one never changes the other, and neither is wrong. TO CHANGE WHAT A RECORD'S STATUS FIELD SAYS, WRITE THE CELL through `content`, not this. Sending a Status field's value here (\"Closed\", \"Resolved\") is rejected - it is not one of the three.",
             },
             attach: {
               oneOf: [
@@ -516,7 +518,7 @@ const TOOLS: Tool[] = [
             assignees: {
               type: "object",
               description:
-                "Optional. SENDS REAL EMAIL, IMMEDIATELY: everyone you ADD here gets an assignment email and an in-app notification during this call, and the record appears in their Inbox until they are unassigned. Groups expand to every member. Only newly added people are notified; assigning yourself notifies nobody. Ask the user before assigning a record to someone else. KNOWN DEFECT: the change is applied only when the NUMBER of assignees changes, so replacing one user with another one-for-one is silently dropped - no error, and the previous assignee stays. To swap, clear the list first with empty arrays, then assign in a second call.",
+                "Optional. SENDS REAL EMAIL, IMMEDIATELY: everyone you ADD here gets an assignment email and an in-app notification during this call, and the record appears in their Inbox until they are unassigned. Groups expand to every member. Only newly added people are notified; assigning yourself notifies nobody. Ask the user before assigning a record to someone else. KNOWN DEFECT: the change is applied only when the NUMBER of assignees changes, so replacing one user with another one-for-one is silently dropped - no error, and the previous assignee stays. To swap, clear the list first with empty arrays, then assign in a second call. Like meta.status, this is record-level and separate from the grid: a type's own person field - 'Assigned To', 'Owner', 'Reviewer' - is ordinary cell data that this does not touch, and writing that cell does not assign anybody. If the user means the field, write the cell through `content`.",
               properties: {
                 users: {
                   type: "array",
@@ -581,7 +583,12 @@ const TOOLS: Tool[] = [
                     description:
                       "true blocks every later write to this record until an update passes false. See update_record.",
                   },
-                  status: { type: "string" },
+                  status: {
+                    type: "string",
+                    enum: ["NOT_SET", "OPEN", "CLOSED"],
+                    description:
+                      "The record-level OPEN/CLOSED flag, not the record's Status field. See update_record.",
+                  },
                   attach: {
                     oneOf: [
                       { type: "string" },
