@@ -1227,6 +1227,49 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  /**
+   * Ad-hoc script execution (ISSUE - 43). Three calls, nothing persisted
+   * server-side: validate is a static check, simulate is a dry run that
+   * returns a runToken, and run refuses to execute without a token minted
+   * for that exact script.
+   */
+  async validateScript(params: { script: string }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/script/validate",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async simulateScript(params: {
+    teamid: string;
+    adbid: string;
+    script: string;
+    refIds?: string[];
+    timeoutMs?: number;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/script/simulate",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async runScript(params: {
+    teamid: string;
+    adbid: string;
+    script: string;
+    runToken: string;
+    refIds?: string[];
+    timeoutMs?: number;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/script/run",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
   async listRecordVersions(params: {
     teamid: string;
     adbid: string;

@@ -474,6 +474,79 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_run_script",
+    description:
+      "Run a short server-side script against a database and get back only what it computes. THIS IS THE ESCAPE HATCH FOR BULK AND AGGREGATE WORK - reach for it when the per-record tools would be the wrong instrument, not for ordinary work on a handful of records. Two cases it exists for: (1) a computation over more records than can be read back one by one, such as an NPS score across tens of thousands of responses, where the script reduces the rows server-side and returns one number; (2) a read-modify-write across many records, where fetching each record and sending it back would mean an agent retyping every payload. The script runs sandboxed, as YOU, with exactly your permissions - it cannot see or change anything you could not. Requires the Business or Enterprise plan. YOU MUST SIMULATE FIRST: this tool refuses to run without the runToken that anydb_simulate_script returns for that exact script text. Return values come back through output.set(key, value); output.json/table/csv/markdown instead render a report file. EVERY LOOP BODY MUST CONTAIN AN await (use `await anydb.yield()`), or the script is rejected. Call anydb_list_workflow_actions for the full runtime API available to the script.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        script: {
+          type: "string",
+          description:
+            "The script to run. Top-level awaited statements, no async IIFE wrapper. Use output.set(key, value) to return results.",
+        },
+        runToken: {
+          type: "string",
+          description:
+            "The token returned by anydb_simulate_script for this exact script. Bound to the script text, caller and database, and expires after 15 minutes; if the script changed at all, simulate it again.",
+        },
+        refIds: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional record IDs to hand the script as input.refIds, for an intentional batch over a known set.",
+        },
+        timeoutMs: {
+          type: "number",
+          description:
+            "Optional execution timeout in milliseconds. Default and maximum are 5 minutes.",
+        },
+      },
+      required: ["teamid", "adbid", "script", "runToken"],
+    },
+  },
+  {
+    name: "anydb_simulate_script",
+    description:
+      "Dry-run a script and see what it WOULD do, then get a runToken that authorises running it for real. READS ARE REAL; every write is suppressed - createRecord, updateRecord, share and comment changes, email and notifications all report their intent instead of happening. So a read-only aggregation (counting, scoring, summarising) is fully answered here and needs no run at all. Use this to show someone what a script will change before they approve it. Requires the Business or Enterprise plan. CAVEAT: a script that branches on the result of a write will diverge from the real run, because the write did not happen.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        script: {
+          type: "string",
+          description:
+            "The script to dry-run. Use output.set(key, value) to return results.",
+        },
+        refIds: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional record IDs handed to the script as input.refIds.",
+        },
+        timeoutMs: {
+          type: "number",
+          description: "Optional execution timeout in milliseconds.",
+        },
+      },
+      required: ["teamid", "adbid", "script"],
+    },
+  },
+  {
+    name: "anydb_validate_script",
+    description:
+      "Check that a script parses and passes the sandbox's safety rules, WITHOUT running any of it. Cheapest way to catch a syntax error or a blocked construct (process, globalThis, require, eval, Function, tight infinite loops, a loop body with no await) before spending a simulate. It proves nothing about what the script would do - use anydb_simulate_script for that.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        script: { type: "string", description: "The script to check." },
+      },
+      required: ["script"],
+    },
+  },
+  {
     name: "anydb_list_record_versions",
     description:
       "List the saved versions of a record - every point at which it was changed, with the timestamp and who changed it. Use it to answer \"what happened to this record\", and as the first step in recovering content that was overwritten or lost: the timestamps it returns are the only values anydb_get_record_version accepts. NOTE THIS NEEDS DELETE PERMISSION ON THE RECORD, not just read - the server treats history as a stronger privilege than the current content, so a caller who can read a record may still be refused here.",
@@ -2226,6 +2299,42 @@ export function createMcpServer({
             teamid: args?.teamid as string,
             adbid: args?.adbid as string,
             docgenId: args?.docgenId as string,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_validate_script": {
+          const result = await extApiClient.validateScript({
+            script: args?.script as string,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_simulate_script": {
+          const result = await extApiClient.simulateScript({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            script: args?.script as string,
+            refIds: args?.refIds as string[] | undefined,
+            timeoutMs: args?.timeoutMs as number | undefined,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_run_script": {
+          const result = await extApiClient.runScript({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            script: args?.script as string,
+            runToken: args?.runToken as string,
+            refIds: args?.refIds as string[] | undefined,
+            timeoutMs: args?.timeoutMs as number | undefined,
           });
           return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
