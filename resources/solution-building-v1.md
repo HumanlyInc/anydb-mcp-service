@@ -388,75 +388,73 @@ Parent attachment is a property of the record, not of the type, and it is set th
 
 ## Views
 
-Use `anydb_create_view` to create a saved filtered listing after its target types exist. A View is a separate object, not part of a type definition.
+A **View** is a tab on a type's listing page — `All`, and the named filters
+sitting beside it, that a person sees along the top when they open that type in
+AnyDB. That is what the word means to a user and what they point at when they
+ask for one, so it is what these tools build.
 
-- Call `anydb_list_views` before creation. Compare scope, parent, target type names, and complete filters; reuse or update a compatible View instead of creating a duplicate.
-- Use `anydb_get_view` for one View's complete decoded definition. Use `anydb_delete_view` only after confirming the exact `viewId`; deletion is permanent.
-- `scope: "workspace"` attaches the View to the database root. It displays matching root-level records from the stable type names listed in `targets`.
-- `scope: "children"` requires `parentRecordId`. It displays matching direct children of that record from the stable type names listed in `targets`.
-- A View can target one or more types. Each target has its own optional `filters` array.
-- Use `source: "cell"` for a type field key, `source: "meta"` for record metadata, and `source: "badge"` for a badge key.
-- Supported operators are `eq`, `neq`, `gt`, `lt`, `gte`, `lte`, `like`, `contains`, `startswith`, `endswith`, `includes`, and `notincludes`.
-- `value` is a native JSON string, number, or boolean. Send numeric and boolean values in their native JSON types; the server does not coerce strings using `fieldType`.
-- `fieldType` is optional and may be `string`, `number`, `boolean`, `date`, or `array`. It is a stored comparison hint, not a conversion instruction. When supplied, match the target field's actual type. Dates remain string values with `fieldType: "date"`; array comparisons use the operator/value shape expected by the stored View engine.
-- Use stable type names and semantic filter fields. Do not provide template IDs, the predefined View template ID, or encoded `LISTING_VIEWS` data; the server resolves and stores those internals.
-- Use `validateOnly: true` to validate scope, parent access, target names, and filters without creating the View.
-- Use `anydb_update_view` with the returned `viewId` to rename a View or change its criteria. `changes.targets` replaces the complete existing target/filter set; include every target and filter that should remain. Omit `changes.targets` for a name-only update.
-- View placement is immutable during update. To change between workspace and children scope, create a new View in the desired location.
-- **A filter cannot reference whoever is viewing.** The three sources are the
-  only ones there are, and none resolves to the current user, so an
-  "assigned to me" or "my records" View is not expressible. Filter on a
-  concrete value instead, or use per-viewer cell access to hide fields — that
-  works per cell, not per row.
-- **A View is not a tab on a type's listing page.** Those tabs — `All`, and the
-  named filters beside it — are a separate construct stored on the database
-  root record, not Views. `anydb_create_view` cannot put one there and
-  `anydb_list_views` cannot show you the ones a person already has; the two
-  families do not overlap in either direction, which surprises people because
-  they look like the same feature.
+Views are stored per type on the database root record, so every call names the
+type it belongs to with `templateName` rather than an id.
 
-  **Tabs have their own tools**: `anydb_list_listing_tabs`,
-  `anydb_create_listing_tab`, `anydb_update_listing_tab`,
-  `anydb_delete_listing_tab`.
+- Call `anydb_list_views` for a type before creating one. Names are unique per
+  type and a duplicate is rejected, not merged.
+- `anydb_create_view` takes the type and a `view` of `{name, filter, sort}`.
+  The name is the label the user will see and click.
+- `anydb_update_view` finds the View by its current `name` and changes only the
+  keys you send. Pass `changes.name` to rename it. Column widths, displayed
+  columns and sort order are set in the app and cannot be sent through this
+  API, so an update preserves them rather than resetting them.
+- `anydb_delete_view` is permanent and takes that View's saved columns and sort
+  with it. **The `All` View cannot be deleted** — it holds the default sort and
+  column layout for the whole listing page.
 
-  Which one to reach for: when the user asks to "add a filter they can see", or
-  for "a view showing only X" on a type, they mean a **tab** — that is the
-  thing they can see and click, and it is the only one of the two named "View"
-  in the app. Use a View when you need a filtered set to read back through the
-  API by passing its `viewId` as `parentid` to `list_records`. Either way, say
-  which of the two you made rather than letting them go looking for the other.
+A filter row is `{field, op, type, value, fieldType}`, the same shape the app
+writes:
 
-Example child View:
+- `field` is `{{Field Key}}` for a cell, e.g. `"{{Status}}"`.
+- `type` is `cell`, `meta`, or `badge`.
+- `op` is one of `eq`, `neq`, `gt`, `lt`, `gte`, `lte`, `startswith`,
+  `endswith`, `contains`. **`like` is not available** — the listing page cannot
+  run it.
+- `fieldType` is the field's format, e.g. `"select"`.
+- `id` is generated for you if you omit it.
+
+A sort row is `{by, type, dir}` with `dir` of `1` or `-1`.
+
+- **A filter cannot reference whoever is viewing.** There is no token for
+  the current user, so an "assigned to me" or "my records" View is not
+  expressible — the app's own filter builder offers no such option either.
+  Filter on a concrete value instead, or use per-viewer cell access to hide
+  fields, which works per cell rather than per row.
+- Multiple Views on one type are independent. Creating or deleting one leaves
+  the others, and `All`, untouched.
+
+Example View on the `Stock` type, showing only low or broken items:
 
 ```json
 {
   "teamid": "<team id>",
   "adbid": "<database id>",
-  "clientRequestId": "location-low-stock-view-v1",
+  "templateName": "Stock",
   "view": {
-    "name": "Inventory Attention",
-    "scope": "children",
-    "parentRecordId": "<location record id>",
-    "targets": [
+    "name": "Needs Attention",
+    "filter": [
       {
-        "typeName": "Stock",
-        "filters": [
-          {
-            "source": "cell",
-            "field": "Quantity",
-            "operator": "lt",
-            "value": 10,
-            "fieldType": "number"
-          },
-          {
-            "source": "cell",
-            "field": "Status",
-            "operator": "eq",
-            "value": "BROKEN"
-          }
-        ]
+        "field": "{{Quantity}}",
+        "op": "lt",
+        "type": "cell",
+        "value": 10,
+        "fieldType": "number"
+      },
+      {
+        "field": "{{Status}}",
+        "op": "eq",
+        "type": "cell",
+        "value": "BROKEN",
+        "fieldType": "select"
       }
-    ]
+    ],
+    "sort": [{ "by": "{{Quantity}}", "type": "cell", "dir": 1 }]
   }
 }
 ```
@@ -557,9 +555,9 @@ time:
 
 Use `validateOnly: true` to check a definition without creating anything.
 
-`anydb_update_report` **replaces the whole definition** when you send one, the
-same way `anydb_update_view` replaces a View's targets — include every part that
-should remain. Omit `definition` to rename only.
+`anydb_update_report` **replaces the whole definition** when you send one —
+include every part that should remain. Omit `definition` to rename only. Note
+this is the opposite of `anydb_update_view`, which merges what you send.
 
 ## Comments
 
@@ -900,7 +898,7 @@ Loops and output:
 6. Create a new type with `anydb_create_type` in define mode only when neither the workspace nor built-in catalog contains a content-compatible type. A matching name, description, icon, or search score is never sufficient evidence, and a different name does not make equivalent content incompatible.
 7. Fix stable type names and field keys.
 8. For a standalone type, reuse, import, or create it now and stop after validating it unless more work was requested.
-9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies. Call `anydb_list_views` and `anydb_list_shares`, then create only missing requested Views and shares after all target types and parent records exist. Create a required form share before a form-submit workflow that references its name.
+9. For a multi-type solution, resolve each type through the same workspace-first sequence, then create independent reference types first, child types next, and master/container types after their dependencies. Call `anydb_list_views` for each type that needs one, and `anydb_list_shares`, then create only missing requested Views and shares after all target types and parent records exist. Create a required form share before a form-submit workflow that references its name.
 10. Update only where relationships could not be resolved during creation.
 11. Re-check every formula and target. Identify required cross-record or external side effects, discover existing workflows, and prefer formulas/lookups for derived values that do not require mutation. Call the workflow trigger/action catalog tools and create workflows last only when automation is required. If the design reaches five workflows, review it for duplication or safe consolidation before proceeding; exceed five only when distinct behavior justifies it.
 

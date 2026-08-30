@@ -13,7 +13,7 @@ authoring, filtered Views, record and form sharing, and event-driven workflows.
 - Search record content by meaning with authorized hybrid semantic search.
 - Discover reusable workspace and built-in types before creating new ones.
 - Define or import types with fields, layouts, formulas, badges, and child policies.
-- Create and manage filtered workspace or child Views.
+- Create and manage the Views on a type's listing page.
 - Create public or private record and form shares.
 - Discover workflow capabilities and create or manage workflow graphs.
 - Upload small files inline or large files through presigned URLs.
@@ -217,17 +217,18 @@ leaves record names unwritten.
 
 ### Views
 
-| Tool                | Description                                         |
-| ------------------- | --------------------------------------------------- |
-| `anydb_list_views`  | List Views with decoded scope, targets, and filters |
-| `anydb_get_view`    | Get one View's complete definition                  |
-| `anydb_create_view` | Create a filtered workspace or direct-child View    |
-| `anydb_update_view` | Rename a View or replace its targets and filters    |
-| `anydb_delete_view` | Permanently delete a confirmed View                 |
+| Tool                | Description                                          |
+| ------------------- | ---------------------------------------------------- |
+| `anydb_list_views`  | List the Views on a type's listing page              |
+| `anydb_create_view` | Add a View to a type's listing page                  |
+| `anydb_update_view` | Rename a View, or replace its filters and sort       |
+| `anydb_delete_view` | Remove a View from a type's listing page             |
 
-A workspace View is attached to the database root. A children View is attached
-to a specific parent and lists matching direct children. Targets use stable type
-names; filters can address cell fields, metadata, or badges.
+A View is a tab on a type's listing page — `All`, and the named filters beside
+it that a person sees along the top when they open the type. Views are stored
+per type on the database root record, so every call names its type with
+`templateName`. Names are unique per type, updates merge rather than replace so
+the column layout set in the app survives, and `All` cannot be deleted.
 
 ### Sharing
 

@@ -166,7 +166,7 @@ Before any mutation:
 3. For every proposed type, call anydb_discover_types with source "workspace" and inspect promising definitions with anydb_get_type_definition. Compare semantic content and behavior, not names or descriptions: field purposes, types/formats, requiredness/options, relationships, formulas/lookups, and workflow-facing keys. Reuse content that fulfills the use case.
 4. Only when no content-compatible workspace type exists, search source "builtin" and inspect promising definitions with anydb_get_type_definition by the same criteria. Import a compatible built-in before using it.
 5. Define a new type only when neither source's content can fulfill the use case. A matching name is insufficient, and a different name does not rule out reuse.
-6. Call anydb_list_views and anydb_list_shares to identify reusable or conflicting artifacts before planning new Views or shares.
+6. Call anydb_list_views for each type that needs one, and anydb_list_shares, to identify reusable or conflicting artifacts before planning new Views or shares. A View is a tab on a type listing page, so anydb_list_views is per type.
 7. Call anydb_list_workflows and identify reusable or conflicting automation.
 8. Add a workflow only when a required event or record change must cause a mutation, notification, or external side effect. Prefer formulas/lookups for derived values, consolidate compatible automation, and treat five or more workflows as a design-review signal rather than a hard limit.
 9. For requested private shares, plan email recipients and discover exact group names with anydb_list_team_groups. For public shares, reuse an existing compatible link or plan to return the generated publicUrl.
