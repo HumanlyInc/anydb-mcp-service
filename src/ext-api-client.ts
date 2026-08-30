@@ -1227,6 +1227,44 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async listRecordVersions(params: {
+    teamid: string;
+    adbid: string;
+    adoid: string;
+  }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/record/versions",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getRecordVersion(params: {
+    teamid: string;
+    adbid: string;
+    adoid: string;
+    ts: number;
+  }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/record/version",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getRecordVersionDelta(params: {
+    teamid: string;
+    adbid: string;
+    adoid: string;
+    ts: number;
+  }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/record/versiondelta",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
   async listInbox(params: { teamid: string }): Promise<unknown> {
     const response = await this.client.get<ExtApiResponse<unknown>>(
       "/integrations/ext/inbox",

@@ -474,6 +474,58 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_list_record_versions",
+    description:
+      "List the saved versions of a record - every point at which it was changed, with the timestamp and who changed it. Use it to answer \"what happened to this record\", and as the first step in recovering content that was overwritten or lost: the timestamps it returns are the only values anydb_get_record_version accepts. NOTE THIS NEEDS DELETE PERMISSION ON THE RECORD, not just read - the server treats history as a stronger privilege than the current content, so a caller who can read a record may still be refused here.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        adoid: { type: "string", description: "The record ID." },
+      },
+      required: ["teamid", "adbid", "adoid"],
+    },
+  },
+  {
+    name: "anydb_get_record_version",
+    description:
+      "Fetch a record as it stood at one point in its history, in the same shape get_record returns. This is how you read content that no longer exists on the record - an overwritten cell, or comments removed by a migration. Pass a ts taken from anydb_list_record_versions; a timestamp that matches no version is REJECTED rather than answered, because the underlying replay would otherwise hand back the record as it is today and you would have no way to tell.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        adoid: { type: "string", description: "The record ID." },
+        ts: {
+          type: "number",
+          description:
+            "Version timestamp, exactly as returned by anydb_list_record_versions.",
+        },
+      },
+      required: ["teamid", "adbid", "adoid", "ts"],
+    },
+  },
+  {
+    name: "anydb_get_record_version_delta",
+    description:
+      "Fetch only what CHANGED at one version, rather than the whole record. Use it to answer \"what did this edit actually do\" without diffing two full records yourself. Same timestamp rules as anydb_get_record_version.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        adoid: { type: "string", description: "The record ID." },
+        ts: {
+          type: "number",
+          description:
+            "Version timestamp, exactly as returned by anydb_list_record_versions.",
+        },
+      },
+      required: ["teamid", "adbid", "adoid", "ts"],
+    },
+  },
+  {
     name: "anydb_get_permissions",
     description:
       "Report what a user may do with a team, database, or record: read it, update it, delete it, add records underneath it, and share it. Omit userid to ask about the authenticated user. Read the `can` block for the answer; the raw permission matrix is included for detail. Note that being able to update a record and being able to add records under it are independent — see anydb://guides/permissions/v1.",
@@ -2155,6 +2207,41 @@ export function createMcpServer({
             teamid: args?.teamid as string,
             adbid: args?.adbid as string,
             docgenId: args?.docgenId as string,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_list_record_versions": {
+          const result = await extApiClient.listRecordVersions({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            adoid: args?.adoid as string,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_get_record_version": {
+          const result = await extApiClient.getRecordVersion({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            adoid: args?.adoid as string,
+            ts: Number(args?.ts),
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_get_record_version_delta": {
+          const result = await extApiClient.getRecordVersionDelta({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            adoid: args?.adoid as string,
+            ts: Number(args?.ts),
           });
           return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
