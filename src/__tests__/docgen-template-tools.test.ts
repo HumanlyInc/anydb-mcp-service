@@ -100,6 +100,49 @@ describe("docgen template tools", () => {
     ]);
   });
 
+  it("advertises the generate tool and says it produces the PDF", async () => {
+    const tool = await toolNamed("anydb_generate_document");
+
+    expect(tool).toBeDefined();
+    // The other four only configure; this is the one that makes a document.
+    expect(tool.description).toMatch(/actually produces the PDF/i);
+    expect(tool.inputSchema.required).toEqual([
+      "teamid",
+      "adbid",
+      "docgenId",
+      "adoid",
+    ]);
+  });
+
+  it("says regenerating replaces rather than accumulates", async () => {
+    const tool = await toolNamed("anydb_generate_document");
+
+    // Madhan's requirement, and the thing an agent would otherwise assume the
+    // opposite of — most create-shaped tools add.
+    expect(tool.description).toMatch(/REGENERATING REPLACES/);
+    // And the scope of the replacement, so nobody fears it eats other docs.
+    expect(tool.description).toMatch(
+      /generating a Quote does not remove an Invoice/i,
+    );
+  });
+
+  it("points at download_file, so the output is usable", async () => {
+    const tool = await toolNamed("anydb_generate_document");
+
+    // The reason for attaching at all: the agent has to be able to fetch the
+    // bytes to email or forward them.
+    expect(tool.description).toContain("download_file");
+    expect(tool.description).toContain("fileRecordId");
+  });
+
+  it("warns that attaching writes into the workspace", async () => {
+    const tool = await toolNamed("anydb_generate_document");
+    const attachTo = tool.inputSchema.properties.attachTo.description;
+
+    // Generating is not a read: it leaves a file a person will see.
+    expect(attachTo).toMatch(/WRITES a file into the workspace/i);
+  });
+
   it("says delete keeps the uploaded file", async () => {
     const tool = await toolNamed("anydb_delete_docgen_template");
 

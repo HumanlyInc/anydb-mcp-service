@@ -225,6 +225,39 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_generate_document",
+    description:
+      "Generate a document from one record using a Document Generation template, and attach the result to that record so it can be downloaded, emailed or sent on. This is the tool that actually produces the PDF - the other docgen tools only configure which template applies to which type. REGENERATING REPLACES: running this again with the same template on the same record supersedes the previous output rather than adding a second file, so a record never accumulates a pile of near-identical documents. Replacement is per template, so generating a Quote does not remove an Invoice generated from a different template on the same record. The result is an ordinary File record: pass the returned fileRecordId and cellPosition to download_file to fetch the bytes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        docgenId: {
+          type: "string",
+          description:
+            "id of the Document Generation template to run, from anydb_list_docgen_templates.",
+        },
+        adoid: {
+          type: "string",
+          description:
+            "The record to generate FROM - its field values fill the template's placeholders.",
+        },
+        attachTo: {
+          type: "string",
+          description:
+            "Optional record to attach the generated document to. Defaults to the record it was generated from, which is almost always what you want. Note this WRITES a file into the workspace, so the user will see it.",
+        },
+        asPdf: {
+          type: "boolean",
+          description:
+            "Convert the filled template to PDF. Defaults to true, which is what an invoice or quote normally wants; false returns the rendered .docx/.xlsx instead.",
+        },
+      },
+      required: ["teamid", "adbid", "docgenId", "adoid"],
+    },
+  },
+  {
     name: "anydb_list_docgen_templates",
     description:
       "List the Document Generation templates set up in a database - the .docx/.xlsx templates a person can generate a filled document from, shown under Document Generation in the AnyDB app. Each entry gives its id, its name, the workspace type it applies to (templateName), and the File record holding the template (fileAdoId). Call this before creating one to avoid a duplicate, and to find the id that update and delete take. Note the product also calls this feature \"formatted export\" internally, so that is the wording you will see in server logs and URLs.",
@@ -1893,6 +1926,22 @@ export function createMcpServer({
             name: args?.name as string,
             definition: args?.definition as Record<string, unknown>,
             validateOnly: args?.validateOnly as boolean | undefined,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_generate_document": {
+          const result = await extApiClient.generateDocument({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            docgenId: args?.docgenId as string,
+            adoid: args?.adoid as string,
+            ...(args?.attachTo ? { attachTo: args.attachTo as string } : {}),
+            ...(args?.asPdf !== undefined
+              ? { asPdf: args.asPdf as boolean }
+              : {}),
           });
           return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

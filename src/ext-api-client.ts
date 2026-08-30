@@ -1107,6 +1107,21 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async generateDocument(params: {
+    teamid: string;
+    adbid: string;
+    docgenId: string;
+    adoid: string;
+    attachTo?: string;
+    asPdf?: boolean;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/docgentemplates/generate",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
   async listDocGenTemplates(params: {
     teamid: string;
     adbid: string;
