@@ -526,6 +526,25 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_revert_record_to_version",
+    description:
+      "Restore a record to the state it had at an earlier version. THIS OVERWRITES THE RECORD'S CURRENT CONTENT: anything added since that version is removed from the record as it stands now - this REPLACES, it does not merge. Do not reach for it to recover one lost field, because it will take everything else back with it; read the old value with anydb_get_record_version and write just that field with update_record instead. Reverting is append-only, so the state you overwrite is still readable in the history afterwards and a mistaken revert can itself be reverted. Pass a ts from anydb_list_record_versions; an unknown one is rejected rather than silently doing nothing. Needs permission to both read the record's history and update the record.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        adoid: { type: "string", description: "The record to revert." },
+        ts: {
+          type: "number",
+          description:
+            "Version timestamp to restore, exactly as returned by anydb_list_record_versions.",
+        },
+      },
+      required: ["teamid", "adbid", "adoid", "ts"],
+    },
+  },
+  {
     name: "anydb_get_permissions",
     description:
       "Report what a user may do with a team, database, or record: read it, update it, delete it, add records underneath it, and share it. Omit userid to ask about the authenticated user. Read the `can` block for the answer; the raw permission matrix is included for detail. Note that being able to update a record and being able to add records under it are independent — see anydb://guides/permissions/v1.",
@@ -2238,6 +2257,18 @@ export function createMcpServer({
 
         case "anydb_get_record_version_delta": {
           const result = await extApiClient.getRecordVersionDelta({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            adoid: args?.adoid as string,
+            ts: Number(args?.ts),
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_revert_record_to_version": {
+          const result = await extApiClient.revertRecordToVersion({
             teamid: args?.teamid as string,
             adbid: args?.adbid as string,
             adoid: args?.adoid as string,
