@@ -3,14 +3,11 @@ import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import type {
   CreateShareRequest,
   CreateTypeRequest,
-  CreateViewRequest,
   CreateWorkspaceRequest,
   CreateWorkflowRequest,
-  DeleteViewRequest,
   ExecuteWorkflowRequest,
   ExtApiClient,
   RevokeShareRequest,
-  UpdateViewRequest,
   UpdateWorkflowRequest,
   UpdateTypeRequest,
 } from "./ext-api-client.js";
@@ -88,16 +85,6 @@ const updateTypeInputSchema = exposedInputSchema("updateTypeInput");
 const getTypeMigrationStatusInputSchema = exposedInputSchema(
   "getTypeMigrationStatusInput",
 );
-
-const createViewInputSchema = exposedInputSchema("createViewInput");
-
-const updateViewInputSchema = exposedInputSchema("updateViewInput");
-
-const listViewsInputSchema = exposedInputSchema("listViewsInput");
-
-const getViewInputSchema = exposedInputSchema("getViewInput");
-
-const deleteViewInputSchema = exposedInputSchema("deleteViewInput");
 
 const createShareInputSchema = exposedInputSchema("createShareInput");
 
@@ -183,36 +170,6 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
     inputSchema: workflowCatalogInputSchema as Tool["inputSchema"],
   },
   {
-    name: "anydb_create_view",
-    description:
-      "Create a filtered View using stable workspace type names that remain valid across type revisions. Each target's filters apply only to records of that type. Call anydb_list_views first and reuse or update a compatible View instead of creating a duplicate. Use scope workspace to attach the View to the database root for workspace-level type filtering, or scope children with parentRecordId to filter matching direct children of that record. THIS DOES NOT ADD A TAB TO A TYPE'S LISTING PAGE. The tabs a person sees along the top of a type page - All, and whatever named filters sit beside it - are a different construct entirely, stored on the database root record rather than as Views. Use anydb_create_listing_tab for those - and when a user asks for 'a view showing only X' on a type, a tab is almost always what they mean, because it is the thing they can see. A View created here is real and works: pass its viewId as parentid to list_records to get the filtered records. But it is reachable through the API, not through the type page, so say which of the two you made.",
-    inputSchema: createViewInputSchema as unknown as Tool["inputSchema"],
-  },
-  {
-    name: "anydb_update_view",
-    description:
-      "Update an existing filtered View by viewId. Change its name and/or replace its complete targets and per-type filter sets using stable workspace type names that remain valid across type revisions. Omit changes.targets to preserve existing criteria. View placement is immutable; create another View to change between workspace and children scope.",
-    inputSchema: updateViewInputSchema as unknown as Tool["inputSchema"],
-  },
-  {
-    name: "anydb_list_views",
-    description:
-      "List accessible Views in a database with decoded scope, parent, stable target type names, and structured filters. Call before creating a View to avoid duplicates. This lists Views only. The named tabs on a type's listing page are not Views and never appear here, so an empty or short result is not evidence that the user has no saved filters - it means this database has no Views. Use anydb_list_listing_tabs to see the tabs.",
-    inputSchema: listViewsInputSchema as unknown as Tool["inputSchema"],
-  },
-  {
-    name: "anydb_get_view",
-    description:
-      "Get one accessible View by viewId with its complete decoded targets and filters.",
-    inputSchema: getViewInputSchema as unknown as Tool["inputSchema"],
-  },
-  {
-    name: "anydb_delete_view",
-    description:
-      "Permanently delete a View by viewId through standard record authorization. Use for cleanup only after confirming the exact View with anydb_get_view.",
-    inputSchema: deleteViewInputSchema as unknown as Tool["inputSchema"],
-  },
-  {
     name: "anydb_list_team_groups",
     description:
       "List team groups available to the authenticated user for private sharing. Use the returned stable group names in anydb_create_share; do not guess names or pass internal group IDs.",
@@ -256,7 +213,7 @@ export function isSolutionAuthoringTool(name: string): boolean {
 
 function normalizeStructuredArgument(
   args: Record<string, unknown>,
-  field: "type" | "changes" | "workflow" | "view" | "share",
+  field: "type" | "changes" | "workflow" | "share",
   toolName: string,
 ): Record<string, unknown> {
   const value = args[field];
@@ -334,29 +291,6 @@ export async function callSolutionAuthoringTool(
     result = await client.executeWorkflow(
       args as unknown as ExecuteWorkflowRequest,
     );
-  } else if (name === "anydb_create_view") {
-    const normalized = normalizeStructuredArgument(args, "view", name);
-    result = await client.createView(
-      normalized as unknown as CreateViewRequest,
-    );
-  } else if (name === "anydb_update_view") {
-    const normalized = normalizeStructuredArgument(args, "changes", name);
-    result = await client.updateView(
-      normalized as unknown as UpdateViewRequest,
-    );
-  } else if (name === "anydb_list_views") {
-    result = await client.listViews(
-      String(args.teamid || ""),
-      String(args.adbid || ""),
-    );
-  } else if (name === "anydb_get_view") {
-    result = await client.getView(
-      String(args.teamid || ""),
-      String(args.adbid || ""),
-      String(args.viewId || ""),
-    );
-  } else if (name === "anydb_delete_view") {
-    result = await client.deleteView(args as unknown as DeleteViewRequest);
   } else if (name === "anydb_list_team_groups") {
     result = await client.listTeamGroups(String(args.teamid || ""));
   } else if (name === "anydb_create_share") {

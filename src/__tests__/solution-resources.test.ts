@@ -299,9 +299,9 @@ describe("solution resources", () => {
     expect(resource.text).toContain("## Sharing");
     expect(resource.text).toContain("anydb_list_views");
     expect(resource.text).toContain("anydb_delete_view");
-    expect(resource.text).toContain("native JSON string, number, or boolean");
+    expect(resource.text).toContain("**`like` is not available**");
     expect(resource.text).toContain(
-      "`fieldType` is optional and may be `string`, `number`, `boolean`, `date`, or `array`",
+      "`fieldType` is the field's format",
     );
     expect(resource.text).toContain("anydb_list_team_groups");
     expect(resource.text).toContain("anydb_list_shares");
@@ -405,48 +405,30 @@ describe("solution resources", () => {
     expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_update_workflow",
     );
-    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
+    // ISSUE - 30 retired the View ADO tools. This schema documents the
+    // solution-authoring tools to an LLM, so a leftover entry here would
+    // describe anydb_create_view with the arguments of the tool it replaced.
+    for (const retired of [
       "anydb_create_view",
-    );
-    expect(schema.$defs.createViewInput.properties.view.$ref).toBe(
-      "#/$defs/viewDefinition",
-    );
-    expect(
-      schema.$defs.createViewInput.properties.clientRequestId.description,
-    ).toContain("Required idempotency key");
-    expect(schema.$defs.viewDefinition.properties.scope.enum).toEqual([
-      "workspace",
-      "children",
-    ]);
-    expect(schema.$defs.viewDefinition.allOf[0].then.required).toContain(
-      "parentRecordId",
-    );
-    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_update_view",
-    );
-    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_list_views",
-    );
-    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_get_view",
-    );
-    expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_delete_view",
-    );
-    expect(schema.$defs.updateViewInput.required).toEqual([
-      "teamid",
-      "adbid",
-      "viewId",
-      "clientRequestId",
-      "changes",
-    ]);
-    expect(
-      schema.$defs.updateViewInput.properties.changes.properties.targets.items
-        .$ref,
-    ).toBe("#/$defs/viewTarget");
-    expect(
-      schema.$defs.updateViewInput.properties.changes.properties,
-    ).not.toHaveProperty("scope");
+    ]) {
+      expect(schema["x-anydb-tool-input-schemas"]).not.toHaveProperty(retired);
+    }
+    for (const orphan of [
+      "createViewInput",
+      "updateViewInput",
+      "listViewsInput",
+      "getViewInput",
+      "deleteViewInput",
+      "viewDefinition",
+      "viewTarget",
+      "viewFilter",
+    ]) {
+      expect(schema.$defs).not.toHaveProperty(orphan);
+    }
     expect(schema["x-anydb-tool-input-schemas"]).toHaveProperty(
       "anydb_create_share",
     );
@@ -483,14 +465,7 @@ describe("solution resources", () => {
     expect(
       schema.$defs.createShareInput.properties.share.properties.withAttachments,
     ).not.toHaveProperty("default");
-    expect(schema.$defs.deleteViewInput.required).toContain("clientRequestId");
     expect(schema.$defs.revokeShareInput.required).toContain("clientRequestId");
-    expect(schema.$defs.viewFilter.properties.value.description).toContain(
-      "does not coerce",
-    );
-    expect(schema.$defs.viewFilter.properties.fieldType.description).toContain(
-      "not required",
-    );
   });
 
   it("rejects unknown resources", () => {

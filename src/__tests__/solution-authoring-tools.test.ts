@@ -370,163 +370,6 @@ describe("solution authoring tools", () => {
     });
   });
 
-  it("advertises and forwards a semantic child View request", async () => {
-    const tool = SOLUTION_AUTHORING_TOOLS.find(
-      (candidate) => candidate.name === "anydb_create_view",
-    );
-    const inputSchema = tool?.inputSchema as any;
-    expect(inputSchema.required).toEqual([
-      "teamid",
-      "adbid",
-      "clientRequestId",
-      "view",
-    ]);
-    expect(inputSchema.properties.clientRequestId.description).toContain(
-      "Required idempotency key",
-    );
-    expect(inputSchema.properties.view.required).toEqual([
-      "name",
-      "scope",
-      "targets",
-    ]);
-    expect(inputSchema.properties.view.properties.scope.enum).toEqual([
-      "workspace",
-      "children",
-    ]);
-    expect(
-      inputSchema.properties.view.properties.targets.items.properties.filters
-        .items.properties.fieldType.enum,
-    ).toEqual(["string", "number", "boolean", "date", "array"]);
-    expect(JSON.stringify(tool?.inputSchema)).not.toContain('"$ref"');
-    expect(tool?.description).toContain("database root");
-    expect(tool?.description).toContain("direct children");
-    expect(isSolutionAuthoringTool("anydb_create_view")).toBe(true);
-
-    const createView = jest.fn<ExtApiClient["createView"]>();
-    createView.mockResolvedValue({
-      success: true,
-      operation: "create_view",
-      requestId: "low-stock-view-v1",
-      result: {
-        viewId: "507f1f77bcf86cd799439099",
-        name: "Low Stock",
-        scope: "children",
-        parentRecordId: "507f1f77bcf86cd799439013",
-        targetTypes: ["Stock"],
-        persisted: true,
-      },
-      validation: { valid: true, errors: [] },
-    } as CreateViewResult);
-    const client = { createView } as unknown as ExtApiClient;
-    const request: CreateViewRequest & Record<string, unknown> = {
-      teamid: "507f1f77bcf86cd799439011",
-      adbid: "507f1f77bcf86cd799439012",
-      clientRequestId: "low-stock-view-v1",
-      view: {
-        name: "Low Stock",
-        scope: "children",
-        parentRecordId: "507f1f77bcf86cd799439013",
-        targets: [
-          {
-            typeName: "Stock",
-            filters: [
-              {
-                source: "cell",
-                field: "Quantity",
-                operator: "lt",
-                value: 10,
-                fieldType: "number",
-              },
-            ],
-          },
-        ],
-      },
-    };
-
-    const result = await callSolutionAuthoringTool(
-      "anydb_create_view",
-      { ...request, view: JSON.stringify(request.view) },
-      client,
-    );
-
-    expect(createView).toHaveBeenCalledWith(request);
-    expect(JSON.parse(result.content[0].text)).toMatchObject({
-      operation: "create_view",
-      result: { scope: "children", targetTypes: ["Stock"] },
-    });
-  });
-
-  it("advertises and forwards a complete View filter replacement", async () => {
-    const tool = SOLUTION_AUTHORING_TOOLS.find(
-      (candidate) => candidate.name === "anydb_update_view",
-    );
-    const inputSchema = tool?.inputSchema as any;
-    expect(inputSchema.required).toEqual([
-      "teamid",
-      "adbid",
-      "viewId",
-      "clientRequestId",
-      "changes",
-    ]);
-    expect(
-      inputSchema.properties.changes.properties.targets.items.properties
-        .typeName.type,
-    ).toBe("string");
-    expect(tool?.description).toContain("replace its complete targets");
-    expect(tool?.description).toContain("placement is immutable");
-    expect(isSolutionAuthoringTool("anydb_update_view")).toBe(true);
-
-    const updateView = jest.fn<ExtApiClient["updateView"]>();
-    updateView.mockResolvedValue({
-      success: true,
-      operation: "update_view",
-      requestId: "low-stock-view-v2",
-      result: {
-        viewId: "507f1f77bcf86cd799439099",
-        name: "Critical Stock",
-        targetTypes: ["Stock"],
-        persisted: true,
-      },
-      validation: { valid: true, errors: [] },
-    } as UpdateViewResult);
-    const client = { updateView } as unknown as ExtApiClient;
-    const request: UpdateViewRequest & Record<string, unknown> = {
-      teamid: "507f1f77bcf86cd799439011",
-      adbid: "507f1f77bcf86cd799439012",
-      viewId: "507f1f77bcf86cd799439099",
-      clientRequestId: "low-stock-view-v2",
-      changes: {
-        name: "Critical Stock",
-        targets: [
-          {
-            typeName: "Stock",
-            filters: [
-              {
-                source: "cell",
-                field: "Quantity",
-                operator: "lte",
-                value: 5,
-                fieldType: "number",
-              },
-            ],
-          },
-        ],
-      },
-    };
-
-    const result = await callSolutionAuthoringTool(
-      "anydb_update_view",
-      { ...request, changes: JSON.stringify(request.changes) },
-      client,
-    );
-
-    expect(updateView).toHaveBeenCalledWith(request);
-    expect(JSON.parse(result.content[0].text)).toMatchObject({
-      operation: "update_view",
-      result: { name: "Critical Stock", targetTypes: ["Stock"] },
-    });
-  });
-
   it("lists team groups by team ID for private sharing", async () => {
     const tool = SOLUTION_AUTHORING_TOOLS.find(
       (candidate) => candidate.name === "anydb_list_team_groups",
@@ -653,24 +496,9 @@ describe("solution authoring tools", () => {
     });
   });
 
-  it("advertises and dispatches View and Share lifecycle tools", async () => {
+  it("advertises and dispatches Share lifecycle tools", async () => {
     const byName = (name: string) =>
       SOLUTION_AUTHORING_TOOLS.find((tool) => tool.name === name)!;
-    expect((byName("anydb_list_views").inputSchema as any).required).toEqual([
-      "teamid",
-      "adbid",
-    ]);
-    expect((byName("anydb_get_view").inputSchema as any).required).toEqual([
-      "teamid",
-      "adbid",
-      "viewId",
-    ]);
-    expect((byName("anydb_delete_view").inputSchema as any).required).toEqual([
-      "teamid",
-      "adbid",
-      "viewId",
-      "clientRequestId",
-    ]);
     expect(
       (byName("anydb_get_share").inputSchema as any).properties.kind.enum,
     ).toEqual(["record", "form"]);
@@ -682,33 +510,14 @@ describe("solution authoring tools", () => {
       "clientRequestId",
     ]);
     for (const name of [
-      "anydb_list_views",
-      "anydb_get_view",
-      "anydb_delete_view",
       "anydb_list_shares",
       "anydb_get_share",
       "anydb_revoke_share",
     ]) {
       expect(isSolutionAuthoringTool(name)).toBe(true);
-      expect(JSON.stringify(byName(name).inputSchema)).not.toContain('"$ref"');
+      expect(JSON.stringify(byName(name).inputSchema)).not.toContain(String.fromCharCode(34) + "$ref" + String.fromCharCode(34));
     }
 
-    const listViews = jest
-      .fn<ExtApiClient["listViews"]>()
-      .mockResolvedValue([]);
-    const getView = jest.fn<ExtApiClient["getView"]>().mockResolvedValue({
-      viewId: "507f1f77bcf86cd799439013",
-      name: "Low Stock",
-      scope: "workspace",
-      parentRecordId: "507f1f77bcf86cd799439014",
-      targets: [],
-    });
-    const deleteView = jest.fn<ExtApiClient["deleteView"]>().mockResolvedValue({
-      success: true,
-      operation: "delete_view",
-      requestId: "delete-view-v1",
-      result: { viewId: "507f1f77bcf86cd799439013", deleted: true },
-    });
     const listShares = jest
       .fn<ExtApiClient["listShares"]>()
       .mockResolvedValue([]);
@@ -740,9 +549,6 @@ describe("solution authoring tools", () => {
         },
       });
     const client = {
-      listViews,
-      getView,
-      deleteView,
       listShares,
       getShare,
       revokeShare,
@@ -752,21 +558,6 @@ describe("solution authoring tools", () => {
       adbid: "507f1f77bcf86cd799439012",
     };
 
-    await callSolutionAuthoringTool("anydb_list_views", workspace, client);
-    await callSolutionAuthoringTool(
-      "anydb_get_view",
-      { ...workspace, viewId: "507f1f77bcf86cd799439013" },
-      client,
-    );
-    await callSolutionAuthoringTool(
-      "anydb_delete_view",
-      {
-        ...workspace,
-        viewId: "507f1f77bcf86cd799439013",
-        clientRequestId: "delete-view-v1",
-      },
-      client,
-    );
     await callSolutionAuthoringTool("anydb_list_shares", workspace, client);
     await callSolutionAuthoringTool(
       "anydb_get_share",
@@ -788,15 +579,6 @@ describe("solution authoring tools", () => {
       client,
     );
 
-    expect(listViews).toHaveBeenCalledWith(workspace.teamid, workspace.adbid);
-    expect(getView).toHaveBeenCalledWith(
-      workspace.teamid,
-      workspace.adbid,
-      "507f1f77bcf86cd799439013",
-    );
-    expect(deleteView).toHaveBeenCalledWith(
-      expect.objectContaining({ clientRequestId: "delete-view-v1" }),
-    );
     expect(listShares).toHaveBeenCalledWith(workspace.teamid, workspace.adbid);
     expect(getShare).toHaveBeenCalledWith(
       workspace.teamid,
@@ -809,6 +591,25 @@ describe("solution authoring tools", () => {
     );
   });
 
+  // ISSUE - 30 retired the View ADO tools and gave their names to the listing
+  // View tools in mcp.ts. This guard is the one that matters: callTool checks
+  // isSolutionAuthoringTool FIRST, so if any of these names came back here the
+  // old implementation would silently win every call and the rename would
+  // quietly undo itself.
+  it("claims none of the view tool names, which now belong to listing Views", () => {
+    for (const name of [
+      "anydb_create_view",
+      "anydb_update_view",
+      "anydb_list_views",
+      "anydb_get_view",
+      "anydb_delete_view",
+    ]) {
+      expect(isSolutionAuthoringTool(name)).toBe(false);
+      expect(SOLUTION_AUTHORING_TOOLS.map((tool) => tool.name)).not.toContain(
+        name,
+      );
+    }
+  });
   it("forwards a two-step workflow creation request", async () => {
     const createWorkflow = jest.fn<ExtApiClient["createWorkflow"]>();
     createWorkflow.mockResolvedValue({

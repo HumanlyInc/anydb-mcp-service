@@ -225,9 +225,9 @@ const TOOLS: Tool[] = [
     },
   },
   {
-    name: "anydb_list_listing_tabs",
+    name: "anydb_list_views",
     description:
-      "List the tabs on a type's listing page - the strip reading All, and whatever named filters sit beside it, that a person sees when they open the type in AnyDB. THESE ARE NOT VIEWS. anydb_list_views lists View ADOs, which are a separate construct that never appears on this strip; the two do not overlap and neither tool can see the other's records. Use this when the user asks what filters or tabs they already have on a type, or to check a tab you created actually landed.",
+      "List the Views on a type's listing page - the strip reading All, and whatever named filters sit beside it, that a person sees when they open the type in AnyDB. That strip is what a View is in AnyDB: the thing a user creates, names, and clicks. Use this when the user asks what views or saved filters they already have on a type, or to check that a View you created actually landed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -236,16 +236,16 @@ const TOOLS: Tool[] = [
         templateName: {
           type: "string",
           description:
-            "The stable type name whose listing page you want, e.g. \"Order\". Tabs are stored per type on the database root record.",
+            "The stable type name whose listing page you want, e.g. \"Order\". Views are stored per type on the database root record.",
         },
       },
       required: ["teamid", "adbid", "templateName"],
     },
   },
   {
-    name: "anydb_create_listing_tab",
+    name: "anydb_create_view",
     description:
-      "Add a tab to a type's listing page, so a person opening that type in AnyDB sees it next to All. THIS IS THE ONE A USER USUALLY MEANS. When someone asks for \"a view showing only X\" or \"a tab for X\" on a type, they mean this, because it is the thing they can see and click. anydb_create_view builds a different, UI-invisible construct that will not appear on the type page - if you use that by mistake the call still succeeds and the user sees no change. Tab names are unique per type; creating a duplicate name is rejected rather than silently merged.",
+      "Create a View on a type's listing page, so a person opening that type in AnyDB sees it next to All. This is what someone means by \"a view showing only X\" - the named filter they can see and click at the top of the type page. View names are unique per type; creating a duplicate name is rejected rather than silently merged.",
     inputSchema: {
       type: "object",
       properties: {
@@ -253,20 +253,20 @@ const TOOLS: Tool[] = [
         adbid: { type: "string", description: "The database ID." },
         templateName: {
           type: "string",
-          description: "The stable type name to add the tab to.",
+          description: "The stable type name to add the View to.",
         },
-        tab: {
+        view: {
           type: "object",
-          description: "The tab to add.",
+          description: "The View to add.",
           properties: {
             name: {
               type: "string",
               description:
-                "Tab label, shown to the user. Unique within the type. \"All\" already exists and is the default tab.",
+                "View label, shown to the user. Unique within the type. \"All\" already exists and is the default View.",
             },
             filter: {
               type: "array",
-              description: "Filter rows, same shape the app writes. Each is {field, op, type, value, fieldType}. `field` uses {{Field Key}} for a cell (e.g. \"{{Status}}\"). `op` is one of eq, neq, gt, lt, gte, lte, startswith, endswith, contains - note `like` is NOT available here even though anydb_create_view accepts it, because the listing page cannot run it. `type` is cell, meta or badge. `fieldType` is the field's format, e.g. \"select\". An `id` is generated for you if you omit it.",
+              description: "Filter rows, same shape the app writes. Each is {field, op, type, value, fieldType}. `field` uses {{Field Key}} for a cell (e.g. \"{{Status}}\"). `op` is one of eq, neq, gt, lt, gte, lte, startswith, endswith, contains - note `like` is NOT available, because the listing page cannot run it. `type` is cell, meta or badge. `fieldType` is the field's format, e.g. \"select\". An `id` is generated for you if you omit it.",
               items: { type: "object" },
             },
             sort: {
@@ -279,13 +279,13 @@ const TOOLS: Tool[] = [
           required: ["name"],
         },
       },
-      required: ["teamid", "adbid", "templateName", "tab"],
+      required: ["teamid", "adbid", "templateName", "view"],
     },
   },
   {
-    name: "anydb_update_listing_tab",
+    name: "anydb_update_view",
     description:
-      "Change an existing listing tab, found by its current name. Only the keys you send are changed - the tab's column widths, displayed columns and sort are preserved, which matters because those are set in the app and cannot be sent through this API. Pass changes.name to rename it.",
+      "Change an existing View, found by its current name. Only the keys you send are changed - the View's column widths, displayed columns and sort are preserved, which matters because those are set in the app and cannot be sent through this API. Pass changes.name to rename it.",
     inputSchema: {
       type: "object",
       properties: {
@@ -293,11 +293,11 @@ const TOOLS: Tool[] = [
         adbid: { type: "string", description: "The database ID." },
         templateName: {
           type: "string",
-          description: "The stable type name the tab belongs to.",
+          description: "The stable type name the View belongs to.",
         },
         name: {
           type: "string",
-          description: "Current tab name, from anydb_list_listing_tabs.",
+          description: "Current View name, from anydb_list_views.",
         },
         changes: {
           type: "object",
@@ -307,7 +307,7 @@ const TOOLS: Tool[] = [
             name: { type: "string" },
             filter: {
               type: "array",
-              description: "Filter rows, same shape the app writes. Each is {field, op, type, value, fieldType}. `field` uses {{Field Key}} for a cell (e.g. \"{{Status}}\"). `op` is one of eq, neq, gt, lt, gte, lte, startswith, endswith, contains - note `like` is NOT available here even though anydb_create_view accepts it, because the listing page cannot run it. `type` is cell, meta or badge. `fieldType` is the field's format, e.g. \"select\". An `id` is generated for you if you omit it.",
+              description: "Filter rows, same shape the app writes. Each is {field, op, type, value, fieldType}. `field` uses {{Field Key}} for a cell (e.g. \"{{Status}}\"). `op` is one of eq, neq, gt, lt, gte, lte, startswith, endswith, contains - note `like` is NOT available, because the listing page cannot run it. `type` is cell, meta or badge. `fieldType` is the field's format, e.g. \"select\". An `id` is generated for you if you omit it.",
               items: { type: "object" },
             },
             sort: { type: "array", items: { type: "object" } },
@@ -318,9 +318,9 @@ const TOOLS: Tool[] = [
     },
   },
   {
-    name: "anydb_delete_listing_tab",
+    name: "anydb_delete_view",
     description:
-      "Remove a tab from a type's listing page. Permanent, and it takes that tab's saved columns and sort with it. The All tab cannot be deleted: it holds the default sort and column layout for the whole listing page.",
+      "Remove a View from a type's listing page. Permanent, and it takes that View's saved columns and sort with it. The All view cannot be deleted: it holds the default sort and column layout for the whole listing page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -328,11 +328,11 @@ const TOOLS: Tool[] = [
         adbid: { type: "string", description: "The database ID." },
         templateName: {
           type: "string",
-          description: "The stable type name the tab belongs to.",
+          description: "The stable type name the View belongs to.",
         },
         name: {
           type: "string",
-          description: "Tab name to remove, from anydb_list_listing_tabs.",
+          description: "View name to remove, from anydb_list_views.",
         },
       },
       required: ["teamid", "adbid", "templateName", "name"],
@@ -559,7 +559,7 @@ const TOOLS: Tool[] = [
   {
     name: "list_records",
     description:
-      "List ADOs (records) in a database. Use parentid with a normal record ID to list its children, or with a View ADO ID returned by anydb_create_view to apply that View's stored type and filter criteria. You can also filter directly by template and use pagination for large result sets.",
+      "List ADOs (records) in a database. Use parentid with a normal record ID to list its children. You can also filter directly by template and use pagination for large result sets.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1091,7 +1091,7 @@ const TOOLS: Tool[] = [
   {
     name: "anydb_update_report",
     description:
-      "Rename a report, replace its definition, or both. Sending a definition REPLACES the whole definition - include every part that should remain, the same way anydb_update_view replaces a View's targets. Omit definition to rename only.",
+      "Rename a report, replace its definition, or both. Sending a definition REPLACES the whole definition - include every part that should remain. Omit definition to rename only.",
     inputSchema: {
       type: "object",
       properties: {
@@ -2046,7 +2046,7 @@ export function createMcpServer({
           };
         }
 
-        case "anydb_list_listing_tabs": {
+        case "anydb_list_views": {
           const result = await extApiClient.listListingTabs({
             teamid: args?.teamid as string,
             adbid: args?.adbid as string,
@@ -2057,19 +2057,19 @@ export function createMcpServer({
           };
         }
 
-        case "anydb_create_listing_tab": {
+        case "anydb_create_view": {
           const result = await extApiClient.createListingTab({
             teamid: args?.teamid as string,
             adbid: args?.adbid as string,
             templateName: args?.templateName as string,
-            tab: args?.tab as Record<string, unknown>,
+            tab: args?.view as Record<string, unknown>,
           });
           return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           };
         }
 
-        case "anydb_update_listing_tab": {
+        case "anydb_update_view": {
           const result = await extApiClient.updateListingTab({
             teamid: args?.teamid as string,
             adbid: args?.adbid as string,
@@ -2082,7 +2082,7 @@ export function createMcpServer({
           };
         }
 
-        case "anydb_delete_listing_tab": {
+        case "anydb_delete_view": {
           const result = await extApiClient.deleteListingTab({
             teamid: args?.teamid as string,
             adbid: args?.adbid as string,
