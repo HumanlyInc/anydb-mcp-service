@@ -150,6 +150,21 @@ Important format rules:
 
 - A `percentage` field stores a fraction from `0` to `1`, not a human percentage from `0` to `100`. Store 25% as `0.25`, not `25`; convert user-entered percentage points before writing record values.
 - `date`, `datetime`, and `time` record values use integer seconds since the Unix epoch. Do not write ISO date strings or JavaScript millisecond timestamps. In JavaScript, convert the current time with `Math.floor(Date.now() / 1000)`, not `Date.now()`.
+- **A `rich-text` field stores HTML, not plain text.** It is labelled "long
+  text" in the app, and it is edited by a rich-text editor that parses the
+  stored value as HTML and saves HTML back. So write real tags: `<p>` for each
+  paragraph, `<ul><li>` for lists, `<strong>`/`<em>` for emphasis, `<h3>` for
+  a sub-heading.
+
+  Newline characters do nothing. A value like `"First line\n\nSecond line"`
+  is parsed as HTML, where newlines are only whitespace, so it renders as one
+  unbroken run of text — the field looks like it lost its formatting, though
+  nothing was lost and nothing errored. Markdown does not work either: `**bold**`
+  renders as literal asterisks. This applies when writing record values through
+  `create_record` and `update_record`, not just when defining the type.
+
+  Write `<p>First line</p><p>Second line</p>`, not `"First line\n\nSecond line"`.
+
 - `ref` selects an independent record and requires a `targetType`. A string
   names a fixed target and must match an existing type exactly. To vary the
   target per record, pass an object with an `expr` instead — see Polymorphic
