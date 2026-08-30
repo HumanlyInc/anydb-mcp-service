@@ -81,11 +81,14 @@ describe("Views are not listing-page tabs", () => {
     expect(description).toMatch(/not evidence that the user has no saved filters/i);
   });
 
-  it("says outright that the tabs cannot be read at all", async () => {
+  it("points at the tool that CAN read the tabs", async () => {
     const description = await describeOf("anydb_list_views");
 
-    // An agent that thinks a tool exists somewhere will keep looking for it.
-    expect(description).toMatch(/no way to read those tabs through this API/i);
+    // This used to assert the tabs could not be read at all, which was true
+    // until ISSUE - 24 added the listing-tab tools. Leaving that assertion in
+    // place would have pinned a sentence that had become false — the failure
+    // it produced is the test doing its job.
+    expect(description).toMatch(/use anydb_list_listing_tabs/i);
   });
 
   it("carries the same boundary in the authoring guide", async () => {
@@ -97,9 +100,9 @@ describe("Views are not listing-page tabs", () => {
     expect(guide).toContain("**A View is not a tab on a type's listing page.**");
     // The request that most often ends in this confusion.
     expect(guide).toMatch(/add a filter they can see/i);
-    // The guide is hard-wrapped, so match a phrase that sits on one line.
-    expect(guide).toMatch(
-      /looking for a tab that is not there/i,
-    );
+    // Since ISSUE - 24 the guide must also name the tools that reach tabs, and
+    // say which of the two constructs the user actually means.
+    expect(guide).toContain("Tabs have their own tools");
+    expect(guide).toContain("anydb_create_listing_tab");
   });
 });

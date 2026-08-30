@@ -150,6 +150,21 @@ Important format rules:
 
 - A `percentage` field stores a fraction from `0` to `1`, not a human percentage from `0` to `100`. Store 25% as `0.25`, not `25`; convert user-entered percentage points before writing record values.
 - `date`, `datetime`, and `time` record values use integer seconds since the Unix epoch. Do not write ISO date strings or JavaScript millisecond timestamps. In JavaScript, convert the current time with `Math.floor(Date.now() / 1000)`, not `Date.now()`.
+- **A `rich-text` field stores HTML, not plain text.** It is labelled "long
+  text" in the app, and it is edited by a rich-text editor that parses the
+  stored value as HTML and saves HTML back. So write real tags: `<p>` for each
+  paragraph, `<ul><li>` for lists, `<strong>`/`<em>` for emphasis, `<h3>` for
+  a sub-heading.
+
+  Newline characters do nothing. A value like `"First line\n\nSecond line"`
+  is parsed as HTML, where newlines are only whitespace, so it renders as one
+  unbroken run of text — the field looks like it lost its formatting, though
+  nothing was lost and nothing errored. Markdown does not work either: `**bold**`
+  renders as literal asterisks. This applies when writing record values through
+  `create_record` and `update_record`, not just when defining the type.
+
+  Write `<p>First line</p><p>Second line</p>`, not `"First line\n\nSecond line"`.
+
 - `ref` selects an independent record and requires a `targetType`. A string
   names a fixed target and must match an existing type exactly. To vary the
   target per record, pass an object with an `expr` instead — see Polymorphic
@@ -410,15 +425,21 @@ Use `anydb_create_view` to create a saved filtered listing after its target type
   works per cell, not per row.
 - **A View is not a tab on a type's listing page.** Those tabs — `All`, and the
   named filters beside it — are a separate construct stored on the database
-  root record, not Views, and no tool here reads or writes them. So
-  `anydb_create_view` cannot put one there, and `anydb_list_views` cannot show
-  you the ones a person already has. Both directions surprise people, because
-  the two look like the same feature and are not.
+  root record, not Views. `anydb_create_view` cannot put one there and
+  `anydb_list_views` cannot show you the ones a person already has; the two
+  families do not overlap in either direction, which surprises people because
+  they look like the same feature.
 
-  This matters most when the user asked to "add a filter they can see". A View
-  is reachable by passing its `viewId` as `parentid` to `list_records`, which
-  is real and useful, but it will not appear on the type page. Say which one
-  you made rather than letting them go looking for a tab that is not there.
+  **Tabs have their own tools**: `anydb_list_listing_tabs`,
+  `anydb_create_listing_tab`, `anydb_update_listing_tab`,
+  `anydb_delete_listing_tab`.
+
+  Which one to reach for: when the user asks to "add a filter they can see", or
+  for "a view showing only X" on a type, they mean a **tab** — that is the
+  thing they can see and click, and it is the only one of the two named "View"
+  in the app. Use a View when you need a filtered set to read back through the
+  API by passing its `viewId` as `parentid` to `list_records`. Either way, say
+  which of the two you made rather than letting them go looking for the other.
 
 Example child View:
 

@@ -1107,6 +1107,58 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async listListingTabs(params: {
+    teamid: string;
+    adbid: string;
+    templateName: string;
+  }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/listingtabs",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async createListingTab(params: {
+    teamid: string;
+    adbid: string;
+    templateName: string;
+    tab: Record<string, unknown>;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/listingtabs",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async updateListingTab(params: {
+    teamid: string;
+    adbid: string;
+    templateName: string;
+    name: string;
+    changes: Record<string, unknown>;
+  }): Promise<unknown> {
+    const response = await this.client.put<ExtApiResponse<unknown>>(
+      "/integrations/ext/listingtabs",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async deleteListingTab(params: {
+    teamid: string;
+    adbid: string;
+    templateName: string;
+    name: string;
+  }): Promise<unknown> {
+    const response = await this.client.delete<ExtApiResponse<unknown>>(
+      "/integrations/ext/listingtabs",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
   async generateDocument(params: {
     teamid: string;
     adbid: string;
