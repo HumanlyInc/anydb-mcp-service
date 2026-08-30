@@ -1159,6 +1159,74 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async generateDocument(params: {
+    teamid: string;
+    adbid: string;
+    docgenId: string;
+    adoid: string;
+    attachTo?: string;
+    asPdf?: boolean;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/docgentemplates/generate",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listDocGenTemplates(params: {
+    teamid: string;
+    adbid: string;
+    templateName?: string;
+  }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/docgentemplates",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async createDocGenTemplate(params: {
+    teamid: string;
+    adbid: string;
+    templateName: string;
+    fileRecordId: string;
+    name: string;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/docgentemplates",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async updateDocGenTemplate(params: {
+    teamid: string;
+    adbid: string;
+    docgenId: string;
+    templateName: string;
+    fileRecordId: string;
+    name: string;
+  }): Promise<unknown> {
+    const response = await this.client.put<ExtApiResponse<unknown>>(
+      "/integrations/ext/docgentemplates",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async deleteDocGenTemplate(params: {
+    teamid: string;
+    adbid: string;
+    docgenId: string;
+  }): Promise<unknown> {
+    const response = await this.client.delete<ExtApiResponse<unknown>>(
+      "/integrations/ext/docgentemplates",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
   async listInbox(params: { teamid: string }): Promise<unknown> {
     const response = await this.client.get<ExtApiResponse<unknown>>(
       "/integrations/ext/inbox",

@@ -339,6 +339,141 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_generate_document",
+    description:
+      "Generate a document from one record using a Document Generation template, and attach the result to that record so it can be downloaded, emailed or sent on. This is the tool that actually produces the PDF - the other docgen tools only configure which template applies to which type. REGENERATING REPLACES: running this again with the same template on the same record supersedes the previous output rather than adding a second file, so a record never accumulates a pile of near-identical documents. Replacement is per template, so generating a Quote does not remove an Invoice generated from a different template on the same record. The result is an ordinary File record: pass the returned fileRecordId and cellPosition to download_file to fetch the bytes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        docgenId: {
+          type: "string",
+          description:
+            "id of the Document Generation template to run, from anydb_list_docgen_templates.",
+        },
+        adoid: {
+          type: "string",
+          description:
+            "The record to generate FROM - its field values fill the template's placeholders.",
+        },
+        attachTo: {
+          type: "string",
+          description:
+            "Optional record to attach the generated document to. Defaults to the record it was generated from, which is almost always what you want. Note this WRITES a file into the workspace, so the user will see it.",
+        },
+        asPdf: {
+          type: "boolean",
+          description:
+            "Convert the filled template to PDF. Defaults to true, which is what an invoice or quote normally wants; false returns the rendered .docx/.xlsx instead.",
+        },
+      },
+      required: ["teamid", "adbid", "docgenId", "adoid"],
+    },
+  },
+  {
+    name: "anydb_list_docgen_templates",
+    description:
+      "List the Document Generation templates set up in a database - the .docx/.xlsx templates a person can generate a filled document from, shown under Document Generation in the AnyDB app. Each entry gives its id, its name, the workspace type it applies to (templateName), and the File record holding the template (fileAdoId). Call this before creating one to avoid a duplicate, and to find the id that update and delete take. Note the product also calls this feature \"formatted export\" internally, so that is the wording you will see in server logs and URLs.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        templateName: {
+          type: "string",
+          description:
+            "Optional. Restrict to templates attached to this one workspace type. Omit to list every Document Generation template in the database.",
+        },
+      },
+      required: ["teamid", "adbid"],
+    },
+  },
+  {
+    name: "anydb_create_docgen_template",
+    description:
+      "Set up a Document Generation template: attach an uploaded .docx or .xlsx file to a workspace type, so documents can be generated from records of that type. THE FILE MUST BE UPLOADED FIRST and the upload must be COMPLETED - use prepare_file_upload, PUT the bytes, then complete_file_upload, and pass the resulting File record's adoid as fileRecordId. A record that is not a File, or a File whose upload never completed, is rejected: an agent that skips complete_file_upload has an adoid that looks usable and is not. The type must already exist.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        templateName: {
+          type: "string",
+          description:
+            "Stable workspace type name this template generates documents for, e.g. \"Invoice\". Must already exist.",
+        },
+        fileRecordId: {
+          type: "string",
+          description:
+            "adoid of the File record holding the .docx/.xlsx template, from complete_file_upload. NOT the record you want to generate a document from.",
+        },
+        name: {
+          type: "string",
+          description:
+            "Name for this template as the user will see it, e.g. \"Invoice PDF\".",
+        },
+      },
+      required: ["teamid", "adbid", "templateName", "fileRecordId", "name"],
+    },
+  },
+  {
+    name: "anydb_update_docgen_template",
+    description:
+      "Change a Document Generation template - its name, the type it applies to, or the template file behind it. EVERY FIELD IS REQUIRED: the server implements this as a remove followed by an add, so anything you omit is lost rather than preserved, and THE ENTRY COMES BACK WITH A NEW id. Re-read anydb_list_docgen_templates afterwards rather than reusing the id you passed in.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        docgenId: {
+          type: "string",
+          description:
+            "id of the template to change, from anydb_list_docgen_templates.",
+        },
+        templateName: {
+          type: "string",
+          description: "Workspace type name. Required even if unchanged.",
+        },
+        fileRecordId: {
+          type: "string",
+          description:
+            "File record adoid for the template file. Required even if unchanged.",
+        },
+        name: {
+          type: "string",
+          description: "Display name. Required even if unchanged.",
+        },
+      },
+      required: [
+        "teamid",
+        "adbid",
+        "docgenId",
+        "templateName",
+        "fileRecordId",
+        "name",
+      ],
+    },
+  },
+  {
+    name: "anydb_delete_docgen_template",
+    description:
+      "Remove a Document Generation template from a database. This deletes the mapping, not the uploaded template file - the File record stays and can be attached again. Permanent otherwise.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID." },
+        adbid: { type: "string", description: "The database ID." },
+        docgenId: {
+          type: "string",
+          description:
+            "id of the template to remove, from anydb_list_docgen_templates.",
+        },
+      },
+      required: ["teamid", "adbid", "docgenId"],
+    },
+  },
+  {
     name: "anydb_get_permissions",
     description:
       "Report what a user may do with a team, database, or record: read it, update it, delete it, add records underneath it, and share it. Omit userid to ask about the authenticated user. Read the `can` block for the answer; the raw permission matrix is included for detail. Note that being able to update a record and being able to add records under it are independent — see anydb://guides/permissions/v1.",
@@ -1953,6 +2088,73 @@ export function createMcpServer({
             adbid: args?.adbid as string,
             templateName: args?.templateName as string,
             name: args?.name as string,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_generate_document": {
+          const result = await extApiClient.generateDocument({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            docgenId: args?.docgenId as string,
+            adoid: args?.adoid as string,
+            ...(args?.attachTo ? { attachTo: args.attachTo as string } : {}),
+            ...(args?.asPdf !== undefined
+              ? { asPdf: args.asPdf as boolean }
+              : {}),
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_list_docgen_templates": {
+          const result = await extApiClient.listDocGenTemplates({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            ...(args?.templateName
+              ? { templateName: args.templateName as string }
+              : {}),
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_create_docgen_template": {
+          const result = await extApiClient.createDocGenTemplate({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            templateName: args?.templateName as string,
+            fileRecordId: args?.fileRecordId as string,
+            name: args?.name as string,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_update_docgen_template": {
+          const result = await extApiClient.updateDocGenTemplate({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            docgenId: args?.docgenId as string,
+            templateName: args?.templateName as string,
+            fileRecordId: args?.fileRecordId as string,
+            name: args?.name as string,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        case "anydb_delete_docgen_template": {
+          const result = await extApiClient.deleteDocGenTemplate({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            docgenId: args?.docgenId as string,
           });
           return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
