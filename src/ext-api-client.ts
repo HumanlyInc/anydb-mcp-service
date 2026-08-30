@@ -1265,6 +1265,19 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async revertRecordToVersion(params: {
+    teamid: string;
+    adbid: string;
+    adoid: string;
+    ts: number;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/record/revert",
+      params,
+    );
+    return this.unwrap(response.data);
+  }
+
   async listInbox(params: { teamid: string }): Promise<unknown> {
     const response = await this.client.get<ExtApiResponse<unknown>>(
       "/integrations/ext/inbox",
