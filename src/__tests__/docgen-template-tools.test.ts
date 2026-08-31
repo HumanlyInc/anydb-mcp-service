@@ -148,4 +148,52 @@ describe("docgen template tools", () => {
 
     expect(tool.description).toMatch(/not the uploaded template file/i);
   });
+
+  /**
+   * The merge-tag syntax (ISSUE - 44).
+   *
+   * Every docgen tool explained how to REGISTER a template and none of them
+   * said what to write INSIDE the file, so an agent authoring one had to guess
+   * the placeholder syntax — and the natural guess is wrong, because AnyDB's
+   * formula language uses {{...}} while a template placeholder is {...}.
+   *
+   * These assertions are deliberately about the four things that actually
+   * cost someone time, rather than the prose around them.
+   */
+  it("documents the placeholder syntax, and that it is NOT the formula syntax", async () => {
+    const tool = await toolNamed("anydb_create_docgen_template");
+
+    expect(tool.description).toMatch(/SINGLE braces/i);
+    // The confusion worth pre-empting: {{...}} is the formula language.
+    expect(tool.description).toMatch(/NOT the double-brace/i);
+  });
+
+  it("says a field can be named by key or by cell position", async () => {
+    const tool = await toolNamed("anydb_create_docgen_template");
+
+    expect(tool.description).toMatch(/EITHER by its key OR by its cell position/i);
+  });
+
+  it("warns that an unmatched tag renders empty instead of failing", async () => {
+    const tool = await toolNamed("anydb_create_docgen_template");
+
+    // The silent one: a typo becomes a blank in the finished document, with
+    // nothing anywhere reporting it.
+    expect(tool.description).toMatch(/RENDERS EMPTY/i);
+    expect(tool.description).toMatch(/not an error/i);
+  });
+
+  it("explains how to repeat child records", async () => {
+    const tool = await toolNamed("anydb_create_docgen_template");
+
+    expect(tool.description).toContain("{#Line Items}");
+    expect(tool.description).toContain("{/Line Items}");
+  });
+
+  it("sends someone seeing blanks to the syntax rather than leaving them guessing", async () => {
+    const tool = await toolNamed("anydb_generate_document");
+
+    expect(tool.description).toMatch(/blanks where values should be/i);
+    expect(tool.description).toContain("anydb_create_docgen_template");
+  });
 });
