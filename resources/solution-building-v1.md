@@ -876,12 +876,14 @@ Structure and requirement coverage:
 
 - Open with a top-level `const CONFIG = { ... }` block holding the source type and field names, plus `target` and `defaults` when the script writes to another type. Reference `CONFIG.*` in the logic instead of repeating literals. Do not add a `CONFIG.output` section; `output.set(...)` keys are plain string literals.
 - Place execution logic next, and end with explicit `output.set(...)` values and a concise `output.summary(...)`.
+- Keep those stages as separate, ordered blocks — config, guard, fetch, per-branch logic, output — with a blank line between them rather than one continuous run of statements. A reader should be able to find where a stage starts without tracing the control flow.
 - Derive a checklist of every condition, mutation, side effect, ordering constraint, and output in the request, then confirm the finished script covers it. Listing a field in `CONFIG` is not implementing its condition.
 - Bind each condition to the exact field it names. Do not substitute a different field because its values look similar.
 - Implement each requested action only inside the branch its conditions govern, and preserve ordering where one action depends on another.
 - Preserve operation semantics: an append retains existing content, a clear writes the schema-valid empty value, and a lock or unlock request calls the corresponding awaited record helper.
 - Do not add mutations the request did not ask for.
-- Include short `//` comments naming the concrete condition, field, or cell each block handles, covering at least setup/guard, fetch/process, and output.
+- Open each block with a short `//` comment naming the concrete condition, field, or cell it handles, covering at least setup/guard, fetch/process, and output. Someone who reads only the comments should be able to follow what the script does.
+- Keep the comments minimal. State the intent of a block, not the syntax inside it: no line-by-line narration, no restating a documented `anydb.*` API, and no commentary a reader could get from the identifier next to it.
 
 Execution integrity:
 
