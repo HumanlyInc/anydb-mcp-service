@@ -634,6 +634,33 @@ inflates the content by about a third and spends that inflation in the calling
 model's own token budget. Size is not what decides between the two — whether
 you can PUT is.
 
+### Referencing a File From Another Cell
+
+A formula may target a `file`-valued cell, and the reference **shares the
+underlying file rather than copying it**. One file exists, linked from both
+places; nothing is re-uploaded, and the referencing cell is downloadable
+exactly like the original.
+
+- Within one record, by key: `{{Doc}}`
+- Across records, by parent traversal: `A@CURRREC!{{Doc}}[0]`
+
+Both are verified behaviour, not a side effect to rely on cautiously: a file
+cell's value *is* the file descriptor, and a download resolves from the
+descriptor stored in the cell rather than from the record and position it
+happens to sit at. Copying the value therefore copies the pointer.
+
+`A@` traverses to parents and yields a collection, hence the `[0]`. `C@` is the
+*children* traversal and also yields a collection, so a bare
+`C@<adoid>!{{Doc}}` is not a single-value reference and evaluates to
+`#REF! Bad value` — aggregate it, or use `A@...[0]`.
+
+**This is a different mechanism from attaching a file as a child File record,
+and the difference matters.** A formula reference writes a cell value and
+creates no child record, so anything that finds files by walking the attachment
+hierarchy instead of reading cell values will not see it. Use a reference when
+you want one file visible in two places; use a real attachment when something
+downstream has to discover it by traversing children.
+
 ## Formulas
 
 One formula language drives four different things, so the same syntax applies
