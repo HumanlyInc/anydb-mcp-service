@@ -272,6 +272,20 @@ describe("solution resources", () => {
       "accept exactly one type-name selector (`type`, `typeName`, or `templateName`) and never a template ID",
     );
     expect(resource.text).toContain("a single `=` is not an operator");
+    // ISSUE - 48 / DEC-1012. This was ruled documentation-only rather than a
+    // code fix, which makes the wording the entire mitigation. Both halves are
+    // pinned: the hazard, and the pattern that actually works -- an author told
+    // only that it fails will reach for a retry loop, which cannot help inside
+    // the script timeout.
+    expect(resource.text).toContain(
+      "does not see records the same execution just created"
+    );
+    expect(resource.text).toContain(
+      "finds nothing and creates duplicates every time"
+    );
+    expect(resource.text).toContain(
+      "track the records you create in memory"
+    );
     expect(resource.text).toContain(
       "`record.content`, `record.cells`, and `record.getCellValue(...)` do not exist",
     );
