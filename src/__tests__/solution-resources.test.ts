@@ -245,6 +245,17 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       "Listing a field in `CONFIG` is not implementing its condition",
     );
+    // A generated script has to be readable by the human who inherits it, so
+    // the guide asks for both halves: separated blocks, and comments that stay
+    // short. Asserting only the first half lets the second regress silently.
+    expect(resource.text).toContain(
+      "Keep those stages as separate, ordered blocks",
+    );
+    expect(resource.text).toContain(
+      "Open each block with a short `//` comment naming the concrete condition",
+    );
+    expect(resource.text).toContain("Keep the comments minimal");
+    expect(resource.text).toContain("no line-by-line narration");
     expect(resource.text).toContain(
       "Keep branch selection free of side effects",
     );
