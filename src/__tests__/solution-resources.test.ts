@@ -318,6 +318,18 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       "Record shares have no submissions destination and do not create a Folder",
     );
+    // A formula reference to a file cell shares the file rather than copying
+    // it (ISSUE-50). Both the behaviour and the scope are pinned in
+    // anydb-server's test/integration/file.cell.reference.test.ts; these
+    // assertions keep the guide from quietly losing them.
+    expect(resource.text).toContain("### Referencing a File From Another Cell");
+    expect(resource.text).toContain(
+      "shares the\nunderlying file rather than copying it",
+    );
+    expect(resource.text).toContain("A@CURRREC!{{Doc}}[0]");
+    expect(resource.text).toContain(
+      "creates no child record, so anything that finds files by walking the attachment",
+    );
   });
 
   it("lists and reads the MCP setup guide", () => {
