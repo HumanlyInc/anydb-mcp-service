@@ -286,6 +286,12 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       "track the records you create in memory"
     );
+    // ISSUE - 55. The wait exists now, so the passage must name it — but the
+    // escape-hatch framing is the load-bearing half. Without it an author
+    // reaches for the wait first and pays indexing latency on every iteration
+    // of a loop that an in-memory list would have handled for free.
+    expect(resource.text).toContain("anydb.waitForRecords");
+    expect(resource.text).toContain("this is the escape hatch, not the default");
     expect(resource.text).toContain(
       "`record.content`, `record.cells`, and `record.getCellValue(...)` do not exist",
     );
