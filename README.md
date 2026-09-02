@@ -7,17 +7,18 @@ An MCP server that lets AI clients work with AnyDB records and build complete
 AnyDB solutions. It supports record and file operations, semantic type
 authoring, filtered Views, record and form sharing, and event-driven workflows.
 
-## Hosted Service (Recommended)
+## Hosted Service
 
-The quickest way to use this server is the hosted one:
+**Use the hosted service.** It is the recommended way to connect an AI client to
+AnyDB, and for almost everyone it is the only thing on this page they need:
 
 ```
 https://mcp.anydb.com
 ```
 
 Point any MCP client that supports remote servers at that URL. There is nothing
-to install, no API key to place in a config file, and no upgrade step when a new
-version ships -- the hosted service always runs the current release.
+to install, no package to keep up to date, no API key to put in a config file,
+and no server of your own to run or secure. It always runs the current release.
 
 It authenticates with OAuth 2.1 rather than a stored key: the client opens an
 AnyDB sign-in, and access is scoped to whoever signs in (`mcp:read`,
@@ -25,10 +26,6 @@ AnyDB sign-in, and access is scoped to whoever signs in (`mcp:read`,
 
 For client-specific steps, see the
 [AnyDB MCP integration guide](https://www.anydb.com/support/integrations/anydb-mcp/).
-
-Run the package yourself instead when you need to reach a non-production AnyDB,
-pin an exact version, or keep traffic inside your own network. Everything below
-covers that case.
 
 ## Capabilities
 
@@ -48,10 +45,15 @@ opaque `create_solution` operation. This lets clients discover and reuse
 existing artifacts, validate mutations, resume safely after partial failure,
 and inspect each result.
 
-## Installation
+## Self-Hosting
 
-Only needed if you are running the server yourself rather than using
-[the hosted service](#hosted-service-recommended).
+Everything in this section is for running the server yourself. **You do not need
+any of it to use AnyDB from an MCP client** -- use
+[the hosted service](#hosted-service) instead, which is the general
+recommendation. Self-host only for a specific reason: reaching a non-production
+AnyDB, pinning an exact version, or keeping traffic inside your own network.
+
+### Installation
 
 [View `anydb-mcp-service` on npm](https://www.npmjs.com/package/anydb-mcp-service).
 
@@ -65,9 +67,9 @@ For a global installation:
 npm install -g anydb-mcp-service
 ```
 
-## Configuration
+### Configuration
 
-### Prerequisites
+#### Prerequisites
 
 - Node.js 16 or later
 - An [AnyDB](https://www.anydb.com) account
@@ -79,7 +81,7 @@ Get your API key from **Profile > Integration** in the
 For the complete MCP-specific installation and Claude configuration guide, see
 [AnyDB MCP integration](https://www.anydb.com/support/integrations/anydb-mcp/).
 
-### Environment Variables
+#### Environment Variables
 
 | Variable                   | Required | Default                     | Description                       |
 | -------------------------- | -------: | --------------------------- | --------------------------------- |
@@ -87,7 +89,7 @@ For the complete MCP-specific installation and Claude configuration guide, see
 | `ANYDB_DEFAULT_USER_EMAIL` |      Yes | -                           | Email associated with the API key |
 | `ANYDB_API_URL`            |       No | `https://app.anydb.com/api` | AnyDB API base URL                |
 
-### Claude Desktop
+#### Claude Desktop
 
 Add the server to the Claude Desktop configuration:
 
@@ -115,7 +117,7 @@ Restart Claude Desktop after changing its configuration.
 Use the exact variable name `ANYDB_API_URL`. `ANYDB_API_BASE_URL` is not
 recognized and causes the service to fall back to the default production URL.
 
-### Other MCP Clients
+#### Other MCP Clients
 
 Run the stdio server with:
 
@@ -126,10 +128,10 @@ npx -y anydb-mcp-service
 Configure environment variables in the MCP host rather than passing credentials
 through a conversation.
 
-## HTTP Transport
+### HTTP Transport
 
-Alongside the default stdio transport, the server runs over MCP Streamable HTTP
-for clients that connect to a URL rather than spawning a process:
+This is the transport the hosted service runs on. In your own deployment, it
+serves clients that connect to a URL rather than spawning a process:
 
 ```bash
 npm run start:http
@@ -149,7 +151,7 @@ session state is carried between requests. `POST /` is the only MCP method;
 | `MCP_OAUTH_JWKS_URI` | `<issuer>/.well-known/jwks.json` | Token verification keys |
 | `MCP_OAUTH_ENABLED` | `true` | Set `false` to run API-key-only |
 
-### Authentication
+#### Authentication
 
 Requests authenticate with either an OAuth 2.1 bearer token or the API-key
 headers. A bearer token wins when both are present, so an OAuth session never
@@ -415,13 +417,19 @@ with `anydb.waitForRecords` documented as the opt-in way to wait for one.
 
 ## Troubleshooting
 
-- Confirm `ANYDB_API_URL` points to the AnyDB API and is reachable.
-- Confirm the API key belongs to `ANYDB_DEFAULT_USER_EMAIL`.
-- Restart the MCP host after changing environment variables or package version.
+However you connect:
+
 - Read the guide before diagnosing rejected authoring requests; these tools
   enforce semantic validation and authorization.
 - Use `validateOnly: true` to diagnose authoring requests without persistence.
 - Inspect workflow execution history when automation does not appear to run.
+
+Self-hosted only -- none of these apply to the hosted service, which has no
+environment to configure:
+
+- Confirm `ANYDB_API_URL` points to the AnyDB API and is reachable.
+- Confirm the API key belongs to `ANYDB_DEFAULT_USER_EMAIL`.
+- Restart the MCP host after changing environment variables or package version.
 
 ## Support
 
