@@ -385,39 +385,26 @@ an existing workflow's script instead of writing a new one.
 
 ### 3.0.0
 
-**Breaking -- the View tools changed meaning, and one was removed.** Four of the
-five keep their old names, so nothing errors: the calls succeed and do something
-different. Re-read their descriptions rather than relying on what they did in
-2.3.0.
+**Added.** Twenty-one tools:
 
-In 2.3.0 these tools operated on standalone View ADO records that no listing
-page ever displayed. An agent asked for "a view showing only X", got
-`persisted: true` and a real `viewId`, and the user saw nothing change. Those
-tools are retired. The names now belong to the tools that manage the Views on a
-type's listing page -- the All tab and the named filters beside it, which is
-what a View means everywhere else in AnyDB.
-
-| Tool | In 2.3.0 | In 3.0.0 |
-| ---------------------- | ---------------------------- | --------------------------------------- |
-| `anydb_list_views` | listed standalone View ADOs | lists a type's listing-page Views |
-| `anydb_create_view` | created a standalone View ADO | creates a listing-page View |
-| `anydb_update_view` | updated a standalone View ADO | updates a listing-page View |
-| `anydb_delete_view` | deleted a standalone View ADO | deletes a listing-page View |
-| `anydb_get_view` | fetched one View ADO | **removed** -- there is no per-View get; use `anydb_list_views` |
-
-**Added.** Twenty-one new tools:
-
-- Documents: `anydb_generate_document`, and Doc Gen template management with
+- Documents: `anydb_generate_document`, plus Doc Gen template management with
   `anydb_list_docgen_templates`, `anydb_create_docgen_template`,
-  `anydb_update_docgen_template`, `anydb_delete_docgen_template`.
-- Scripts: `anydb_run_script`, `anydb_simulate_script`, `anydb_validate_script`
-  for running a one-off script without building a workflow around it.
+  `anydb_update_docgen_template` and `anydb_delete_docgen_template`.
+- Scripts: `anydb_run_script`, `anydb_simulate_script` and
+  `anydb_validate_script`, for running a one-off script without building a
+  workflow around it.
 - Record history: `anydb_list_record_versions`, `anydb_get_record_version`,
-  `anydb_get_record_version_delta`, `anydb_revert_record_to_version`.
-- Reports: `anydb_list_reports`, `anydb_get_report`, `anydb_create_report`,
-  `anydb_update_report`.
-- Collaboration: `anydb_add_comment`, `anydb_resolve_comment`, `anydb_get_inbox`.
-- Access: `anydb_get_permissions`, `anydb_check_permissions`.
+  `anydb_get_record_version_delta` and `anydb_revert_record_to_version`.
+- Reports: `anydb_list_reports`, `anydb_get_report`, `anydb_create_report`
+  and `anydb_update_report`.
+- Collaboration: `anydb_add_comment`, `anydb_resolve_comment` and
+  `anydb_get_inbox`.
+- Access: `anydb_get_permissions` and `anydb_check_permissions`.
+
+**Changed.** The View tools now manage the Views on a type's listing page --
+the `All` tab and the named filters beside it -- rather than the standalone
+View records that no listing page displayed. `anydb_get_view` is gone; there is
+no per-View get, so list them with `anydb_list_views`.
 
 **Authoring guide.** Doc Gen merge-tag syntax is documented for the first time;
 a formula reference to a file cell is now stated to share the underlying file
