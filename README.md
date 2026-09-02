@@ -7,6 +7,29 @@ An MCP server that lets AI clients work with AnyDB records and build complete
 AnyDB solutions. It supports record and file operations, semantic type
 authoring, filtered Views, record and form sharing, and event-driven workflows.
 
+## Hosted Service (Recommended)
+
+The quickest way to use this server is the hosted one:
+
+```
+https://mcp.anydb.com
+```
+
+Point any MCP client that supports remote servers at that URL. There is nothing
+to install, no API key to place in a config file, and no upgrade step when a new
+version ships -- the hosted service always runs the current release.
+
+It authenticates with OAuth 2.1 rather than a stored key: the client opens an
+AnyDB sign-in, and access is scoped to whoever signs in (`mcp:read`,
+`mcp:write`, `mcp:author`). Nothing long-lived is written to disk.
+
+For client-specific steps, see the
+[AnyDB MCP and Claude integration guide](https://www.anydb.com/support/integrations/mcp-claude).
+
+Run the package yourself instead when you need to reach a non-production AnyDB,
+pin an exact version, or keep traffic inside your own network. Everything below
+covers that case.
+
 ## Capabilities
 
 - Discover, create, inspect, update, search, copy, move, and delete records.
@@ -26,6 +49,9 @@ existing artifacts, validate mutations, resume safely after partial failure,
 and inspect each result.
 
 ## Installation
+
+Only needed if you are running the server yourself rather than using
+[the hosted service](#hosted-service-recommended).
 
 [View `anydb-mcp-service` on npm](https://www.npmjs.com/package/anydb-mcp-service).
 
@@ -354,6 +380,51 @@ do not expose MCP resource reading directly.
 Every prompt requires a `goal` and accepts optional `constraints`.
 `author_anydb_workflow_script` also accepts a `workflowId` to review and revise
 an existing workflow's script instead of writing a new one.
+
+## Release Notes
+
+### 3.0.0
+
+**Breaking -- the View tools changed meaning, and one was removed.** Four of the
+five keep their old names, so nothing errors: the calls succeed and do something
+different. Re-read their descriptions rather than relying on what they did in
+2.3.0.
+
+In 2.3.0 these tools operated on standalone View ADO records that no listing
+page ever displayed. An agent asked for "a view showing only X", got
+`persisted: true` and a real `viewId`, and the user saw nothing change. Those
+tools are retired. The names now belong to the tools that manage the Views on a
+type's listing page -- the All tab and the named filters beside it, which is
+what a View means everywhere else in AnyDB.
+
+| Tool | In 2.3.0 | In 3.0.0 |
+| ---------------------- | ---------------------------- | --------------------------------------- |
+| `anydb_list_views` | listed standalone View ADOs | lists a type's listing-page Views |
+| `anydb_create_view` | created a standalone View ADO | creates a listing-page View |
+| `anydb_update_view` | updated a standalone View ADO | updates a listing-page View |
+| `anydb_delete_view` | deleted a standalone View ADO | deletes a listing-page View |
+| `anydb_get_view` | fetched one View ADO | **removed** -- there is no per-View get; use `anydb_list_views` |
+
+**Added.** Twenty-one new tools:
+
+- Documents: `anydb_generate_document`, and Doc Gen template management with
+  `anydb_list_docgen_templates`, `anydb_create_docgen_template`,
+  `anydb_update_docgen_template`, `anydb_delete_docgen_template`.
+- Scripts: `anydb_run_script`, `anydb_simulate_script`, `anydb_validate_script`
+  for running a one-off script without building a workflow around it.
+- Record history: `anydb_list_record_versions`, `anydb_get_record_version`,
+  `anydb_get_record_version_delta`, `anydb_revert_record_to_version`.
+- Reports: `anydb_list_reports`, `anydb_get_report`, `anydb_create_report`,
+  `anydb_update_report`.
+- Collaboration: `anydb_add_comment`, `anydb_resolve_comment`, `anydb_get_inbox`.
+- Access: `anydb_get_permissions`, `anydb_check_permissions`.
+
+**Authoring guide.** Doc Gen merge-tag syntax is documented for the first time;
+a formula reference to a file cell is now stated to share the underlying file
+rather than copy it; script guidance asks for blocks a reader can find and
+comments that stay short; and the search-index window is spelled out -- a
+condition search does not see records written earlier in the same script run,
+with `anydb.waitForRecords` documented as the opt-in way to wait for one.
 
 ## Troubleshooting
 
