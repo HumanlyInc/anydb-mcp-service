@@ -75,6 +75,6 @@ export const config = {
     // Bearer auth is on unless explicitly disabled.
     enabled: process.env.MCP_OAUTH_ENABLED !== "false",
     resourceDocumentation:
-      "https://www.anydb.com/support/integrations/mcp-claude",
+      "https://www.anydb.com/support/integrations/anydb-mcp/",
   },
 };

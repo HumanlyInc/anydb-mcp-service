@@ -24,7 +24,7 @@ AnyDB sign-in, and access is scoped to whoever signs in (`mcp:read`,
 `mcp:write`, `mcp:author`). Nothing long-lived is written to disk.
 
 For client-specific steps, see the
-[AnyDB MCP and Claude integration guide](https://www.anydb.com/support/integrations/mcp-claude).
+[AnyDB MCP integration guide](https://www.anydb.com/support/integrations/anydb-mcp/).
 
 Run the package yourself instead when you need to reach a non-production AnyDB,
 pin an exact version, or keep traffic inside your own network. Everything below
@@ -77,7 +77,7 @@ Get your API key from **Profile > Integration** in the
 [AnyDB application](https://app.anydb.com). Keep it private.
 
 For the complete MCP-specific installation and Claude configuration guide, see
-[AnyDB MCP integration](https://www.anydb.com/support/integrations/mcp-claude).
+[AnyDB MCP integration](https://www.anydb.com/support/integrations/anydb-mcp/).
 
 ### Environment Variables
 
@@ -425,7 +425,7 @@ with `anydb.waitForRecords` documented as the opt-in way to wait for one.
 
 ## Support
 
-- [AnyDB MCP and Claude integration guide](https://www.anydb.com/support/integrations/mcp-claude)
+- [AnyDB MCP integration guide](https://www.anydb.com/support/integrations/anydb-mcp/)
 - [AnyDB documentation](https://www.anydb.com/support)
 - [AnyDB website](https://www.anydb.com)
 
