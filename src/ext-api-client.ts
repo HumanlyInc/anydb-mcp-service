@@ -612,7 +612,7 @@ export interface BulkUpdateRecordInput {
  * literal is only a fallback for callers that pass nothing.
  */
 const CLIENT_NAME = "anydb-mcp-service";
-const FALLBACK_VERSION = "2.3.0";
+const FALLBACK_VERSION = "3.0.0";
 
 function clientIdentity(version?: string): string {
   return `${CLIENT_NAME}/${version || FALLBACK_VERSION} (node/${
