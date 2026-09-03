@@ -856,6 +856,58 @@ describe("solution authoring tools", () => {
     });
   });
 
+  it("tells the model a no-op run is a success, not a failure", async () => {
+    // ISSUE - 82, the client half of ISSUE - 79. The server used to answer 424
+    // when a trigger's conditions did not match; it now answers 200 with
+    // executionRan false and execution null. Without this in the description a
+    // model reads that null as failure and retries -- the same loop, one layer
+    // up. On Dev1 that was three calls in 70 seconds.
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_execute_workflow",
+    );
+
+    expect(tool?.description).toContain("executionRan");
+    // The two things a model has to be told, because neither is guessable
+    // from the payload: false is not an error, and the null is deliberate.
+    expect(tool?.description).toMatch(/executionRan[^.]*false[^.]*not (an )?error/i);
+    expect(tool?.description).toMatch(/execution is null/i);
+  });
+
+  it("forwards a declined run without turning it into an error", async () => {
+    const executeWorkflow = jest.fn<ExtApiClient["executeWorkflow"]>();
+    executeWorkflow.mockResolvedValue({
+      success: true,
+      operation: "execute_workflow",
+      result: {
+        workflowId: "507f1f77bcf86cd799439091",
+        simulated: false,
+        executionRan: false,
+        execution: null,
+      },
+    } as ExecuteWorkflowResult);
+    const client = { executeWorkflow } as unknown as ExtApiClient;
+
+    const result = await callSolutionAuthoringTool(
+      "anydb_execute_workflow",
+      {
+        teamid: "507f1f77bcf86cd799439011",
+        adbid: "507f1f77bcf86cd799439012",
+        workflowId: "507f1f77bcf86cd799439091",
+        simulate: false,
+      },
+      client,
+    );
+
+    // It must arrive intact rather than being rewritten or thrown: the
+    // distinction between "declined" and "broke" only survives if both fields
+    // reach the model.
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      success: true,
+      operation: "execute_workflow",
+      result: { executionRan: false, execution: null },
+    });
+  });
+
   it("lists workflow trigger definitions", async () => {
     const listWorkflowTriggers =
       jest.fn<ExtApiClient["listWorkflowTriggers"]>();

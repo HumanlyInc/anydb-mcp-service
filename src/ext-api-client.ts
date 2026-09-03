@@ -551,6 +551,22 @@ export interface ExecuteWorkflowResult {
   result: {
     workflowId: string;
     simulated: boolean;
+    /**
+     * Whether the call produced an execution (ISSUE - 82 / server ISSUE - 79).
+     *
+     * False means the workflow ran and its trigger correctly declined to act
+     * -- the normal outcome of a conditional workflow, not a failure. The
+     * server used to answer 424 in that case, which read as an error and
+     * produced retry loops.
+     *
+     * When false, `execution` is null BY DESIGN rather than missing: no
+     * history entry is written for a run that did not fire, so the only
+     * alternative would be handing back the previous run's record.
+     *
+     * Optional because a client may be talking to a server older than that
+     * change, where the field is simply absent.
+     */
+    executionRan?: boolean;
     execution: unknown;
   };
 }

@@ -114,7 +114,7 @@ Then build an internal checklist of every condition, mutation, side effect, orde
 - Field names keep exact schema casing, select values use declared option literals, checkboxes are booleans, and date, datetime, and time values are integer epoch seconds.
 - It ends with explicit output.set(...) values and a concise output.summary(...), and uses log(...) for diagnostics without logging sensitive content.
 
-${workflowId ? "Apply the revision with anydb_update_workflow by resending the complete ordered action chain, including every other action config value and binding." : "Create the workflow disabled, using validateOnly first if the design is uncertain."} Then verify with anydb_execute_workflow using simulate: true, then a real run against test data, and inspect executionHistory[].artifactExecutions[].output.logLines before reporting the automation as working.
+${workflowId ? "Apply the revision with anydb_update_workflow by resending the complete ordered action chain, including every other action config value and binding." : "Create the workflow disabled, using validateOnly first if the design is uncertain."} Then verify with anydb_execute_workflow using simulate: true, then a real run against test data. Check result.executionRan first: false means the trigger correctly declined to act on that record - a successful no-op, not a broken automation - so re-run against data that satisfies the trigger's conditions rather than editing the workflow. Only when executionRan is true does an empty execution mean anything; then inspect executionHistory[].artifactExecutions[].output.logLines before reporting the automation as working.
 
 Return the script and a short account of how it covers the checklist, not chain-of-thought.`,
           },
