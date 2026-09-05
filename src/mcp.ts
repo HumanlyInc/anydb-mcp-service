@@ -120,6 +120,14 @@ import {
  * =============================================================================
  */
 
+// Appended to every record-write tool's `content` description. Rich-text
+// ("long text") cells store HTML, so a model that writes plain text with
+// newlines or Markdown gets a wall of unbroken text that looks like the
+// formatting was dropped, though nothing errors. Keep this in sync with the
+// same rule in resources/solution-building-v1.md.
+const RICH_TEXT_CELL_NOTE =
+  ' A rich-text ("long text") cell stores HTML, not plain text: write real tags — <p> for each paragraph, <br> for a line break, <strong>/<em> for emphasis, <ul><li> for lists. A newline character is only whitespace and Markdown is not parsed, so a plain-text value renders as one unbroken run.';
+
 // Define available tools
 const TOOLS: Tool[] = [
   ...SETUP_TOOLS,
@@ -809,7 +817,8 @@ const TOOLS: Tool[] = [
         content: {
           type: "object",
           description:
-            'Optional cell updates keyed by grid position. Each value must be an object, for example {"A1": {"value": "Main Warehouse"}, "D3": {"value": true}}. Existing key, type, format, and props are preserved from the selected template.',
+            'Optional cell updates keyed by grid position. Each value must be an object, for example {"A1": {"value": "Main Warehouse"}, "D3": {"value": true}}. Existing key, type, format, and props are preserved from the selected template.' +
+            RICH_TEXT_CELL_NOTE,
           additionalProperties: {
             type: "object",
           },
@@ -855,7 +864,12 @@ const TOOLS: Tool[] = [
                 type: "string",
                 description: "Optional template/type name",
               },
-              content: { type: "object" },
+              content: {
+                type: "object",
+                description:
+                  "Optional cell updates keyed by grid position, same shape as create_record's content." +
+                  RICH_TEXT_CELL_NOTE,
+              },
             },
             required: ["name"],
           },
@@ -949,7 +963,8 @@ const TOOLS: Tool[] = [
         content: {
           type: "object",
           description:
-            "Optional content updates. Each key should be a cell key from the record, and the value should be an object containing 'pos' (cell position like 'A1'), 'key' (cell key), and 'value' (the new cell value). Use get_record first to retrieve the current cell content, then reuse that structure and only update the 'value' or other properties as needed.",
+            "Optional content updates. Each key should be a cell key from the record, and the value should be an object containing 'pos' (cell position like 'A1'), 'key' (cell key), and 'value' (the new cell value). Use get_record first to retrieve the current cell content, then reuse that structure and only update the 'value' or other properties as needed." +
+            RICH_TEXT_CELL_NOTE,
         },
       },
       required: ["meta"],
@@ -1014,7 +1029,12 @@ const TOOLS: Tool[] = [
                 },
                 required: ["adoid", "adbid", "teamid"],
               },
-              content: { type: "object" },
+              content: {
+                type: "object",
+                description:
+                  "Optional content updates keyed by cell key, same shape as update_record's content." +
+                  RICH_TEXT_CELL_NOTE,
+              },
             },
             required: ["meta"],
           },
