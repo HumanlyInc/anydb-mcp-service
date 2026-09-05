@@ -2,6 +2,11 @@ import { describe, expect, it } from "@jest/globals";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+
+import { createMcpServer } from "../mcp.js";
+
 /**
  * A rich-text field holds HTML.
  *
@@ -56,5 +61,64 @@ describe("rich-text guidance", () => {
     expect(guide()).toContain(
       "Write `<p>First line</p><p>Second line</p>`",
     );
+  });
+});
+
+/**
+ * The guide is not the only thing a model reads. When it is asked to write a
+ * cell it reasons from the record-write tool's own `content` description, which
+ * is right in front of it. If that description says nothing about HTML, the
+ * model has no reason to reach for the guide, and a rich-text value goes in as
+ * plain text (ISSUE - 92). So every write tool's content field has to carry the
+ * rule itself, not just point at a doc read once at authoring time.
+ */
+describe("record-write tool content descriptions", () => {
+  async function listTools() {
+    const server = createMcpServer({ baseURL: "http://127.0.0.1:1/api" });
+    const client = new Client({ name: "rich-text-test", version: "0.0.0" });
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+
+    await Promise.all([
+      server.connect(serverTransport),
+      client.connect(clientTransport),
+    ]);
+
+    try {
+      const { tools } = await client.listTools();
+      return tools;
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  }
+
+  const contentDescriptionOf = async (toolName: string) => {
+    const tools = await listTools();
+    const tool: any = tools.find((candidate) => candidate.name === toolName);
+    const content =
+      toolName === "bulk_create_records" || toolName === "bulk_update_records"
+        ? tool.inputSchema.properties.records.items.properties.content
+        : tool.inputSchema.properties.content;
+    return content.description as string;
+  };
+
+  it.each([
+    "create_record",
+    "update_record",
+    "bulk_create_records",
+    "bulk_update_records",
+  ])("tells %s's content that rich-text cells store HTML", async (toolName) => {
+    const description = await contentDescriptionOf(toolName);
+
+    // The rule itself.
+    expect(description).toContain("stores HTML");
+    // Named the way it appears in the app, so the model can match a cell to it.
+    expect(description).toMatch(/rich-text \("long text"\)/);
+    // The two things a model reaches for instead of tags, and that they fail.
+    expect(description).toMatch(/newline/i);
+    expect(description).toMatch(/Markdown is not parsed/);
+    // A real tag to imitate, not just a prohibition.
+    expect(description).toContain("<p>");
   });
 });
