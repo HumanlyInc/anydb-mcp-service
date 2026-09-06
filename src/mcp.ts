@@ -128,6 +128,15 @@ import {
 const RICH_TEXT_CELL_NOTE =
   ' A rich-text ("long text") cell stores HTML, not plain text: write real tags — <p> for each paragraph, <br> for a line break, <strong>/<em> for emphasis, <ul><li> for lists. A newline character is only whitespace and Markdown is not parsed, so a plain-text value renders as one unbroken run.';
 
+// A reference-bearing cell resolves an expression on write; a raw id put in
+// `value` is stored verbatim and never hydrates, so it renders blank/broken
+// and a downstream reader sees a bare string where a resolved object is
+// expected. The fix is to write the ref token into the cell's `expr` (not
+// `value`) — the same string the app's own picker submits. Token forms are
+// runtime-verified on the live server.
+const REFERENCE_CELL_NOTE =
+  ' A reference-bearing cell — a person ("user") field, a group, or a "ref" that links another record — is NOT set by putting an id in value: the server stores that string verbatim, it never resolves, and it renders blank/broken. Write a ref TOKEN into the cell\'s expr and leave value empty, e.g. {"D2": {"pos": "D2", "key": "Assigned To", "expr": "[U@<userid>!PUBLIC]", "value": ""}}; the engine resolves expr and fills value with the hydrated object. Token forms: a user is [U@<userid>!PUBLIC]; a group is [G@<groupid>!PUBLIC]; put several people in one cell by comma-joining inside the brackets ([U@<id1>!PUBLIC,U@<id2>!PUBLIC]); a single record reference is O@<adoid>!F@GO!M@MINI (no brackets). Get a userid from anydb_whoami or an existing user cell, and an adoid from the target record.';
+
 // Define available tools
 const TOOLS: Tool[] = [
   ...SETUP_TOOLS,
@@ -818,7 +827,8 @@ const TOOLS: Tool[] = [
           type: "object",
           description:
             'Optional cell updates keyed by grid position. Each value must be an object, for example {"A1": {"value": "Main Warehouse"}, "D3": {"value": true}}. Existing key, type, format, and props are preserved from the selected template.' +
-            RICH_TEXT_CELL_NOTE,
+            RICH_TEXT_CELL_NOTE +
+            REFERENCE_CELL_NOTE,
           additionalProperties: {
             type: "object",
           },
@@ -868,7 +878,8 @@ const TOOLS: Tool[] = [
                 type: "object",
                 description:
                   "Optional cell updates keyed by grid position, same shape as create_record's content." +
-                  RICH_TEXT_CELL_NOTE,
+                  RICH_TEXT_CELL_NOTE +
+                  REFERENCE_CELL_NOTE,
               },
             },
             required: ["name"],
@@ -964,7 +975,8 @@ const TOOLS: Tool[] = [
           type: "object",
           description:
             "Optional content updates. Each key should be a cell key from the record, and the value should be an object containing 'pos' (cell position like 'A1'), 'key' (cell key), and 'value' (the new cell value). Use get_record first to retrieve the current cell content, then reuse that structure and only update the 'value' or other properties as needed." +
-            RICH_TEXT_CELL_NOTE,
+            RICH_TEXT_CELL_NOTE +
+            REFERENCE_CELL_NOTE,
         },
       },
       required: ["meta"],
@@ -1033,7 +1045,8 @@ const TOOLS: Tool[] = [
                 type: "object",
                 description:
                   "Optional content updates keyed by cell key, same shape as update_record's content." +
-                  RICH_TEXT_CELL_NOTE,
+                  RICH_TEXT_CELL_NOTE +
+                  REFERENCE_CELL_NOTE,
               },
             },
             required: ["meta"],
