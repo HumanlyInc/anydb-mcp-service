@@ -298,6 +298,14 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       "Iterate cells with `record.getFieldNames()`",
     );
+    // ISSUE - 104. anydb.ai() exists now. The guide's "fetch(url, options) for
+    // external HTTP" line is exactly what a model reaches for when it wants a
+    // model, so the passage must name the API AND forbid the alternative. Both
+    // halves pinned: the name, and that attachments come for free -- an author
+    // told only the name will write its own download-and-OCR loop.
+    expect(resource.text).toContain("anydb.ai(");
+    expect(resource.text).toContain("never `fetch(...)` a model provider");
+    expect(resource.text).toContain("files[i].transcript");
     expect(resource.text).toContain(
       "An unawaited mutation statement is rejected at validation",
     );
