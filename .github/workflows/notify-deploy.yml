@@ -1,0 +1,17 @@
+name: Notify anydb-integrations of main update
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger dev1 deploy
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.INTEGRATIONS_DISPATCH_TOKEN }}
+          repository: HumanlyInc/anydb-integrations
+          event-type: mcpservice-updated
+          client-payload: '{"sha": "${{ github.sha }}"}'
