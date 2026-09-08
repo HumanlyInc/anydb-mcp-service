@@ -867,7 +867,7 @@ Execution shape and validation:
 - Provide an executable statement body only. The runtime already wraps it in an async function, so use top-level `await` and never wrap the body in an async IIFE.
 - The body is validated before persistence, so `anydb_create_workflow` and `anydb_update_workflow` reject an invalid script instead of storing it. `validateOnly: true` checks a draft on creation without persisting it.
 - `import`, `export`, `require(...)`, `eval(...)`, `Function(...)`, `process`, `globalThis`, `global`, `module`, `exports`, `__dirname`, `__filename`, and `constructor.constructor` escapes are rejected.
-- `setTimeout`, `setInterval`, and `setImmediate` are unavailable. Use `await anydb.yield()` to yield and `fetch(url, options)` for external HTTP.
+- `setTimeout`, `setInterval`, and `setImmediate` are unavailable. Use `await anydb.yield()` to yield and `fetch(url, options)` for external HTTP — but never `fetch(...)` a model provider; AI goes through `anydb.ai(...)` below.
 - Only documented `anydb.*` and `output.*` members are callable, and only by literal name. Computed access such as `anydb[methodName](...)` is rejected. `base` is an alias of `anydb`.
 - Never feature-detect an API (`typeof anydb.updateRecord === "function"`), never write compatibility wrappers, and never call guessed globals such as `getRecord(...)`, `searchRecords(...)`, or a bare `sendEmail(...)`. Use the documented name or fail.
 - A supplied `timeoutMs` is clamped to the server's script timeout cap, 30000 ms by default. Design each run to finish inside that budget: filter or page large sets instead of scanning a whole type.
@@ -917,6 +917,13 @@ Data access contracts:
 - Supplying `parentid` to `anydb.createRecord(...)` or `anydb.updateRecord(...)` accepts one parent ID or an array and replaces the record's complete parent list, so include every existing parent that must remain attached. Omit it to leave attachments unchanged, and never pass an empty list.
 - When schema field names, formats, and select options are known, treat them as authoritative. Do not add regex or `Object.keys(...)` discovery to rediscover a field the type already declares.
 
+AI over a record:
+
+- For any AI work — summarise, classify, extract fields, describe an attached image, transcribe an attached audio file — call `await anydb.ai({ prompt, record })` and write the result with `await record.setCell(...)`. It runs the team's own model on the team's credits through AnyDB's MCP path; never `fetch(...)` a model provider, and never ask for an API key.
+- Pass the runtime record (or an adoid) and its cells go to the model automatically; `cells: [...]` narrows them. Attachments are read for you: images and PDFs go to the model as files, text files inline, and audio is transcribed — the full transcript comes back in `files[i].transcript` (mode `"transcript"`), so store it from the same call instead of asking the model to repeat it. `files` defaults to `"all"`; pass `"none"` or a list of keys or positions.
+- The result is `{ text, json?, model, usage, files }`. A file that could not be used is reported in `files[]` as mode `"skipped"` with a `reason`, never thrown — check it when an attachment matters, and remember only `file`-format cells hold attachments; a lookup cell that displays a file does not. `json: true` asks for JSON and parses it into `json`, throwing if the reply is not JSON.
+- Each call spends the team's AI credits and throws when they are exhausted. It runs for real during a simulate. One record per call; loop for bulk, with `await anydb.yield()` first.
+
 Loops and output:
 
 - Every loop in async context must contain an `await` in its own body; begin each loop with `await anydb.yield()`. A loop whose only `await` sits inside a nested function is rejected.
@@ -932,7 +939,7 @@ Loops and output:
 - `anydb_update_workflow` replaces the complete ordered action chain and does not accept the `workflow.script` shorthand used at creation. To change one script, resend every action in its final order as `{ key, type: "action_script", config: { script } }` with the corrected source. Omit `changes.actions` entirely when only the name, description, or enabled state changes.
 - Preserve each action's other config values and every `{{trigger.*}}` or `{{priorActionKey.*}}` binding when resending the chain. An omitted binding is dropped silently.
 - Verify with `anydb_execute_workflow` using `simulate: true`, then a real run against test data, and inspect `executionHistory[].artifactExecutions[].output.logLines` before considering the change complete.
-- A simulated run reads real records but persists nothing, and `anydb.createRecord(...)` returns a simulated record whose mutation helpers throw. A script that writes back to a record it just created must be verified with a real run.
+- A simulated run reads real records but persists nothing, and `anydb.createRecord(...)` returns a simulated record whose mutation helpers throw. `anydb.ai(...)` still calls the model during a simulate and spends credits. A script that writes back to a record it just created must be verified with a real run.
 - After a run, `anydb_get_workflow` or `anydb_get_workflow_execution_history` shows per-artifact status, output, and error. An empty execution history means the workflow never fired: check that it is enabled and that the trigger matched.
 
 ## Construction Procedure
