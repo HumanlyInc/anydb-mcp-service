@@ -1,4 +1,4 @@
-name: Notify anydb-integrations of main update
+name: Notify anydb-integrations of main update.
 
 on:
   push:
