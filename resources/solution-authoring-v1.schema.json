@@ -83,6 +83,7 @@
           "description": "Displayed heading text. Required only when format is heading; the server stores it in the HEADING_LABEL cell prop rather than the cell value."
         },
         "valueType": {
+          "type": "string",
           "enum": [
             "string",
             "number",
@@ -96,6 +97,7 @@
           ]
         },
         "format": {
+          "type": "string",
           "enum": [
             "general",
             "number",
@@ -165,6 +167,7 @@
               "description": "Key of the field to read from the referenced record."
             },
             "mode": {
+              "type": "string",
               "enum": [
                 "snapshot",
                 "live"
@@ -408,6 +411,7 @@
               "maxLength": 200
             },
             "privacy": {
+              "type": "string",
               "enum": [
                 "public",
                 "private"
@@ -420,6 +424,7 @@
               "$ref": "#/$defs/shareRecipients"
             },
             "role": {
+              "type": "string",
               "enum": [
                 "viewer",
                 "editor"
@@ -544,6 +549,7 @@
           "$ref": "#/$defs/objectId"
         },
         "kind": {
+          "type": "string",
           "enum": [
             "record",
             "form"
@@ -573,6 +579,7 @@
           "$ref": "#/$defs/objectId"
         },
         "kind": {
+          "type": "string",
           "enum": [
             "record",
             "form"
@@ -653,6 +660,7 @@
           "default": false
         },
         "mode": {
+          "type": "string",
           "enum": [
             "define",
             "import_builtin"
@@ -1007,6 +1015,7 @@
               ],
               "properties": {
                 "type": {
+                  "type": "string",
                   "enum": [
                     "trigger_on_form_submit",
                     "trigger_on_record_create",

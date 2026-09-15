@@ -385,6 +385,16 @@ an existing workflow's script instead of writing a new one.
 
 ## Release Notes
 
+### 3.0.3
+
+**Fixed.** Nine `enum` properties in the packaged solution-authoring schema
+(`resources/solution-authoring-v1.schema.json`) now declare an explicit JSON
+Schema `type` alongside their `enum`. Three of them -- `anydb_get_share.kind`,
+`anydb_revoke_share.kind`, and `anydb_create_type.mode` -- were flagged by the
+Claude Connectors Directory's tool importer; the rest have the same defect
+nested inside object schemas and are fixed for consistency. No accepted
+values or behavior changed.
+
 ### 3.0.2
 
 **Added.** Every tool now carries a `title` and the MCP safety hints
