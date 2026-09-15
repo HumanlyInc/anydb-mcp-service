@@ -385,6 +385,15 @@ an existing workflow's script instead of writing a new one.
 
 ## Release Notes
 
+### 3.0.2
+
+**Added.** Every tool now carries a `title` and the MCP safety hints
+`readOnlyHint`, `destructiveHint` and `openWorldHint`, which the OpenAI Plugins
+and Claude Connectors directories require. Clients use them to decide which
+calls to confirm with the user: deletes, overwrites, anything that can email
+people or run automation, and public shares are marked accordingly. No tool's
+inputs or behavior changed.
+
 ### 3.0.0
 
 **Added.** Twenty-one tools:
