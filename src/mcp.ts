@@ -32,6 +32,7 @@ import {
 } from "./identity.js";
 import type { VerifiedToken } from "./oauth/token-verifier.js";
 import { callSetupTool, isSetupTool, SETUP_TOOLS } from "./setup-tools.js";
+import { annotateTools } from "./tool-annotations.js";
 import {
   callSemanticSearchTool,
   isSemanticSearchTool,
@@ -1508,6 +1509,9 @@ const TOOLS: Tool[] = [
   },
 ];
 
+// What tools/list returns: every tool with its safety annotations attached.
+const LISTED_TOOLS = annotateTools(TOOLS);
+
 /** What list_teams returns by default. */
 export interface TeamSummary {
   teamid: string;
@@ -1631,7 +1635,7 @@ export function createMcpServer({
 
   // Handle list tools request
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: TOOLS };
+    return { tools: LISTED_TOOLS };
   });
 
   // Handle tool execution
