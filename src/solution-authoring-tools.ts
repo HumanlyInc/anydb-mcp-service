@@ -138,7 +138,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_get_type_migration_status",
     description:
-      "Poll a queued type migration by the jobId returned from anydb_update_type. Returns processed, total, and remaining record counts from cached job progress without rescanning workspace records.",
+      "Poll a queued type migration by the jobId returned from anydb_update_type. Returns processed, total, and remaining record counts from cached job progress without rescanning workspace records. READ success AND errors, not status alone: a migration that could not move some records still ends as status Completed with success false and errors > 0, and message then names the count and the first refused record and why (\"N of M record(s) could not be migrated; first: record <adoid>: <reason>\"). Those records stay on the previous revision; fix the cause and use anydb_update_type again or the retry route rather than reporting the type as migrated.",
     inputSchema:
       getTypeMigrationStatusInputSchema as unknown as Tool["inputSchema"],
   },
