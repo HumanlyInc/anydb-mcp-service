@@ -1,6 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 import type { ExtApiClient } from "./ext-api-client.js";
+import { toolJson } from "./result-format.js";
 
 const OBJECT_ID_PATTERN = "^[a-fA-F0-9]{24}$";
 
@@ -88,6 +89,6 @@ export async function callSemanticSearchTool(
     limit: limit as number | undefined,
   });
   return {
-    content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+    content: [{ type: "text" as const, text: toolJson(result, client.getOriginClient?.()) }],
   };
 }

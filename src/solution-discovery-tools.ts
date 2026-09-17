@@ -1,6 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 import type { ExtApiClient } from "./ext-api-client.js";
+import { toolJson } from "./result-format.js";
 
 export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
   {
@@ -124,9 +125,9 @@ function requiredString(
   return value;
 }
 
-function textResult(value: unknown) {
+function textResult(origin: string | undefined, value: unknown) {
   return {
-    content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
+    content: [{ type: "text" as const, text: toolJson(value, origin) }],
   };
 }
 
@@ -156,7 +157,7 @@ export async function callSolutionDiscoveryTool(
       ) {
         throw new Error("limit must be an integer from 1 to 50");
       }
-      return textResult(
+      return textResult(client.getOriginClient?.(), 
         await client.discoverTypes({ teamid, adbid, search, source, limit }),
       );
     }
@@ -166,7 +167,7 @@ export async function callSolutionDiscoveryTool(
       if (source !== "workspace" && source !== "builtin") {
         throw new Error("source must be workspace or builtin");
       }
-      return textResult(
+      return textResult(client.getOriginClient?.(), 
         await client.getTypeDefinition({
           teamid,
           adbid,
@@ -176,14 +177,14 @@ export async function callSolutionDiscoveryTool(
       );
     }
     case "anydb_list_workflows":
-      return textResult(await client.listWorkflows(teamid, adbid));
+      return textResult(client.getOriginClient?.(), await client.listWorkflows(teamid, adbid));
     case "anydb_get_workflow": {
       const workflowId = requiredString(args, "workflowId");
-      return textResult(await client.getWorkflow(teamid, adbid, workflowId));
+      return textResult(client.getOriginClient?.(), await client.getWorkflow(teamid, adbid, workflowId));
     }
     case "anydb_get_workflow_execution_history": {
       const workflowId = requiredString(args, "workflowId");
-      return textResult(
+      return textResult(client.getOriginClient?.(), 
         await client.getWorkflowExecutionHistory(teamid, adbid, workflowId),
       );
     }
