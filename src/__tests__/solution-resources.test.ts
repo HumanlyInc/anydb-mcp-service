@@ -88,6 +88,12 @@ describe("solution resources", () => {
       "Field keys must contain only letters, numbers, underscores, and spaces",
     );
     expect(resource.text).toContain("`Discount %`");
+    // ISSUE - 227: the supported way to SHOW a label that needs a forbidden
+    // character is a formula-safe key plus CELL_DESCRIPTION_AS_LABEL.
+    expect(resource.text).toContain("`CELL_DESCRIPTION_AS_LABEL`");
+    expect(resource.text).toContain(
+      "the description is displayed as the field's label",
+    );
     expect(resource.text).toContain(
       "A `heading` field requires `headingLabel`",
     );

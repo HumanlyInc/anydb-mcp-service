@@ -70,11 +70,13 @@
         "key": {
           "type": "string",
           "minLength": 1,
-          "maxLength": 120
+          "maxLength": 120,
+          "description": "The stable field identifier formulas reference as {{key}}. Letters, numbers, underscores and spaces only: any other character (/ % $ # - ( ) ') silently breaks every formula that references the key. If the label a person should see needs such a character, keep the key safe, put the display text in description, and set props.CELL_DESCRIPTION_AS_LABEL to true."
         },
         "description": {
           "type": "string",
-          "maxLength": 1000
+          "maxLength": 1000,
+          "description": "Help text shown for the field. With props.CELL_DESCRIPTION_AS_LABEL set to true it is displayed AS the field's label instead of the key, which is how a label containing a character the key cannot carry (e.g. \"Discount %\") is shown while formulas keep using the safe key."
         },
         "headingLabel": {
           "type": "string",
@@ -199,7 +201,7 @@
         },
         "props": {
           "type": "object",
-          "description": "Raw cell properties, for presentation and behaviour the named fields above do not cover. Property names are the AnyDB cell-property constants, e.g. BACKGROUND_COLOR, TEXT_BOLD, TEXT_ALIGN, CELL_HIDDEN, FORM_HIDDEN, CELL_DISPLAY_AS, CELL_ERROR, DATE_DISPLAY, CHECKBOX_DISPLAY, X_SIZE. Do not set CELL_DESCRIPTION, HEADING_LABEL, CELL_LOCKED, CELL_REQUIRED, SELECT_OPTIONS, or ATTACHMENTS_TEMPLATE_NAME here - use the description, headingLabel, locked, required, options, and targetType fields instead; sending them here is rejected. AI_PROMPT is how an ai-format cell gets its prompt, and BUTTON_ACTION_TYPE/BUTTON_ACTION_VALUE wire a button-format cell to an automation. These cannot be set: SCRIPT_SOURCE, ATTACHMENTS_TEMPLATE_ID, ATTACHMENTS_PARENT, VALUE_OVERRIDE. CELL_HIDDEN_ACCESS and CELL_LOCKED_ACCESS control what a particular viewer sees and can be set, but their expr uses a separate restricted language - only INGROUP, NOTINGROUP, ROLE and HASPERM, joined by and/or, over string literals. Prefer INGROUP/NOTINGROUP: ROLE and HASPERM parse but always evaluate false, so a rule using them never fires. See the solution-building guide. On update, sending props replaces the whole map for that field; omitting it preserves what is already there.",
+          "description": "Raw cell properties, for presentation and behaviour the named fields above do not cover. Property names are the AnyDB cell-property constants, e.g. BACKGROUND_COLOR, TEXT_BOLD, TEXT_ALIGN, CELL_HIDDEN, FORM_HIDDEN, CELL_DESCRIPTION_AS_LABEL (show the description as the label, for labels that need characters a key cannot carry), CELL_DISPLAY_AS, CELL_ERROR, DATE_DISPLAY, CHECKBOX_DISPLAY, X_SIZE. Do not set CELL_DESCRIPTION, HEADING_LABEL, CELL_LOCKED, CELL_REQUIRED, SELECT_OPTIONS, or ATTACHMENTS_TEMPLATE_NAME here - use the description, headingLabel, locked, required, options, and targetType fields instead; sending them here is rejected. AI_PROMPT is how an ai-format cell gets its prompt, and BUTTON_ACTION_TYPE/BUTTON_ACTION_VALUE wire a button-format cell to an automation. These cannot be set: SCRIPT_SOURCE, ATTACHMENTS_TEMPLATE_ID, ATTACHMENTS_PARENT, VALUE_OVERRIDE. CELL_HIDDEN_ACCESS and CELL_LOCKED_ACCESS control what a particular viewer sees and can be set, but their expr uses a separate restricted language - only INGROUP, NOTINGROUP, ROLE and HASPERM, joined by and/or, over string literals. Prefer INGROUP/NOTINGROUP: ROLE and HASPERM parse but always evaluate false, so a rule using them never fires. See the solution-building guide. On update, sending props replaces the whole map for that field; omitting it preserves what is already there.",
           "additionalProperties": {
             "$ref": "#/$defs/cellProp"
           }
@@ -706,14 +708,17 @@
       "properties": {
         "key": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "The existing field key to update, exactly as stored."
         },
         "newKey": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Rename the field. Letters, numbers, underscores and spaces only: any other character silently breaks formulas that reference the key. To change only what a person sees, do not rename; set description and props.CELL_DESCRIPTION_AS_LABEL to true instead, so existing formula references keep working."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Help text shown for the field; displayed as the field's label when props.CELL_DESCRIPTION_AS_LABEL is true."
         },
         "headingLabel": {
           "$ref": "#/$defs/field/properties/headingLabel"
@@ -759,7 +764,7 @@
         },
         "props": {
           "type": "object",
-          "description": "Raw cell properties, for presentation and behaviour the named fields above do not cover. Property names are the AnyDB cell-property constants, e.g. BACKGROUND_COLOR, TEXT_BOLD, TEXT_ALIGN, CELL_HIDDEN, FORM_HIDDEN, CELL_DISPLAY_AS, CELL_ERROR, DATE_DISPLAY, CHECKBOX_DISPLAY, X_SIZE. Do not set CELL_DESCRIPTION, HEADING_LABEL, CELL_LOCKED, CELL_REQUIRED, SELECT_OPTIONS, or ATTACHMENTS_TEMPLATE_NAME here - use the description, headingLabel, locked, required, options, and targetType fields instead; sending them here is rejected. AI_PROMPT is how an ai-format cell gets its prompt, and BUTTON_ACTION_TYPE/BUTTON_ACTION_VALUE wire a button-format cell to an automation. These cannot be set: SCRIPT_SOURCE, ATTACHMENTS_TEMPLATE_ID, ATTACHMENTS_PARENT, VALUE_OVERRIDE. CELL_HIDDEN_ACCESS and CELL_LOCKED_ACCESS control what a particular viewer sees and can be set, but their expr uses a separate restricted language - only INGROUP, NOTINGROUP, ROLE and HASPERM, joined by and/or, over string literals. Prefer INGROUP/NOTINGROUP: ROLE and HASPERM parse but always evaluate false, so a rule using them never fires. See the solution-building guide. On update, sending props replaces the whole map for that field; omitting it preserves what is already there.",
+          "description": "Raw cell properties, for presentation and behaviour the named fields above do not cover. Property names are the AnyDB cell-property constants, e.g. BACKGROUND_COLOR, TEXT_BOLD, TEXT_ALIGN, CELL_HIDDEN, FORM_HIDDEN, CELL_DESCRIPTION_AS_LABEL (show the description as the label, for labels that need characters a key cannot carry), CELL_DISPLAY_AS, CELL_ERROR, DATE_DISPLAY, CHECKBOX_DISPLAY, X_SIZE. Do not set CELL_DESCRIPTION, HEADING_LABEL, CELL_LOCKED, CELL_REQUIRED, SELECT_OPTIONS, or ATTACHMENTS_TEMPLATE_NAME here - use the description, headingLabel, locked, required, options, and targetType fields instead; sending them here is rejected. AI_PROMPT is how an ai-format cell gets its prompt, and BUTTON_ACTION_TYPE/BUTTON_ACTION_VALUE wire a button-format cell to an automation. These cannot be set: SCRIPT_SOURCE, ATTACHMENTS_TEMPLATE_ID, ATTACHMENTS_PARENT, VALUE_OVERRIDE. CELL_HIDDEN_ACCESS and CELL_LOCKED_ACCESS control what a particular viewer sees and can be set, but their expr uses a separate restricted language - only INGROUP, NOTINGROUP, ROLE and HASPERM, joined by and/or, over string literals. Prefer INGROUP/NOTINGROUP: ROLE and HASPERM parse but always evaluate false, so a rule using them never fires. See the solution-building guide. On update, sending props replaces the whole map for that field; omitting it preserves what is already there.",
           "additionalProperties": {
             "$ref": "#/$defs/cellProp"
           }
