@@ -334,6 +334,10 @@ describe("solution authoring tools", () => {
     expect(isSolutionAuthoringTool("anydb_get_type_migration_status")).toBe(
       true,
     );
+    // ISSUE - 240: a Completed status can still be a failed migration; the
+    // description has to send the model to success/errors/message.
+    expect(tool?.description).toMatch(/success false and errors > 0/);
+    expect(tool?.description).toMatch(/first refused record/);
 
     const getTypeMigrationStatus =
       jest.fn<ExtApiClient["getTypeMigrationStatus"]>();
