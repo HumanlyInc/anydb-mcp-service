@@ -138,6 +138,8 @@ export interface SearchRecordsParams {
   search: string;
   start?: string;
   limit?: string;
+  /** ISSUE - 107: header keys, cell keys or positions to keep per record. */
+  fields?: string[];
 }
 
 export interface DownloadFileParams {
