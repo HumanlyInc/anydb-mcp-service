@@ -61,6 +61,8 @@ export interface ListRecordsParams {
   templatename?: string;
   pagesize?: string;
   lastmarker?: string;
+  /** ISSUE - 107: item keys to keep; the ext API projects each item to them. */
+  fields?: string[];
   filter?: Array<{
     type: "meta" | "badge" | "cell";
     field: string;
@@ -1474,9 +1476,15 @@ export class ExtApiClient {
   }
 
   async searchRecords(params: SearchRecordsParams): Promise<ADORecord[]> {
+    const { fields, ...query } = params;
     const response = await this.client.get<ExtApiResponse<ADORecord[]>>(
       "/integrations/ext/search",
-      { params },
+      {
+        params: {
+          ...query,
+          fields: fields?.length ? JSON.stringify(fields) : undefined,
+        },
+      },
     );
     return this.unwrap(response.data);
   }
@@ -1580,13 +1588,14 @@ export class ExtApiClient {
   }
 
   async listRecords(params: ListRecordsParams): Promise<unknown> {
-    const { filter, ...query } = params;
+    const { filter, fields, ...query } = params;
     const response = await this.client.get<ExtApiResponse<unknown>>(
       "/integrations/ext/list",
       {
         params: {
           ...query,
           filter: filter ? JSON.stringify(filter) : undefined,
+          fields: fields?.length ? JSON.stringify(fields) : undefined,
         },
       },
     );

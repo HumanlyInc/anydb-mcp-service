@@ -722,7 +722,7 @@ const TOOLS: Tool[] = [
   {
     name: "list_records",
     description:
-      "List ADOs (records) in a database. Use parentid with a normal record ID to list its children. You can also filter directly by template and use pagination for large result sets.",
+      "List ADOs (records) in a database. Use parentid with a normal record ID to list its children. You can also filter directly by template and use pagination for large result sets. Pass fields (e.g. [\"adoid\",\"name\"]) to get only those keys per record: a full record header is a few KB and a hundred of them exceed the response cap.",
     inputSchema: {
       type: "object",
       properties: {
@@ -753,6 +753,12 @@ const TOOLS: Tool[] = [
           type: "string",
           description:
             "Optional pagination marker. Use the marker from the previous response to get the next page of results.",
+        },
+        fields: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional. Keep only these keys of each record header, e.g. [\"adoid\",\"name\",\"updated\"]. A full header is a few KB per record (its dependency graph and embedded user objects), so a hundred-record page exceeds the response cap; projected to adoid and name it is a few KB in total. Use it whenever you only need which records exist, their names, ids or timestamps. Header keys include adoid, name, templateName, templateID, updated, created, createdby, updatedby, icon, description, attachedTo. An unknown key is refused with the known keys named; omitted, the full header is returned as before.",
         },
         filter: {
           type: "array",
@@ -1151,7 +1157,7 @@ const TOOLS: Tool[] = [
   {
     name: "search_records",
     description:
-      "Search for records in a database using a keyword. Optionally filter by parent record and specify pagination.",
+      "Search for records in a database using a keyword. Optionally filter by parent record and specify pagination. Pass fields to keep only the header keys and cells you need per hit; a full hit carries every cell.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1180,6 +1186,12 @@ const TOOLS: Tool[] = [
           type: "string",
           description: "Optional limit for number of results",
         },
+        fields: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional. Keep only these per record: header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. A full search hit carries every cell, ~14 KB each, so ask for the few you need. An unknown name is refused with the known ones named; omitted, whole records are returned as before.",
+        },
       },
       required: ["adbid", "teamid", "search"],
     },
@@ -1203,6 +1215,12 @@ const TOOLS: Tool[] = [
           type: "string",
           description:
             "Optional maximum results per database (numeric string). Defaults to the search_records backend limit.",
+        },
+        fields: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional. Keep only these per record: header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. Applied to the search in every database. A full search hit carries every cell, ~14 KB each, so ask for the few you need. An unknown name is refused with the known ones named; omitted, whole records are returned as before.",
         },
       },
       required: ["teamid", "search"],
@@ -1541,6 +1559,21 @@ export function summariseTeam(team: Record<string, any>): TeamSummary {
   };
 }
 
+/**
+ * ISSUE - 107. `fields` on the listing tools: an array of names, or a single
+ * comma-separated string from a client that cannot send arrays. Empty means
+ * "not given", so the ext API returns whole records exactly as before.
+ */
+function readFieldsArg(raw: unknown): string[] | undefined {
+  const names = Array.isArray(raw)
+    ? raw.map((n) => String(n ?? "").trim())
+    : typeof raw === "string"
+      ? raw.split(",").map((n) => n.trim())
+      : [];
+  const out = names.filter((n, i) => n && names.indexOf(n) === i);
+  return out.length ? out : undefined;
+}
+
 export function createMcpServer({
   apiKey,
   userEmail,
@@ -1843,6 +1876,7 @@ export function createMcpServer({
                 value: unknown;
               }>
             | undefined;
+          const fields = readFieldsArg(args?.fields);
           const records = await extApiClient.listRecords({
             teamid,
             adbid,
@@ -1851,6 +1885,7 @@ export function createMcpServer({
             pagesize,
             lastmarker,
             filter,
+            fields,
           });
           return {
             content: [
@@ -2080,6 +2115,7 @@ export function createMcpServer({
             parentid: args?.parentid as string | undefined,
             start: args?.start as string | undefined,
             limit: args?.limit as string | undefined,
+            fields: readFieldsArg(args?.fields),
           };
           const results = await extApiClient.searchRecords(params);
           return {
@@ -2096,6 +2132,7 @@ export function createMcpServer({
           const teamid = args?.teamid as string;
           const search = args?.search as string;
           const limit = args?.limit as string | undefined;
+          const fields = readFieldsArg(args?.fields);
           if (!teamid || !search) {
             throw new Error("teamid and search are required");
           }
@@ -2121,6 +2158,7 @@ export function createMcpServer({
                 adbid: database.adbid,
                 search,
                 limit,
+                fields,
               });
               results.push({ database: databaseInfo, records });
             } catch (error) {
