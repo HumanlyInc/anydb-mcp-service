@@ -829,7 +829,7 @@ const TOOLS: Tool[] = [
         templatename: {
           type: "string",
           description:
-            "Optional stable template/type name. Use the exact workspace type name returned by list_templates or anydb_get_type_definition; do not provide a template ID.",
+            "Optional stable template/type name. Use the exact workspace type name returned by list_templates or anydb_get_type_definition; do not provide a template ID. A name that matches no type in the workspace is refused (422 invalid-data naming it) and nothing is created; it never falls back to an untyped record, so on that error re-check the name with list_templates rather than retrying.",
         },
         content: {
           type: "object",
