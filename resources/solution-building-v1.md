@@ -136,6 +136,22 @@ Important format rules:
   Wrapping the formula in `IFERROR` makes this worse, not better: the expression is valid, so `IFERROR` never fires and the fallback value is returned as though it were a real result. A `{{...}} * {{...}}` product that should be 4800 becomes 0, and nothing anywhere reports a problem.
 
   Name the field `Discount Percentage`, not `Discount %`. If a key already contains a forbidden character, rename it before writing any formula that references it.
+
+  **When the label a person sees must carry one of those characters** (`Discount %`, `Total (USD)`, `Item #1`), keep the key formula-safe and put the display text in the field's `description`, then set the cell property `CELL_DESCRIPTION_AS_LABEL` to `true` in `props`: the description is displayed as the field's label everywhere the record is shown, while formulas keep referencing the safe key. This is the supported pattern; it is what the designer's "Use description as label" switch does.
+
+  ```json
+  {
+    "key": "Discount Percentage",
+    "description": "Discount %",
+    "valueType": "number",
+    "format": "percentage",
+    "props": {
+      "CELL_DESCRIPTION_AS_LABEL": { "type": "boolean", "value": true, "expr": "", "proptype": "CELL" }
+    }
+  }
+  ```
+
+  Reference it as `{{Discount Percentage}}`; the label reads "Discount %". The same works on `update_type` for an existing field: set `description` and add the prop instead of renaming the key, so nothing that already references the key changes.
 - A `heading` field requires `headingLabel`. The `key` remains the stable field identifier, while `headingLabel` is the displayed text stored in the heading cell's `HEADING_LABEL` prop rather than its `value`. Do not put heading text in a default value or raw props. Example:
 
   ```json
