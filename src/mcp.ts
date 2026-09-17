@@ -14,6 +14,7 @@ import { lookup as lookupMimeType } from "mime-types";
 import { config } from "./config.js";
 import { ExtApiClient, FILE_TEMPLATE_ADOID } from "./ext-api-client.js";
 import { normalizeRecordContent } from "./record-update.js";
+import { slimBulkCreateResult, toolJson } from "./result-format.js";
 import {
   callSolutionAuthoringTool,
   isSolutionAuthoringTool,
@@ -1700,7 +1701,7 @@ export function createMcpServer({
           const templates = await extApiClient.listTemplates(teamid, adbid);
           return {
             content: [
-              { type: "text", text: JSON.stringify(templates, null, 2) },
+              { type: "text", text: toolJson(templates, extApiClient.getOriginClient()) },
             ],
           };
         }
@@ -1719,7 +1720,7 @@ export function createMcpServer({
           );
           return {
             content: [
-              { type: "text", text: JSON.stringify(template, null, 2) },
+              { type: "text", text: toolJson(template, extApiClient.getOriginClient()) },
             ],
           };
         }
@@ -1736,7 +1737,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(record, null, 2),
+                text: toolJson(record, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -1768,7 +1769,7 @@ export function createMcpServer({
           });
           return {
             content: [
-              { type: "text", text: JSON.stringify(permissions, null, 2) },
+              { type: "text", text: toolJson(permissions, extApiClient.getOriginClient()) },
             ],
           };
         }
@@ -1788,7 +1789,7 @@ export function createMcpServer({
             checks,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -1802,7 +1803,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(databases, null, 2),
+                text: toolJson(databases, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -1851,7 +1852,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(records, null, 2),
+                text: toolJson(records, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -1877,7 +1878,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(record, null, 2),
+                text: toolJson(record, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -1907,8 +1908,15 @@ export function createMcpServer({
             adbid,
             records,
           });
+          // ISSUE - 264. AnyBot gets ids and names back, not five whole records.
+          const origin = extApiClient.getOriginClient();
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [
+              {
+                type: "text",
+                text: toolJson(slimBulkCreateResult(result, origin), origin),
+              },
+            ],
           };
         }
 
@@ -1934,7 +1942,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(record, null, 2),
+                text: toolJson(record, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -1971,7 +1979,7 @@ export function createMcpServer({
           const result =
             await extApiClient.bulkUpdateRecords(normalizedRecords);
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2023,7 +2031,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(result, null, 2),
+                text: toolJson(result, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -2048,7 +2056,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(result, null, 2),
+                text: toolJson(result, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -2074,7 +2082,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(results, null, 2),
+                text: toolJson(results, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -2160,7 +2168,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(result, null, 2),
+                text: toolJson(result, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -2204,7 +2212,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify(result, null, 2),
+                text: toolJson(result, extApiClient.getOriginClient()),
               },
             ],
           };
@@ -2219,7 +2227,7 @@ export function createMcpServer({
             validateOnly: args?.validateOnly as boolean | undefined,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2230,7 +2238,7 @@ export function createMcpServer({
             templateName: args?.templateName as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2242,7 +2250,7 @@ export function createMcpServer({
             tab: args?.view as Record<string, unknown>,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2255,7 +2263,7 @@ export function createMcpServer({
             changes: args?.changes as Record<string, unknown>,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2267,7 +2275,7 @@ export function createMcpServer({
             name: args?.name as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2283,7 +2291,7 @@ export function createMcpServer({
               : {}),
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2296,7 +2304,7 @@ export function createMcpServer({
               : {}),
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2309,7 +2317,7 @@ export function createMcpServer({
             name: args?.name as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2323,7 +2331,7 @@ export function createMcpServer({
             name: args?.name as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2334,7 +2342,7 @@ export function createMcpServer({
             docgenId: args?.docgenId as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2343,7 +2351,7 @@ export function createMcpServer({
             script: args?.script as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2356,7 +2364,7 @@ export function createMcpServer({
             timeoutMs: args?.timeoutMs as number | undefined,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2370,7 +2378,7 @@ export function createMcpServer({
             timeoutMs: args?.timeoutMs as number | undefined,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2381,7 +2389,7 @@ export function createMcpServer({
             adoid: args?.adoid as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2393,7 +2401,7 @@ export function createMcpServer({
             ts: Number(args?.ts),
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2405,7 +2413,7 @@ export function createMcpServer({
             ts: Number(args?.ts),
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2417,7 +2425,7 @@ export function createMcpServer({
             ts: Number(args?.ts),
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2426,7 +2434,7 @@ export function createMcpServer({
             teamid: args?.teamid as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2436,7 +2444,7 @@ export function createMcpServer({
             adbid: args?.adbid as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2447,7 +2455,7 @@ export function createMcpServer({
             reportId: args?.reportId as string,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2461,7 +2469,7 @@ export function createMcpServer({
             validateOnly: args?.validateOnly as boolean | undefined,
           });
           return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 
@@ -2475,7 +2483,7 @@ export function createMcpServer({
           });
           return {
             content: [
-              { type: "text", text: JSON.stringify(result, null, 2) },
+              { type: "text", text: toolJson(result, extApiClient.getOriginClient()) },
             ],
           };
         }
@@ -2491,7 +2499,7 @@ export function createMcpServer({
           });
           return {
             content: [
-              { type: "text", text: JSON.stringify(result, null, 2) },
+              { type: "text", text: toolJson(result, extApiClient.getOriginClient()) },
             ],
           };
         }
@@ -2563,7 +2571,7 @@ export function createMcpServer({
             content: [
               {
                 type: "text",
-                text: JSON.stringify({ completed, adoid, cellpos }, null, 2),
+                text: toolJson({ completed, adoid, cellpos }, extApiClient.getOriginClient()),
               },
             ],
           };

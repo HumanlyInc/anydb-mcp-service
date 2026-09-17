@@ -700,6 +700,15 @@ export class ExtApiClient {
   }
 
   /**
+   * ISSUE - 264. Who this service is acting for, as announced on connect. Tool
+   * results are rendered per caller (result-format.ts): compact for AnyBot,
+   * pretty for every other client.
+   */
+  getOriginClient(): string | undefined {
+    return this.originClient;
+  }
+
+  /**
    * Build the auth headers for one credential set. A bearer token wins when
    * both are supplied so that an OAuth session never silently falls back to a
    * differently-scoped API key.

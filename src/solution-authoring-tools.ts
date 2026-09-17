@@ -1,5 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
+import { toolJson } from "./result-format.js";
+
 import type {
   CreateShareRequest,
   CreateTypeRequest,
@@ -326,6 +328,6 @@ export async function callSolutionAuthoringTool(
     throw new Error(`Unknown solution authoring tool: ${name}`);
   }
   return {
-    content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+    content: [{ type: "text" as const, text: toolJson(result, client.getOriginClient?.()) }],
   };
 }
