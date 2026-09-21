@@ -84,6 +84,7 @@ describe("tool annotations", () => {
     for (const name of [
       "delete_record",
       "anydb_delete_view",
+      "anydb_delete_report",
       "anydb_delete_docgen_template",
       "anydb_revoke_share",
     ]) {

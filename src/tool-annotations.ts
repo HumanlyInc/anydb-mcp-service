@@ -130,6 +130,12 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_create_report: adds("Create report"),
   // Sending a definition replaces the whole definition.
   anydb_update_report: replaces("Update report"),
+  // ISSUE - 284. Running writes a new snapshot (and clears the previous
+  // one); reading and exporting a snapshot read.
+  anydb_run_report: replaces("Run report"),
+  anydb_get_report_result: reads("Get report result"),
+  anydb_export_report: reads("Export report"),
+  anydb_delete_report: replaces("Delete report"),
 
   // Document generation
   anydb_list_docgen_templates: reads("List document templates"),
