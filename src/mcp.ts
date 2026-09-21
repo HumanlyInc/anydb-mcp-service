@@ -228,6 +228,33 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_list_apps",
+    description:
+      "List the apps (plugins) installed for a team, as the Apps page shows them: pluginId, name, the pinned manifestVersion, status (active | needs_configuration | needs_attention | update_available | incompatible | unreachable | paused | disabled) with its reason, updateAvailableVersion when a newer version is registered (the team's owner updates it from the Apps page - this tool cannot), granted scopes, allowed types, last health, and each connection with the workspaces it is bound to. Pass adbid to keep only the apps bound to that workspace. Read this before concluding an app is broken: not installed, not bound here, unhealthy and behind a version are four different problems.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: { type: "string", description: "Optional workspace ID: only apps bound to it." },
+      },
+      required: ["teamid"],
+    },
+  },
+  {
+    name: "anydb_get_app",
+    description:
+      "Read one installed app (plugin) in full: everything anydb_list_apps shows for it plus its recent activity log (events: health checks, status changes, grant and version updates, refused calls) newest first. Read-only: installing, updating to a newer version and changing grants are the team owner's actions on the Apps page.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        pluginId: { type: "string", description: "The app's id, from anydb_list_apps." },
+        eventsLimit: { type: "integer", minimum: 1, maximum: 100, description: "How many recent events to include (default 20)." },
+      },
+      required: ["teamid", "pluginId"],
+    },
+  },
+  {
     name: "anydb_get_inbox",
     description:
       "List what is in YOUR Inbox for a team - the records assigned to the authenticated user, which is the same list the Inbox in the AnyDB app shows. Use it to check that an assignment you made through update_record actually landed, or to see what is waiting on you. A record gets here through meta.assignees on update_record; each entry says whether it was assigned to you directly or through a group you belong to. This reads your own Inbox only: there is no way to read another person's. The list is self-correcting, so a record that was deleted or reassigned away simply is not in it.",
@@ -1881,6 +1908,27 @@ export function createMcpServer({
                 text: toolJson(record, extApiClient.getOriginClient()),
               },
             ],
+          };
+        }
+
+        case "anydb_list_apps": {
+          const result = await extApiClient.listApps({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string | undefined,
+          });
+          return {
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
+          };
+        }
+
+        case "anydb_get_app": {
+          const result = await extApiClient.getApp({
+            teamid: args?.teamid as string,
+            pluginId: args?.pluginId as string,
+            eventsLimit: args?.eventsLimit as number | undefined,
+          });
+          return {
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
         }
 

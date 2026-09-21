@@ -65,6 +65,16 @@ inside an installed app. Never ask for an API key, a token, a password or an "ex
 for work a tool here can do: `anydb_run_script` runs arbitrary server-side code as the connected
 user, so anything the ext API would do with a key, a script can do without one.
 
+### Installed Apps
+
+Before blaming an installed app (plugin) for a screen that is empty or a write that is
+refused, read its state: `anydb_list_apps` (pass `adbid` for the apps bound to one
+workspace) and `anydb_get_app` for one app with its activity log. Not installed, not bound
+to this workspace, unhealthy (`needs_attention`, `unreachable`, `incompatible`) and pinned
+behind a newer version (`updateAvailableVersion`) are four different problems with four
+different fixes, and only the last two are the app's. These tools are read-only: installing,
+updating and changing grants are the team owner's clicks on the Apps page.
+
 ### Loading Many Records
 
 For sample data, a seed, or an import from rows you generate, use `anydb_simulate_script` then
