@@ -1396,6 +1396,78 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  // ISSUE - 284: the four report operations past the definition.
+  async runReport(params: {
+    teamid: string;
+    adbid: string;
+    reportId: string;
+    waitSeconds?: number;
+  }): Promise<unknown> {
+    const { reportId, ...body } = params;
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/reports/${encodeURIComponent(reportId)}/run`,
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getReportResult(params: {
+    teamid: string;
+    adbid: string;
+    reportId: string;
+    generationId?: string;
+    groupIndex?: number;
+    start?: number;
+    limit?: number;
+    skipDetails?: boolean;
+  }): Promise<unknown> {
+    const { reportId, generationId, groupIndex, ...rest } = params;
+    const query: Record<string, unknown> = { ...rest };
+    if (generationId) query.generationid = generationId;
+    if (groupIndex !== undefined) query.groupindex = groupIndex;
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/reports/${encodeURIComponent(reportId)}/result`,
+      { params: query },
+    );
+    return this.unwrap(response.data);
+  }
+
+  /** The export comes back as a file, not the JSON envelope; csv is text, xlsx is bytes. */
+  async exportReport(params: {
+    teamid: string;
+    adbid: string;
+    reportId: string;
+    format: "csv" | "xlsx";
+    generationId?: string;
+  }): Promise<{ format: "csv" | "xlsx"; filename: string; body: Buffer }> {
+    const { reportId, generationId, ...query } = params;
+    const response = await this.client.get<ArrayBuffer>(
+      `/integrations/ext/reports/${encodeURIComponent(reportId)}/export`,
+      {
+        params: { ...query, ...(generationId ? { generationid: generationId } : {}) },
+        responseType: "arraybuffer",
+      },
+    );
+    const disposition = String(response.headers?.["content-disposition"] || "");
+    const filename =
+      /filename="?([^";]+)"?/.exec(disposition)?.[1] ||
+      `report.${params.format}`;
+    return { format: params.format, filename, body: Buffer.from(response.data) };
+  }
+
+  async deleteReport(params: {
+    teamid: string;
+    adbid: string;
+    reportId: string;
+  }): Promise<unknown> {
+    const { reportId, ...body } = params;
+    const response = await this.client.delete<ExtApiResponse<unknown>>(
+      `/integrations/ext/reports/${encodeURIComponent(reportId)}`,
+      { data: body },
+    );
+    return this.unwrap(response.data);
+  }
+
   async addComment(params: {
     teamid: string;
     adbid: string;

@@ -416,8 +416,9 @@ inputs or behavior changed.
   workflow around it.
 - Record history: `anydb_list_record_versions`, `anydb_get_record_version`,
   `anydb_get_record_version_delta` and `anydb_revert_record_to_version`.
-- Reports: `anydb_list_reports`, `anydb_get_report`, `anydb_create_report`
-  and `anydb_update_report`.
+- Reports: `anydb_list_reports`, `anydb_get_report`, `anydb_create_report`,
+  `anydb_update_report`, `anydb_run_report`, `anydb_get_report_result`,
+  `anydb_export_report` and `anydb_delete_report`.
 - Collaboration: `anydb_add_comment`, `anydb_resolve_comment` and
   `anydb_get_inbox`.
 - Access: `anydb_get_permissions` and `anydb_check_permissions`.

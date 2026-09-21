@@ -50,9 +50,49 @@ describe("report tools", () => {
       "anydb_list_reports",
       "anydb_get_report",
       "anydb_update_report",
+      // ISSUE - 284: a report is worth nothing until someone can see a
+      // number from it.
+      "anydb_run_report",
+      "anydb_get_report_result",
+      "anydb_export_report",
+      "anydb_delete_report",
     ]) {
       expect(names).toContain(name);
     }
+  });
+
+  it("ISSUE - 284: run says it is the Run click, is asynchronous, and can wait", async () => {
+    const tools = await listTools();
+    const run: any = tools.find((tool) => tool.name === "anydb_run_report");
+    expect(run.description).toMatch(/Run/);
+    expect(run.description).toMatch(/jobId/);
+    expect(run.description).toMatch(/anydb_get_report_result/);
+    expect(run.inputSchema.properties.waitSeconds).toMatchObject({ type: "integer", minimum: 0, maximum: 60 });
+    expect(run.inputSchema.required).toEqual(["teamid", "adbid", "reportId"]);
+  });
+
+  it("ISSUE - 284: result names its shape and the group drill-down", async () => {
+    const tools = await listTools();
+    const result: any = tools.find((tool) => tool.name === "anydb_get_report_result");
+    expect(result.description).toMatch(/manifest/);
+    expect(result.description).toMatch(/grandTotal/);
+    expect(result.description).toMatch(/status/);
+    expect(result.inputSchema.properties.groupIndex).toMatchObject({ type: "integer", minimum: 0 });
+    expect(result.inputSchema.properties.skipDetails.type).toEqual("boolean");
+  });
+
+  it("ISSUE - 284: export offers csv and xlsx and says how each comes back", async () => {
+    const tools = await listTools();
+    const exportTool: any = tools.find((tool) => tool.name === "anydb_export_report");
+    expect(exportTool.inputSchema.properties.format.enum).toEqual(["csv", "xlsx"]);
+    expect(exportTool.description).toMatch(/base64/);
+    expect(exportTool.description).toMatch(/snapshot/);
+  });
+
+  it("ISSUE - 284: the guide covers running a report", () => {
+    const guide = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
+    expect(guide).toContain("anydb_run_report");
+    expect(guide).toContain("anydb_get_report_result");
   });
 
   it("describes the definition well enough to write one", async () => {

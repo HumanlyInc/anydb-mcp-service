@@ -1312,6 +1312,99 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_run_report",
+    description:
+      "Run a saved report - what a user's Run click in the Reports tab does. The report is computed by a background job: the answer carries jobId and status (queued | running | ready | failed). Pass waitSeconds (up to 60) to wait for the snapshot; when it finishes in time the answer also carries result, the same page anydb_get_report_result returns. Otherwise poll anydb_get_report_result until its manifest.status is ready. Running replaces the report's previous snapshot.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        reportId: {
+          type: "string",
+          description: "The report ID, from anydb_list_reports.",
+        },
+        waitSeconds: {
+          type: "integer",
+          minimum: 0,
+          maximum: 60,
+          description: "Seconds to wait for the snapshot before answering. 0 (default) answers at once with the job id.",
+        },
+      },
+      required: ["teamid", "adbid", "reportId"],
+    },
+  },
+  {
+    name: "anydb_get_report_result",
+    description:
+      "Read the last computed result of a report without re-running it. Without groupIndex: { reportId, manifest, groupsPage, groupDetailsPages } - manifest carries status (pending | running | ready | failed), totalGroups, totalMatchedRecords, isTruncated and grandTotal (metric alias -> number); groupsPage.groups are the grouped rows with their subtotal; groupDetailsPages holds the first detail rows of each group (omit with skipDetails). With groupIndex: one group's detail rows, paged by start and limit. Before the first run the shape is empty but valid (no groups), not an error.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        reportId: {
+          type: "string",
+          description: "The report ID, from anydb_list_reports.",
+        },
+        generationId: { type: "string", description: "A specific snapshot generation; defaults to the latest." },
+        groupIndex: { type: "integer", minimum: 0, description: "Read one group's detail rows instead of the overview." },
+        start: { type: "integer", minimum: 0, description: "Page start (groups, or rows within a group)." },
+        limit: { type: "integer", minimum: 1, description: "Page size." },
+        skipDetails: { type: "boolean", description: "Overview only: leave out the first detail rows of each group." },
+      },
+      required: ["teamid", "adbid", "reportId"],
+    },
+  },
+  {
+    name: "anydb_export_report",
+    description:
+      "Export the last ready snapshot of a report as a file. format csv returns the CSV text; format xlsx returns the workbook as base64 with its filename. Refused until a snapshot is ready - run the report first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        reportId: {
+          type: "string",
+          description: "The report ID, from anydb_list_reports.",
+        },
+        format: { type: "string", enum: ["csv", "xlsx"], description: "csv (text) or xlsx (base64)." },
+        generationId: { type: "string", description: "A specific snapshot generation; defaults to the latest." },
+      },
+      required: ["teamid", "adbid", "reportId", "format"],
+    },
+  },
+  {
+    name: "anydb_delete_report",
+    description:
+      "Delete a saved report and every snapshot computed for it. Not reversible.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: {
+          type: "string",
+          description: "The database ID (MongoDB ObjectId)",
+        },
+        reportId: {
+          type: "string",
+          description: "The report ID, from anydb_list_reports.",
+        },
+      },
+      required: ["teamid", "adbid", "reportId"],
+    },
+  },
+  {
     name: "anydb_add_comment",
     description:
       "Post a comment on a record, or on one cell of it. Use this rather than writing into a record's comments through update_record: the author is the authenticated user and cannot be set by the caller, the id and timestamp are assigned by the server, and mention notifications fire. Omit cellPosition to comment on the record itself; pass a grid position such as 'A8' to comment on that one cell. Returns the new commentId.",
@@ -2520,6 +2613,67 @@ export function createMcpServer({
             name: args?.name as string | undefined,
             definition: args?.definition as Record<string, unknown> | undefined,
             validateOnly: args?.validateOnly as boolean | undefined,
+          });
+          return {
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
+          };
+        }
+
+        case "anydb_run_report": {
+          const result = await extApiClient.runReport({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            reportId: args?.reportId as string,
+            waitSeconds: args?.waitSeconds as number | undefined,
+          });
+          return {
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
+          };
+        }
+
+        case "anydb_get_report_result": {
+          const result = await extApiClient.getReportResult({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            reportId: args?.reportId as string,
+            generationId: args?.generationId as string | undefined,
+            groupIndex: args?.groupIndex as number | undefined,
+            start: args?.start as number | undefined,
+            limit: args?.limit as number | undefined,
+            skipDetails: args?.skipDetails as boolean | undefined,
+          });
+          return {
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
+          };
+        }
+
+        case "anydb_export_report": {
+          const exported = await extApiClient.exportReport({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            reportId: args?.reportId as string,
+            format: args?.format as "csv" | "xlsx",
+            generationId: args?.generationId as string | undefined,
+          });
+          const payload =
+            exported.format === "csv"
+              ? { format: "csv", filename: exported.filename, csv: exported.body.toString("utf-8") }
+              : {
+                  format: "xlsx",
+                  filename: exported.filename,
+                  contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  base64: exported.body.toString("base64"),
+                };
+          return {
+            content: [{ type: "text", text: toolJson(payload, extApiClient.getOriginClient()) }],
+          };
+        }
+
+        case "anydb_delete_report": {
+          const result = await extApiClient.deleteReport({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            reportId: args?.reportId as string,
           });
           return {
             content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],

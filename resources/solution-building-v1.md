@@ -615,6 +615,16 @@ Use `validateOnly: true` to check a definition without creating anything.
 include every part that should remain. Omit `definition` to rename only. Note
 this is the opposite of `anydb_update_view`, which merges what you send.
 
+A saved report has no numbers until it is run. `anydb_run_report` is the Run
+click: it starts a background snapshot and answers `jobId` and `status`; pass
+`waitSeconds` (up to 60) to get `result` in the same call when the snapshot
+finishes in time, otherwise poll `anydb_get_report_result` until
+`manifest.status` is `ready`. The result carries the grand total, the grouped
+rows with subtotals, and the first detail rows of each group; `groupIndex`
+pages through one group's rows. `anydb_export_report` returns the ready
+snapshot as CSV text or an XLSX workbook (base64), and `anydb_delete_report`
+removes the report with its snapshots.
+
 ## Comments
 
 Use `anydb_add_comment` to leave a comment, and `anydb_resolve_comment` to
