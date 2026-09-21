@@ -68,6 +68,9 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
 
   // Teams, databases, permissions
   list_teams: reads("List teams"),
+  // ISSUE - 297: installed apps, read-only.
+  anydb_list_apps: reads("List installed apps"),
+  anydb_get_app: reads("Get installed app"),
   list_databases_for_team: reads("List databases in a team"),
   anydb_list_team_groups: reads("List team groups"),
   anydb_get_permissions: reads("Get record permissions"),

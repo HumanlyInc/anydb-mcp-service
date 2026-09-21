@@ -1468,6 +1468,24 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  // ISSUE - 297: the team's installed apps, read-only.
+  async listApps(params: { teamid: string; adbid?: string }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/apps",
+      { params: { teamid: params.teamid, ...(params.adbid ? { adbid: params.adbid } : {}) } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getApp(params: { teamid: string; pluginId: string; eventsLimit?: number }): Promise<unknown> {
+    const { pluginId, ...query } = params;
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/apps/${encodeURIComponent(pluginId)}`,
+      { params: query },
+    );
+    return this.unwrap(response.data);
+  }
+
   async addComment(params: {
     teamid: string;
     adbid: string;
