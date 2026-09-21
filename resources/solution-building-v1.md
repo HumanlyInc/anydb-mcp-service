@@ -57,6 +57,30 @@ A successful mutation response confirms the primary request was accepted and, wh
 
 Use bounded polling with short increasing intervals and an explicit deadline. Stop as soon as the expected terminal state is visible; on timeout, report the operation as accepted but not yet verified and include the request ID, artifact ID, workflow ID, or migration job ID returned by the mutation. Never submit a duplicate mutation merely because an asynchronous side effect is still pending. Retry the same mutation only with its original stable `clientRequestId`.
 
+## Working Within the Connector
+
+Do the work with what this connection already gives you, as the user, with the user's own
+permissions. Ask the user only for what no tool can do — a decision, a superadmin step, a click
+inside an installed app. Never ask for an API key, a token, a password or an "external script"
+for work a tool here can do: `anydb_run_script` runs arbitrary server-side code as the connected
+user, so anything the ext API would do with a key, a script can do without one.
+
+### Loading Many Records
+
+For sample data, a seed, or an import from rows you generate, use `anydb_simulate_script` then
+`anydb_run_script` rather than `bulk_create_records` in a long series of calls or a script that
+needs its own credentials:
+
+- `await anydb.createRecord({ name, typename, parentid?, cellValues })` per row; children take
+  `parentid`; a `ref` cell is set afterwards with `await created.setCellRefValue(key, adoid)`;
+  dates are epoch seconds; select values are the declared option literals.
+- A run is capped at 5 minutes and each create is one write, so plan a few hundred records per
+  run: slice the load, keep the ids each run made in `output.set(...)`, and feed them to the next
+  run instead of searching for them (the search index lags the write).
+- Skip locked and formula cells — one refused cell fails that record.
+- Read the type definitions first (`anydb_get_type_definition`) so field names and option
+  literals are exact; a wrong key is a silent no-op, not an error.
+
 ## Workspaces
 
 Use `anydb_create_workspace` only when the user explicitly asks for a new workspace. It creates an empty workspace in an existing team and requires the authenticated user to have workspace-creation permission for that team. Provide a stable `clientRequestId`; an identical retry returns the original result, while reusing it with a different team or name is rejected. Use the returned `adbid` in all subsequent workspace-scoped tools. The tool does not import samples, create business types, or populate records.
