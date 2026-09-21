@@ -758,7 +758,7 @@ const TOOLS: Tool[] = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional. Keep only these keys of each record header, e.g. [\"adoid\",\"name\",\"updated\"]. A full header is a few KB per record (its dependency graph and embedded user objects), so a hundred-record page exceeds the response cap; projected to adoid and name it is a few KB in total. Use it whenever you only need which records exist, their names, ids or timestamps. Header keys include adoid, name, templateName, templateID, updated, created, createdby, updatedby, icon, description, attachedTo. An unknown key is refused with the known keys named; omitted, the full header is returned as before.",
+            "Optional. Keep only these keys of each record header, e.g. [\"adoid\",\"name\",\"updated\"] (an array, or the comma-separated string \"adoid,name,updated\" - either form is read). A full header is a few KB per record (its dependency graph and embedded user objects), so a hundred-record page exceeds the response cap; projected to adoid and name it is a few KB in total. Use it whenever you only need which records exist, their names, ids or timestamps. Header keys include adoid, name, templateName, templateID, updated, created, createdby, updatedby, icon, description, attachedTo. An unknown key is refused with the known keys named; omitted, the full header is returned as before.",
         },
         filter: {
           type: "array",
@@ -1190,7 +1190,7 @@ const TOOLS: Tool[] = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional. Keep only these per record: header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. A full search hit carries every cell, ~14 KB each, so ask for the few you need. An unknown name is refused with the known ones named; omitted, whole records are returned as before.",
+            "Optional. Keep only these per record (an array, or a comma-separated string - either form is read): header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. A full search hit carries every cell, ~14 KB each, so ask for the few you need. An unknown name is refused with the known ones named; omitted, whole records are returned as before.",
         },
       },
       required: ["adbid", "teamid", "search"],
@@ -1220,7 +1220,7 @@ const TOOLS: Tool[] = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional. Keep only these per record: header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. Applied to the search in every database. A full search hit carries every cell, ~14 KB each, so ask for the few you need. An unknown name is refused with the known ones named; omitted, whole records are returned as before.",
+            "Optional. Keep only these per record (an array, or a comma-separated string - either form is read): header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. Applied to the search in every database. A full search hit carries every cell, ~14 KB each, so ask for the few you need. An unknown name is refused with the known ones named; omitted, whole records are returned as before.",
         },
       },
       required: ["teamid", "search"],
@@ -1565,6 +1565,17 @@ export function summariseTeam(team: Record<string, any>): TeamSummary {
  * "not given", so the ext API returns whole records exactly as before.
  */
 function readFieldsArg(raw: unknown): string[] | undefined {
+  // ISSUE - 293: some clients hand an array argument over as its JSON text
+  // (`["adoid","name"]`); read that as the array rather than splitting the
+  // text on commas, which asked the server for `["adoid"` and `"name"]`.
+  if (typeof raw === "string" && raw.trim().startsWith("[")) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return readFieldsArg(parsed);
+    } catch {
+      // not JSON after all - fall through to the comma-separated reading
+    }
+  }
   const names = Array.isArray(raw)
     ? raw.map((n) => String(n ?? "").trim())
     : typeof raw === "string"

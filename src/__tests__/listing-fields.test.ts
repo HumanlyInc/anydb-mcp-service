@@ -129,4 +129,30 @@ describe("ISSUE - 107: fields on the listing tools", () => {
     expect(searches.length).toBe(1);
     expect(searches[0].query.get("fields")).toBe(JSON.stringify(["adoid", "name"]));
   });
+
+  // ISSUE - 293. Some MCP clients hand an array argument over as its JSON
+  // text. Splitting that text on commas asked the server for `["adoid"`,
+  // `"name"` and `"updated"]`, which it refused as unknown fields (Dev1,
+  // 2026-09-21). The text form of an array is read as the array.
+  it("list_records accepts fields given as the JSON text of an array (ISSUE - 293)", async () => {
+    const { received } = await call("list_records", {
+      teamid: TEAM,
+      adbid: ADB,
+      templatename: "Issue",
+      fields: '["adoid", "name", "updated"]',
+    });
+    const list = received.find((r) => r.url === "/integrations/ext/list");
+    expect(list!.query.get("fields")).toBe(JSON.stringify(["adoid", "name", "updated"]));
+  });
+
+  it("list_records still accepts a comma-separated fields string (ISSUE - 293)", async () => {
+    const { received } = await call("list_records", {
+      teamid: TEAM,
+      adbid: ADB,
+      templatename: "Issue",
+      fields: "adoid, name",
+    });
+    const list = received.find((r) => r.url === "/integrations/ext/list");
+    expect(list!.query.get("fields")).toBe(JSON.stringify(["adoid", "name"]));
+  });
 });
