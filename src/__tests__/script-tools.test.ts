@@ -68,6 +68,18 @@ describe("ad-hoc script tools", () => {
     expect(tool.description).toContain("not for ordinary work");
   });
 
+  it("names loading a set of records as a case for the runtime, so an agent never asks for an API key to seed", async () => {
+    // ISSUE-286: seeding ~2,400 records on Dev1, an agent wrote an ext-API
+    // script and asked for an API key because the two cases named here were
+    // an aggregate and a read-modify-write, and neither was "create many".
+    const tool = await toolNamed("anydb_run_script");
+    expect(tool.description).toContain("(3) loading a set of records");
+    expect(tool.description).toContain("never ask the user for an API key");
+    expect(tool.description).toContain("5 minutes");
+    const bulk = await toolNamed("bulk_create_records");
+    expect(bulk.description).toContain("anydb_run_script");
+  });
+
   it("tells the client it must simulate first, and that the token is bound to the script", async () => {
     const tool = await toolNamed("anydb_run_script");
 

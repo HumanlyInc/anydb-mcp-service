@@ -30,6 +30,10 @@ describe("solution resources", () => {
       "Create this solution, add representative test records, run the workflow once",
     );
     expect(resource.text).toContain("## Completion and Eventual Consistency");
+    // ISSUE-286: the guide had no data-loading guidance; the runtime is the
+    // key-free way to load many records as the connected user.
+    expect(resource.text).toContain("### Loading Many Records");
+    expect(resource.text).toContain("anydb_run_script");
     expect(resource.text).toContain(
       "does not guarantee that every derived or background effect is already visible",
     );
