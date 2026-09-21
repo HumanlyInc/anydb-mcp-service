@@ -843,6 +843,35 @@
                 "minLength": 1
               }
             },
+            "appendOptions": {
+              "type": "array",
+              "description": "Add options to the end of an existing select or multi-select field's list. Existing options stay in place, so this is never destructive and needs no confirmDataLoss. Refused unless it is strictly an append: an option the field already has, an option repeated in the request, an empty list, a field that is not a select or whose options come from a formula, or an unknown field key. Use this rather than updateFields.options when you only want to add values; updateFields replaces the whole list.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key",
+                  "options"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The select field's key (matched case-insensitively)."
+                  },
+                  "options": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "description": "The new options, in the order they should follow the existing ones."
+                  }
+                }
+              }
+            },
             "replaceBadges": {
               "type": [
                 "array",

@@ -8,6 +8,7 @@ import {
   SOLUTION_AUTHORING_SCHEMA_URI,
   SOLUTION_BUILDING_GUIDE_URI,
 } from "../solution-resources.js";
+import { SOLUTION_AUTHORING_TOOLS } from "../solution-authoring-tools.js";
 
 describe("solution resources", () => {
   it("lists and reads the solution-building guide", () => {
@@ -753,5 +754,47 @@ describe("cell properties and conditional formatting", () => {
     // The guide previously said to use semantic properties "instead of raw
     // internal props", which is now the opposite of the supported path.
     expect(guide).not.toContain("instead of raw internal `props`");
+  });
+});
+
+describe("ISSUE-278: appendOptions on anydb_update_type", () => {
+  const schema = JSON.parse(
+    readFileSync(
+      new URL("../../resources/solution-authoring-v1.schema.json", import.meta.url),
+      "utf8",
+    ),
+  ) as any;
+  const guide = readFileSync(
+    new URL("../../resources/solution-building-v1.md", import.meta.url),
+    "utf8",
+  );
+
+  it("declares changes.appendOptions, since changes refuses unknown keys", () => {
+    // `changes` is additionalProperties:false, so a key the schema does not
+    // name never reaches the server - anydb-server PR #2257 added
+    // `appendOptions` and without this entry the tool would refuse it.
+    const changes = schema.$defs.updateTypeInput.properties.changes;
+    expect(changes.additionalProperties).toBe(false);
+    const append = changes.properties.appendOptions;
+    expect(append).toMatchObject({ type: "array" });
+    expect(append.items.required).toEqual(["key", "options"]);
+    expect(append.items.additionalProperties).toBe(false);
+    expect(append.items.properties.options).toMatchObject({
+      type: "array",
+      minItems: 1,
+      uniqueItems: true,
+    });
+    expect(append.description).toContain("end");
+  });
+
+  it("tells the guide reader that options are appended, never replaced", () => {
+    expect(guide).toContain("`changes.appendOptions`");
+  });
+
+  it("names appendOptions in the tool description", () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_update_type",
+    );
+    expect(tool?.description).toContain("appendOptions");
   });
 });
