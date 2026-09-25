@@ -90,6 +90,7 @@ describe("solution prompts", () => {
     expect(text).toContain("anydb_get_workflow");
     expect(text).toContain("config.script");
     expect(text).toContain("output.logLines");
+    expect(text).toContain("output.error and output.trace");
     expect(text).toContain("Diagnose the actual defect before rewriting");
     expect(text).toContain(
       "anydb_update_workflow by resending the complete ordered action chain",
