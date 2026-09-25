@@ -38,7 +38,7 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
   {
     name: "anydb_get_type_definition",
     description:
-      "Get the latest complete definition of a workspace or built-in type by its stable name. Use it to judge reuse from semantic content and behavior, not the candidate name, description, or search score. Use the candidate name returned by anydb_discover_types, never a version-specific template ID.",
+      "Get the latest complete definition of a workspace or built-in type by its stable name. Use it to judge reuse from semantic content and behavior, not the candidate name, description, or search score. Use the candidate name returned by anydb_discover_types, never a version-specific template ID. A workspace definition also returns revision, the value anydb_update_type takes as expectedRevision.",
     inputSchema: {
       type: "object",
       properties: {

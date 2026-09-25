@@ -802,7 +802,8 @@
         },
         "expectedRevision": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "The type's current revision: the revision field returned by anydb_get_type_definition (source workspace), a numeric string such as \"2\" - not the templateId. After an update, the result's revision is the value the next update must send. A 409 means the type changed since you read it: re-read the definition before retrying."
         },
         "validateOnly": {
           "type": "boolean",
