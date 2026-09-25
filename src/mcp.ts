@@ -216,7 +216,7 @@ const TOOLS: Tool[] = [
         values: {
           type: "boolean",
           description:
-            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]. Use it with fields to read a few cells of many records.",
+            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]; a comments cell (such as a Discussion) becomes its thread, [{id, date, text, status, author: {userid, display_name}}] - an empty list means no comments. Use it with fields to read a few cells of many records.",
         },
       },
       required: ["teamid", "adbid", "adoid"],
@@ -1233,7 +1233,7 @@ const TOOLS: Tool[] = [
         values: {
           type: "boolean",
           description:
-            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]. Use it with fields to read a few cells of many records.",
+            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]; a comments cell (such as a Discussion) becomes its thread, [{id, date, text, status, author: {userid, display_name}}] - an empty list means no comments. Use it with fields to read a few cells of many records.",
         },
       },
       required: ["adbid", "teamid", "search"],
@@ -1268,7 +1268,7 @@ const TOOLS: Tool[] = [
         values: {
           type: "boolean",
           description:
-            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]. Use it with fields to read a few cells of many records.",
+            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]; a comments cell (such as a Discussion) becomes its thread, [{id, date, text, status, author: {userid, display_name}}] - an empty list means no comments. Use it with fields to read a few cells of many records.",
         },
       },
       required: ["teamid", "search"],
