@@ -118,10 +118,16 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_get_authoring_guide",
     description:
-      "Fetch the canonical AnyDB solution-building guide for designing types, cells, relationships, formulas, and workflows. Call this once before any authoring work to understand rules for standalone types, multi-type solutions, relationships, formulas, and workflow creation.",
+      "Fetch the canonical AnyDB solution-building guide for designing types, cells, relationships, formulas, and workflows. Call this once before any authoring work to understand rules for standalone types, multi-type solutions, relationships, formulas, and workflow creation. With no topic it answers the general contract and an index of topics; then fetch the topics the task needs (for example topic: \"cells,formulas\" before defining a type, \"workflows\" before a workflow). topic: \"all\" answers the whole guide (about 80 KB).",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        topic: {
+          type: "string",
+          description:
+            "Optional. One or more guide topics, comma-separated, from the index the default answer lists (for example \"cells\", \"formulas\", \"workflows\", \"record-titles\"), or \"all\" for the whole guide.",
+        },
+      },
       required: [],
     },
   },
@@ -243,7 +249,7 @@ export async function callSolutionAuthoringTool(
   if (name === "anydb_get_authoring_guide") {
     const guide = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI);
     return {
-      content: [{ type: "text" as const, text: guide.text }],
+      content: [{ type: "text" as const, text: authoringGuideText(guide.text, args?.topic) }],
     };
   }
 
@@ -330,4 +336,44 @@ export async function callSolutionAuthoringTool(
   return {
     content: [{ type: "text" as const, text: toolJson(result, client.getOriginClient?.()) }],
   };
+}
+
+/**
+ * ISSUE - 324: the whole guide is ~80 KB, more than a client's tool-result cap.
+ * Split it on its `## ` sections: the default answer is the general contract
+ * (the sections before "Record Titles") plus an index of topics, and a topic -
+ * or several, comma-separated - answers just those sections. "all" is the whole.
+ */
+const GENERAL_SECTION_COUNT = 6;
+
+function slug(heading: string): string {
+  return heading.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+export function authoringGuideText(guide: string, topic: unknown): string {
+  const parts = guide.split(/\n(?=## )/);
+  const preamble = parts[0] ?? "";
+  const sections = parts.slice(1).map((text) => {
+    const heading = text.slice(3, text.indexOf("\n") === -1 ? undefined : text.indexOf("\n")).trim();
+    return { topic: slug(heading), heading, text, size: text.length };
+  });
+  const requested = String(topic ?? "").split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+  if (requested.includes("all")) return guide;
+  if (requested.length) {
+    const unknown = requested.filter((t) => !sections.some((s) => s.topic === t));
+    if (unknown.length) {
+      throw new Error(`Unknown authoring guide topic ${unknown.map((t) => JSON.stringify(t)).join(", ")}. Topics: ${sections.map((s) => s.topic).join(", ")}, or "all".`);
+    }
+    return sections.filter((s) => requested.includes(s.topic)).map((s) => s.text).join("\n");
+  }
+  const general = sections.slice(0, GENERAL_SECTION_COUNT);
+  const index = sections
+    .slice(GENERAL_SECTION_COUNT)
+    .map((s) => `- \`${s.topic}\` - ${s.heading} (${Math.round(s.size / 1000)} KB)`)
+    .join("\n");
+  return [
+    preamble.trimEnd(),
+    ...general.map((s) => s.text.trimEnd()),
+    `## More topics\n\nThis answer is the general contract. Fetch the sections the task needs with anydb_get_authoring_guide and topic (comma-separated for several), or topic "all" for the whole guide:\n\n${index}`,
+  ].join("\n\n");
 }
