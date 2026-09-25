@@ -140,6 +140,8 @@ export interface SearchRecordsParams {
   limit?: string;
   /** ISSUE - 107: header keys, cell keys or positions to keep per record. */
   fields?: string[];
+  /** ISSUE - 325: return each cell as key: value rather than the cell object. */
+  values?: boolean;
 }
 
 export interface DownloadFileParams {

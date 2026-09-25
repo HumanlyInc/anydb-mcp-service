@@ -191,7 +191,7 @@ const TOOLS: Tool[] = [
   {
     name: "get_record",
     description:
-      "Get a specific AnyDB record by its fully qualified address (teamid, adbid, adoid).",
+      "Get a specific AnyDB record by its fully qualified address (teamid, adbid, adoid). A whole record is tens of KB (its dependency graph, permissions and every cell with its props); pass fields, and values: true, to read only the cells you need.",
     inputSchema: {
       type: "object",
       properties: {
@@ -206,6 +206,17 @@ const TOOLS: Tool[] = [
         adoid: {
           type: "string",
           description: "The record ID (MongoDB ObjectId)",
+        },
+        fields: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional. Keep only these (an array, or a comma-separated string): header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that cell. A cell the record does not have is simply absent. Omitted, the whole record is returned.",
+        },
+        values: {
+          type: "boolean",
+          description:
+            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]. Use it with fields to read a few cells of many records.",
         },
       },
       required: ["teamid", "adbid", "adoid"],
@@ -1217,7 +1228,12 @@ const TOOLS: Tool[] = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional. Keep only these per record (an array, or a comma-separated string - either form is read): header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. A full search hit carries every cell, ~14 KB each, so ask for the few you need. An unknown name is refused with the known ones named; omitted, whole records are returned as before.",
+            "Optional. Keep only these per record (an array, or a comma-separated string - either form is read): header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. A full search hit carries every cell, ~14 KB each, so ask for the few you need, and add values: true to get just their values. A cell a record does not have is simply absent from that record; omitted, whole records are returned as before.",
+        },
+        values: {
+          type: "boolean",
+          description:
+            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]. Use it with fields to read a few cells of many records.",
         },
       },
       required: ["adbid", "teamid", "search"],
@@ -1247,7 +1263,12 @@ const TOOLS: Tool[] = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional. Keep only these per record (an array, or a comma-separated string - either form is read): header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. Applied to the search in every database. A full search hit carries every cell, ~14 KB each, so ask for the few you need. An unknown name is refused with the known ones named; omitted, whole records are returned as before.",
+            "Optional. Keep only these per record (an array, or a comma-separated string - either form is read): header keys (adoid, name, templateName, updated, ...) go under meta, and a cell key (e.g. \"Status\") or cell position (e.g. \"E2\") keeps that whole cell under content. Applied to the search in every database. A full search hit carries every cell, ~14 KB each, so ask for the few you need, and add values: true to get just their values. A cell a database's records do not have is simply absent from them, not an error; omitted, whole records are returned as before.",
+        },
+        values: {
+          type: "boolean",
+          description:
+            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]. Use it with fields to read a few cells of many records.",
         },
       },
       required: ["teamid", "search"],
@@ -1900,7 +1921,10 @@ export function createMcpServer({
           if (!teamid || !adbid || !adoid) {
             throw new Error("teamid, adbid, and adoid are required");
           }
-          const record = await extApiClient.getRecord(teamid, adbid, adoid);
+          const record = await extApiClient.getRecord(teamid, adbid, adoid, {
+            fields: readFieldsArg(args?.fields),
+            values: args?.values === true || args?.values === "true",
+          });
           return {
             content: [
               {
@@ -2268,6 +2292,7 @@ export function createMcpServer({
             start: args?.start as string | undefined,
             limit: args?.limit as string | undefined,
             fields: readFieldsArg(args?.fields),
+            values: args?.values === true || args?.values === "true",
           };
           const results = await extApiClient.searchRecords(params);
           return {
@@ -2311,6 +2336,7 @@ export function createMcpServer({
                 search,
                 limit,
                 fields,
+                values: args?.values === true || args?.values === "true",
               });
               results.push({ database: databaseInfo, records });
             } catch (error) {

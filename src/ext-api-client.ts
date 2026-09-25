@@ -1071,10 +1071,21 @@ export class ExtApiClient {
     teamid: string,
     adbid: string,
     adoid: string,
+    projection: { fields?: string[]; values?: boolean } = {},
   ): Promise<ADORecord> {
+    // ISSUE - 325: the same projection search takes. Neither is sent unless
+    // set, so the record comes back whole exactly as before.
     const response = await this.client.get<ExtApiResponse<ADORecord>>(
       "/integrations/ext/record",
-      { params: { teamid, adbid, adoid } },
+      {
+        params: {
+          teamid,
+          adbid,
+          adoid,
+          fields: projection.fields?.length ? JSON.stringify(projection.fields) : undefined,
+          values: projection.values ? "true" : undefined,
+        },
+      },
     );
     return this.unwrap(response.data);
   }
@@ -1566,13 +1577,14 @@ export class ExtApiClient {
   }
 
   async searchRecords(params: SearchRecordsParams): Promise<ADORecord[]> {
-    const { fields, ...query } = params;
+    const { fields, values, ...query } = params;
     const response = await this.client.get<ExtApiResponse<ADORecord[]>>(
       "/integrations/ext/search",
       {
         params: {
           ...query,
           fields: fields?.length ? JSON.stringify(fields) : undefined,
+          values: values ? "true" : undefined,
         },
       },
     );
