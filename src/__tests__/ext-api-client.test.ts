@@ -1008,4 +1008,53 @@ describe("ExtApiClient", () => {
       simulate: true,
     });
   });
+
+  // ISSUE - 320. The server lets a script run for 5 minutes and a workflow run
+  // as long as it takes, but every request shared one 30 s client timeout, so a
+  // long script or workflow was reported as failed while the server carried on
+  // and finished it - and a retry would run it again. Script and workflow calls
+  // now wait for the script's own limit plus a margin. Proven with a short
+  // default so the test does not have to wait 30 s: the slow long-running call
+  // still gets its answer, an ordinary call with the same delay still times out.
+  describe("ISSUE - 320: long-running calls outlast the default request timeout", () => {
+    const DELAY_MS = 500;
+
+    async function slowServer(): Promise<string> {
+      return listen((incoming, response) => {
+        setTimeout(() => {
+          response.setHeader("Content-Type", "application/json");
+          response.end(JSON.stringify({ status: "success", data: { ok: true } }));
+        }, DELAY_MS);
+      });
+    }
+
+    const client = (baseURL: string) =>
+      new ExtApiClient({ baseURL, accessToken: "header.body.sig", requestTimeoutMs: 200 });
+
+    it("simulateScript waits for the script's own limit", async () => {
+      const api = client(await slowServer());
+      await expect(
+        api.simulateScript({ teamid: "t", adbid: "a", script: "output.set('x', 1)", timeoutMs: 1000 }),
+      ).resolves.toEqual({ ok: true });
+    });
+
+    it("runScript waits for the default 5-minute script limit when none is given", async () => {
+      const api = client(await slowServer());
+      await expect(
+        api.runScript({ teamid: "t", adbid: "a", script: "output.set('x', 1)", runToken: "tok" }),
+      ).resolves.toEqual({ ok: true });
+    });
+
+    it("executeWorkflow waits past the default request timeout", async () => {
+      const api = client(await slowServer());
+      await expect(
+        api.executeWorkflow({ teamid: "t", adbid: "a", workflowId: "w", simulate: true }),
+      ).resolves.toEqual({ ok: true });
+    });
+
+    it("an ordinary call still times out at the default", async () => {
+      const api = client(await slowServer());
+      await expect(api.listTeams()).rejects.toThrow(/timeout/i);
+    });
+  });
 });

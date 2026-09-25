@@ -14,6 +14,20 @@ import type {
 
 export const FILE_TEMPLATE_ADOID = "222222222222222222222222";
 
+/**
+ * ISSUE - 320. The server lets a script run for up to 5 minutes
+ * (DEFAULT_SCRIPT_TIMEOUT_MS in anydb-server's script runtime), and a workflow
+ * runs as long as its actions take. Waiting only the default request timeout
+ * reported those calls as failed while the server finished them, so a retry
+ * ran them twice. They wait for the script's own limit plus a margin for the
+ * request and response around it.
+ */
+export const SCRIPT_DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
+const LONG_CALL_MARGIN_MS = 15 * 1000;
+export const longCallTimeoutMs = (scriptTimeoutMs?: number): number =>
+  (scriptTimeoutMs && scriptTimeoutMs > 0 ? scriptTimeoutMs : SCRIPT_DEFAULT_TIMEOUT_MS) +
+  LONG_CALL_MARGIN_MS;
+
 interface ExtApiClientConfig {
   baseURL: string;
   /** Legacy API-key auth. Ignored when accessToken is present. */
@@ -28,6 +42,8 @@ interface ExtApiClientConfig {
   originClient?: string;
   /** This service's own version, from config.serverVersion. */
   clientVersion?: string;
+  /** Default per-request timeout in ms. Omitted, 30 s. */
+  requestTimeoutMs?: number;
 }
 
 interface ExtApiResponse<T> {
@@ -672,7 +688,7 @@ export class ExtApiClient {
         "User-Agent": clientIdentity(config.clientVersion),
         ...ExtApiClient.authHeaders(config),
       },
-      timeout: 30000,
+      timeout: config.requestTimeoutMs ?? 30000,
     });
     // Injected per request rather than fixed at construction: over MCP the
     // client only names itself during initialize, which happens after this
@@ -1043,10 +1059,11 @@ export class ExtApiClient {
     if (workflowName) {
       const response = await this.client.post<
         ExtApiResponse<ExecuteWorkflowResult>
-      >("/integrations/ext/workflows/execute-by-name", {
-        ...body,
-        name: workflowName,
-      });
+      >(
+        "/integrations/ext/workflows/execute-by-name",
+        { ...body, name: workflowName },
+        { timeout: longCallTimeoutMs() },
+      );
       return this.unwrap(response.data);
     }
 
@@ -1055,6 +1072,7 @@ export class ExtApiClient {
     >(
       `/integrations/ext/workflows/${encodeURIComponent(workflowId ?? "")}/execute`,
       body,
+      { timeout: longCallTimeoutMs() },
     );
     return this.unwrap(response.data);
   }
@@ -1289,6 +1307,7 @@ export class ExtApiClient {
     const response = await this.client.post<ExtApiResponse<unknown>>(
       "/integrations/ext/script/simulate",
       params,
+      { timeout: longCallTimeoutMs(params.timeoutMs) },
     );
     return this.unwrap(response.data);
   }
@@ -1304,6 +1323,7 @@ export class ExtApiClient {
     const response = await this.client.post<ExtApiResponse<unknown>>(
       "/integrations/ext/script/run",
       params,
+      { timeout: longCallTimeoutMs(params.timeoutMs) },
     );
     return this.unwrap(response.data);
   }
