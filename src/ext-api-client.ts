@@ -171,6 +171,8 @@ export interface TypeDefinitionResult {
   source: "workspace" | "builtin";
   templateName: string;
   templateId?: string;
+  /** workspace types only: what anydb_update_type expects as expectedRevision */
+  revision?: string;
   status: "ok" | "not_found_or_unavailable";
   definition?: Record<string, unknown>;
 }

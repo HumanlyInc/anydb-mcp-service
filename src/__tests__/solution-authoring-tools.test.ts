@@ -166,6 +166,13 @@ describe("solution authoring tools", () => {
       expect(targetType.description).toContain("polymorphic");
     }
     expect(isSolutionAuthoringTool("anydb_update_type")).toBe(true);
+    // ISSUE - 323: the only accepted expectedRevision is the definition's
+    // revision; a caller guessing the templateId gets a 409 and may loop.
+    const expectedRevision = (SOLUTION_AUTHORING_TOOLS[2].inputSchema as any)
+      .properties.expectedRevision;
+    expect(expectedRevision.description).toContain("anydb_get_type_definition");
+    expect(expectedRevision.description).toContain("revision");
+    expect(expectedRevision.description).toContain("not the templateId");
   });
 
   it("forwards a standalone type creation request", async () => {

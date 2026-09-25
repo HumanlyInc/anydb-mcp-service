@@ -51,6 +51,15 @@ describe("solution discovery tools", () => {
     );
   });
 
+  it("says the workspace definition carries the revision anydb_update_type expects", () => {
+    // ISSUE - 323
+    const tool = SOLUTION_DISCOVERY_TOOLS.find(
+      (t) => t.name === "anydb_get_type_definition",
+    );
+    expect(tool?.description).toContain("revision");
+    expect(tool?.description).toContain("expectedRevision");
+  });
+
   it("gets a selected built-in type definition", async () => {
     const client = createClient();
     jest.mocked(client.getTypeDefinition).mockResolvedValue({
