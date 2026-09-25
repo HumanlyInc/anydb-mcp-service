@@ -211,6 +211,8 @@ describe("solution resources", () => {
     expect(resource.text).toContain(
       "executionHistory[].artifactExecutions[].output.logLines",
     );
+    // ISSUE - 356: a failed run's trace is recorded without log() calls.
+    expect(resource.text).toContain("read `output.error` and `output.trace` too");
     expect(resource.text).toContain("call `anydb_get_workflow`");
     expect(resource.text).toContain(
       "Its ID is `created.id`, the new adoid, not `created.adoid`",

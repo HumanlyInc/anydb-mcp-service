@@ -30,6 +30,17 @@ describe("solution discovery tools", () => {
     expect(isSolutionDiscoveryTool("anydb_create_type")).toBe(false);
   });
 
+  it("points a failed script run at its error and trace, not only its log lines", () => {
+    // ISSUE - 356: a script that never calls log() leaves logLines empty; the
+    // runtime's trace and the timeout error are what say what it was doing.
+    const tool = SOLUTION_DISCOVERY_TOOLS.find(
+      (candidate) => candidate.name === "anydb_get_workflow",
+    );
+    expect(tool?.description).toContain("output: logLines");
+    expect(tool?.description).toContain("trace (its last anydb.* calls");
+    expect(tool?.description).toContain("names the anydb call it was waiting on");
+  });
+
   it("requires schema-level confirmation of discovery candidates", () => {
     const discoverTool = SOLUTION_DISCOVERY_TOOLS.find(
       (tool) => tool.name === "anydb_discover_types",
