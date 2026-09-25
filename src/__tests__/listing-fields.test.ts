@@ -47,6 +47,15 @@ describe("ISSUE - 107: fields on the listing tools", () => {
         );
         return;
       }
+      if (url.pathname === "/integrations/ext/record") {
+        res.end(
+          JSON.stringify({
+            status: "success",
+            data: { meta: { adoid: "6aa0a1633991680c85b72580" }, values: { Status: "New" } },
+          }),
+        );
+        return;
+      }
       if (url.pathname === "/integrations/ext/search") {
         res.end(
           JSON.stringify({
@@ -154,5 +163,58 @@ describe("ISSUE - 107: fields on the listing tools", () => {
     });
     const list = received.find((r) => r.url === "/integrations/ext/list");
     expect(list!.query.get("fields")).toBe(JSON.stringify(["adoid", "name"]));
+  });
+  // ISSUE - 325. A projected cell is still its whole definition; `values`
+  // asks the server for each named cell as key: value instead. It is opt-in,
+  // so it is only sent when the caller set it.
+  it("search_records forwards values only when it is set", async () => {
+    const on = await call("search_records", {
+      teamid: TEAM,
+      adbid: ADB,
+      search: "ISSUE",
+      fields: ["adoid", "Status"],
+      values: true,
+    });
+    const search = on.received.find((r) => r.url === "/integrations/ext/search");
+    expect(search!.query.get("values")).toBe("true");
+
+    const off = await call("search_records", { teamid: TEAM, adbid: ADB, search: "ISSUE", fields: ["adoid"] });
+    const plain = off.received.find((r) => r.url === "/integrations/ext/search");
+    expect(plain!.query.has("values")).toBe(false);
+  });
+
+  it("search_team_records forwards values to every database's search", async () => {
+    const { received } = await call("search_team_records", {
+      teamid: TEAM,
+      search: "ISSUE",
+      fields: ["adoid", "Status"],
+      values: true,
+    });
+    const searches = received.filter((r) => r.url === "/integrations/ext/search");
+    expect(searches.length).toBe(1);
+    expect(searches[0].query.get("values")).toBe("true");
+  });
+
+  // ISSUE - 325. get_record declared no `fields`, so a caller passing one got
+  // the whole record back with no sign the argument was dropped.
+  it("get_record forwards fields and values", async () => {
+    const { text, received } = await call("get_record", {
+      teamid: TEAM,
+      adbid: ADB,
+      adoid: "6aa0a1633991680c85b72580",
+      fields: ["adoid", "Status"],
+      values: true,
+    });
+    const record = received.find((r) => r.url === "/integrations/ext/record");
+    expect(record!.query.get("fields")).toBe(JSON.stringify(["adoid", "Status"]));
+    expect(record!.query.get("values")).toBe("true");
+    expect(JSON.parse(text).values).toEqual({ Status: "New" });
+  });
+
+  it("get_record without fields or values sends neither", async () => {
+    const { received } = await call("get_record", { teamid: TEAM, adbid: ADB, adoid: "6aa0a1633991680c85b72580" });
+    const record = received.find((r) => r.url === "/integrations/ext/record");
+    expect(record!.query.has("fields")).toBe(false);
+    expect(record!.query.has("values")).toBe(false);
   });
 });
