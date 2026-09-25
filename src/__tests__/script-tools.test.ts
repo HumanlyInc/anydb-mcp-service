@@ -134,4 +134,19 @@ describe("ad-hoc script tools", () => {
     // A clean parse is not evidence the script does the right thing.
     expect(tool.description).toContain("proves nothing about what the script");
   });
+
+  // ISSUE - 320. The read API that makes a large type workable - a condition to
+  // narrow, a limit and a cursor to page - existed, but neither script tool named
+  // it, so an agent guessed at parentId/filter, read the whole type and timed
+  // out. Both descriptions name it, since either may be the one read first.
+  it.each(["anydb_simulate_script", "anydb_run_script"])(
+    "%s names how to read many records",
+    async (name) => {
+      const tool = await toolNamed(name);
+      expect(tool.description).toContain("anydb.findRecordsPage");
+      expect(tool.description).toContain("condition");
+      expect(tool.description).toContain("cursor");
+      expect(tool.description).toContain("anydb.getChildren");
+    },
+  );
 });
