@@ -48,3 +48,22 @@ describe("authoring guide content (ISSUE - 324)", () => {
     expect(all).toContain("does not rewrite a formula a record already holds");
   });
 });
+
+describe("authoring guide gaps (ISSUE - 322)", () => {
+  it("covers the gaps found during a real build", async () => {
+    const all = await call({ topic: "all" });
+    for (const needle of [
+      "A@CURRREC!N@Project!{{Budget}}[0]",
+      "are not functions here",
+      "THRESHOLDBYSUM(array, key, threshold)",
+      "REGEXREPLACE(text, pattern, replacement",
+      "STATES([country])",
+      "send the field's `key` with it",
+      "https://<host>/<teamid>/<adbid>/<adoid>",
+      "Renaming a field key is not reference-safe",
+      "position already taken",
+      "`VALUE_OVERRIDE` is not `VALUE_OVERRIDE_ENABLED`",
+      "moment.js token"
+    ]) expect(all).toContain(needle);
+  });
+});
