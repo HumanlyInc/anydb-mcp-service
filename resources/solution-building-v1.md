@@ -91,6 +91,28 @@ needs its own credentials:
 - Read the type definitions first (`anydb_get_type_definition`) so field names and option
   literals are exact; a wrong key is a silent no-op, not an error.
 
+### Writing Record Cells
+
+- `create_record` / `update_record` content is addressed by grid position. Take each `pos` from
+  a fresh `get_record` (or the type definition) and send the field's `key` with it: a stale or
+  wrong `pos` writes into whichever field now sits there, or leaves an orphan cell, with no error.
+- A `comments` cell is written only with `anydb_add_comment`, never through content.
+- After creating or changing a record, give the user its link:
+  `https://<host>/<teamid>/<adbid>/<adoid>` (the host the connector talks to, e.g. `app.anydb.com`).
+
+### Changing an Existing Type
+
+- Renaming a field key is not reference-safe. Nothing rewrites formulas, `titleFormula`, lookups,
+  workflow bindings or scripts that name the old key. Change the label (`description`) and keep
+  the key, or find and update every reference in the same pass.
+- Field moves in one `updateFields` call apply in array order; moving a field onto a position
+  another field still holds fails ("position already taken"). Order the entries so each target
+  is free when its move applies, moving the occupant out first.
+- A new or changed formula applies to new writes; existing records keep their own copy - see
+  Formulas, "A type migration does not rewrite a formula a record already holds".
+- Primitive system types such as `Page` have been observed missing from `anydb_discover_types`
+  results; address them by name (`get_template`, `templatename`).
+
 ## Workspaces
 
 Use `anydb_create_workspace` only when the user explicitly asks for a new workspace. It creates an empty workspace in an existing team and requires the authenticated user to have workspace-creation permission for that team. Provide a stable `clientRequestId`; an identical retry returns the original result, while reusing it with a different team or name is rejected. Use the returned `adbid` in all subsequent workspace-scoped tools. The tool does not import samples, create business types, or populate records.
@@ -275,7 +297,7 @@ Commonly useful properties:
 | `CELL_HIDDEN`, `FORM_HIDDEN`, `KEY_HIDDEN` | Visibility; `FORM_HIDDEN` hides a field on the submission form while keeping it on the record |
 | `CELL_DISPLAY_AS` | Render a field as another format, e.g. `select` versus `general`, chosen by `expr` |
 | `CELL_ERROR` | Validation. Return `false` when valid, or the message to show when not |
-| `DATE_DISPLAY`, `DATETIME_DISPLAY`, `CHECKBOX_DISPLAY`, `SELECT_DISPLAY` | Format-specific presentation |
+| `DATE_DISPLAY`, `DATETIME_DISPLAY`, `CHECKBOX_DISPLAY`, `SELECT_DISPLAY` | Format-specific presentation, only on cells of that format; `DATE_DISPLAY` takes a moment.js token such as `ll` |
 | `X_SIZE` | Column width in pixels |
 | `VALUE_OVERRIDE_ENABLED` | Let a person type over a computed cell. A cell with a `formula` is read-only by default; set this to `true` when the user must be able to override it |
 | `AI_PROMPT` | The prompt for an `ai` field, e.g. `"Summarise the file attached in {{My Doc}}"` |
@@ -314,6 +336,8 @@ Three rules the server enforces:
   `ATTACHMENTS_TEMPLATE_ID`, `ATTACHMENTS_PARENT`, and `VALUE_OVERRIDE` stay
   editor-only — they are unreachable by any authorable format, or address
   records by raw id where a name is the supported path.
+  `VALUE_OVERRIDE` is not `VALUE_OVERRIDE_ENABLED`: the second is settable and
+  lets a person type over a computed cell (see the table above).
 - **An unknown property name is rejected**, so a typo fails validation rather
   than being silently ignored. Run `validateOnly` first when unsure.
 
@@ -749,6 +773,13 @@ mean the fix is live on old records. Check a representative record with
 example `bulk_update_records` with the cell's `expr` set to the new formula, or
 to `""` with the value you want). New records use the type's formula.
 
+**Functions that are easy to miss** (all supported; the reference has examples):
+`STATES([country])` (US state names), `REGEXTEST(text, pattern, [case])`,
+`REGEXEXTRACT(text, pattern, [return_mode], [case])`,
+`REGEXREPLACE(text, pattern, replacement, [occurrence], [case])`, `MINBY(array, key)`,
+`FLATTEN(array)`, `SORTBY(array, key, ["asc"|"desc"])`, and `THRESHOLDBYSUM(array, key, threshold)`
+(the first item at which the running sum of `key` reaches `threshold`).
+
 **The authoritative, current function reference is
 <https://www.anydb.com/support/reference/formulas/>.** Consult it when you need a
 function this guide does not name, or to confirm a signature — it lists every
@@ -778,6 +809,7 @@ Use the reference form that matches the relationship:
 - All child values regardless of type: `C@CURRREC!{{Amount}}`.
 - Child values for one stable type name: `C@CURRREC!N@Invoice!{{Amount}}`.
 - Parent values: `A@CURRREC!{{Budget}}`.
+- Parent values from a parent of one stable type name: `A@CURRREC!N@Project!{{Budget}}[0]`.
 - Independent record selected by a `ref` field: use a semantic `lookup` field; the server compiles it to `DYNREF(<ref cell position>, {{Target Field}})`.
 
 ### Operators
@@ -796,6 +828,9 @@ was intended.
 | Arithmetic | `+`, `-`, `*`, `/`, `^`, `()` | |
 | Array index, 0-based | `{{Items}}[0]` | |
 | Object property | `{{School}}.name` | |
+
+`AND(a, b)` and `OR(a, b)` are not functions here: written as calls they compile to `#REF!`.
+Use the operators, `a and b`.
 
 Two mistakes to avoid, both of which produce a working-looking formula:
 
