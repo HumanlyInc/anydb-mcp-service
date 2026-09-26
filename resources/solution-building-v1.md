@@ -733,6 +733,22 @@ whether you are computing a value or colouring a cell:
 - **Cell validation** — the `expr` on `CELL_ERROR`
 - **Record names** — a type's `titleFormula`
 
+**Clearing a formula.** To stop a field being computed, send the field with an
+empty formula and unlock it so it can be typed into:
+`anydb_update_type` with `changes.updateFields: [{ key: "Vendor Name", formula: "", locked: false }]`.
+Changing or clearing a formula on the TYPE does not change records that already
+exist - see the next paragraph.
+
+**A type migration does not rewrite a formula a record already holds.** Each
+record carries its own copy of a cell's formula (its `expr`). When you change or
+clear a field's formula on the type, the migration moves records to the new
+revision and reports success, but every existing record keeps the old `expr` and
+the value it computed - including an `err`. So "migration completed" does not
+mean the fix is live on old records. Check a representative record with
+`anydb_get_record`; to fix existing records, write the cell on each one (for
+example `bulk_update_records` with the cell's `expr` set to the new formula, or
+to `""` with the value you want). New records use the type's formula.
+
 **The authoritative, current function reference is
 <https://www.anydb.com/support/reference/formulas/>.** Consult it when you need a
 function this guide does not name, or to confirm a signature — it lists every
