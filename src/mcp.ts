@@ -11,6 +11,7 @@ import {
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import { lookup as lookupMimeType } from "mime-types";
+import { unknownArgumentsError } from "./tool-arguments.js";
 import { config } from "./config.js";
 import { ExtApiClient, FILE_TEMPLATE_ADOID } from "./ext-api-client.js";
 import { normalizeRecordContent } from "./record-update.js";
@@ -1838,6 +1839,15 @@ export function createMcpServer({
     console.error(`======================================\n`);
 
     try {
+      // ISSUE - 369: a key the tool's schema does not have is refused, not dropped.
+      const argumentsProblem = unknownArgumentsError(
+        LISTED_TOOLS.find((tool) => tool.name === name),
+        args as Record<string, unknown> | undefined,
+      );
+      if (argumentsProblem) {
+        throw new Error(argumentsProblem);
+      }
+
       if (isSetupTool(name)) {
         return callSetupTool(name);
       }
