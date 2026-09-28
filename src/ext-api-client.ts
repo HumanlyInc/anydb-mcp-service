@@ -202,6 +202,8 @@ export interface WorkflowSummary {
 
 export interface WorkflowDetails extends WorkflowSummary {
   executionHistory: unknown[];
+  // Runs retained on the server; more than executionHistory holds when capped.
+  executionHistoryTotal?: number;
 }
 
 export interface WorkflowArtifactCatalogEntry {
@@ -856,10 +858,16 @@ export class ExtApiClient {
     teamid: string,
     adbid: string,
     workflowId: string,
+    historyLimit?: number,
   ): Promise<WorkflowDetails> {
     const response = await this.client.get<ExtApiResponse<WorkflowDetails>>(
       `/integrations/ext/workflows/${encodeURIComponent(workflowId)}`,
-      { params: { teamid, adbid } },
+      {
+        params:
+          historyLimit === undefined
+            ? { teamid, adbid }
+            : { teamid, adbid, historylimit: historyLimit },
+      },
     );
     return this.unwrap(response.data);
   }
