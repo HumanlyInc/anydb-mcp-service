@@ -73,7 +73,7 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
   {
     name: "anydb_get_workflow",
     description:
-      "Get one workflow's normalized trigger/action graph and retained execution records, including per-artifact status, outputs, and errors. Each action's stored config is returned, so an action_script entry exposes its current source at config.script; read it before reviewing or revising that script rather than inferring behavior from the workflow name. Use this to diagnose whether a workflow fired and what happened, including script diagnostics at executionHistory[].artifactExecutions[].output: logLines holds the script's own log() lines, and a failed run also carries error (a timeout names the anydb call it was waiting on) and trace (its last anydb.* calls, recorded even when the script never called log()). Use a workflowId returned by anydb_list_workflows or anydb_create_workflow.",
+      "Get one workflow's normalized trigger/action graph and its most recent execution records, including per-artifact status, outputs, and errors. Runs are newest first; by default only the latest 3 are returned, because each can carry script log lines and a workflow that has run is otherwise tens of KB. Pass historyLimit (0-10) for more or none - 0 when you only need the definition, e.g. before revising a script. executionHistoryTotal says how many runs are retained; anydb_get_workflow_execution_history returns them all. Each action's stored config is returned, so an action_script entry exposes its current source at config.script; read it before reviewing or revising that script rather than inferring behavior from the workflow name. Use this to diagnose whether a workflow fired and what happened, including script diagnostics at executionHistory[].artifactExecutions[].output: logLines holds the script's own log() lines, and a failed run also carries error (a timeout names the anydb call it was waiting on) and trace (its last anydb.* calls, recorded even when the script never called log()). Use a workflowId returned by anydb_list_workflows or anydb_create_workflow.",
     inputSchema: {
       type: "object",
       properties: {
@@ -82,6 +82,13 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
         workflowId: {
           type: "string",
           description: "The workflow ID returned by discovery or creation",
+        },
+        historyLimit: {
+          type: "integer",
+          minimum: 0,
+          maximum: 10,
+          description:
+            "Optional. How many of the newest runs to include in executionHistory, 0-10. Defaults to 3.",
         },
       },
       required: ["teamid", "adbid", "workflowId"],
@@ -113,6 +120,10 @@ const DISCOVERY_TOOL_NAMES = new Set(
 export function isSolutionDiscoveryTool(name: string): boolean {
   return DISCOVERY_TOOL_NAMES.has(name);
 }
+
+// ISSUE - 387: every retained run (up to 10, with script log lines) made this
+// answer tens of KB - over a client's result cap - for one small workflow.
+const DEFAULT_WORKFLOW_HISTORY_LIMIT = 3;
 
 function requiredString(
   args: Record<string, unknown> | undefined,
@@ -180,7 +191,19 @@ export async function callSolutionDiscoveryTool(
       return textResult(client.getOriginClient?.(), await client.listWorkflows(teamid, adbid));
     case "anydb_get_workflow": {
       const workflowId = requiredString(args, "workflowId");
-      return textResult(client.getOriginClient?.(), await client.getWorkflow(teamid, adbid, workflowId));
+      const historyLimit = args?.historyLimit ?? DEFAULT_WORKFLOW_HISTORY_LIMIT;
+      if (
+        typeof historyLimit !== "number" ||
+        !Number.isInteger(historyLimit) ||
+        historyLimit < 0 ||
+        historyLimit > 10
+      ) {
+        throw new Error("historyLimit must be an integer from 0 to 10");
+      }
+      return textResult(
+        client.getOriginClient?.(),
+        await client.getWorkflow(teamid, adbid, workflowId, historyLimit),
+      );
     }
     case "anydb_get_workflow_execution_history": {
       const workflowId = requiredString(args, "workflowId");

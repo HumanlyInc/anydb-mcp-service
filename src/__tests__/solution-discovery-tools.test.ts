@@ -168,10 +168,12 @@ describe("solution discovery tools", () => {
       client,
     );
 
+    // ISSUE - 387: the newest 3 runs unless the caller asks otherwise.
     expect(client.getWorkflow).toHaveBeenCalledWith(
       "507f1f77bcf86cd799439012",
       "507f1f77bcf86cd799439013",
       "507f1f77bcf86cd799439014",
+      3,
     );
     expect(JSON.parse(result.content[0].text)).toMatchObject({
       workflowId: "507f1f77bcf86cd799439014",

@@ -802,7 +802,7 @@ const TOOLS: Tool[] = [
         filter: {
           type: "array",
           description:
-            "Optional structured filters. With templatename, field may use '{{Field Name}}' and will be resolved to its cell position. Multiple filters are combined by the backend.",
+            "Optional structured filters. With templatename, field may use '{{Field Name}}' and will be resolved to its cell position. Multiple filters are combined by the backend. A date comparison - type meta on created or updated, or a date cell - takes an ISO 8601 string (\"2026-09-21T05:00:00Z\", the format records return those fields in), epoch seconds or milliseconds, or date math such as now-7d/d. eq/neq compare the calendar day; gt/gte/lt/lte compare the instant. A value that is not a date is refused.",
           items: {
             type: "object",
             properties: {

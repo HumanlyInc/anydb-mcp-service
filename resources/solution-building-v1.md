@@ -1046,7 +1046,7 @@ Loops and output:
 
 ### Reviewing and Updating a Script Action
 
-- `anydb_get_workflow` returns each action's stored `config`, so the current source is available at the `action_script` entry's `config.script`. Read it before proposing a change; never rewrite a script from the workflow name or description alone.
+- `anydb_get_workflow` returns each action's stored `config`, so the current source is available at the `action_script` entry's `config.script`. Read it before proposing a change; never rewrite a script from the workflow name or description alone. It returns only the newest 3 runs by default; pass `historyLimit: 0` when you need just the definition, and use `anydb_get_workflow_execution_history` for every retained run.
 - Review the stored source against the contracts above and the current `action_script` catalog guidance. The runtime surface changes between releases, so re-read the catalog instead of trusting a previously generated script.
 - `anydb_update_workflow` replaces the complete ordered action chain and does not accept the `workflow.script` shorthand used at creation. To change one script, resend every action in its final order as `{ key, type: "action_script", config: { script } }` with the corrected source. Omit `changes.actions` entirely when only the name, description, or enabled state changes.
 - Preserve each action's other config values and every `{{trigger.*}}` or `{{priorActionKey.*}}` binding when resending the chain. An omitted binding is dropped silently.
