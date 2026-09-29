@@ -1012,7 +1012,29 @@ Execution integrity:
 - Never swallow a failure in an empty `catch`. Recover completely, report an explicit partial outcome, or rethrow with operation context, and report success only when every mandatory action completed.
 - Report state after the writes, not the pre-update values, and escape record-derived values before interpolating them into an HTML email body.
 - Never invent an identifier. `anydb.updateShare(...)` resolves the existing share from `adoid`; supply `shareId` only when an actual share ID was returned or provided.
-- Scripts can manage form shares as well as record shares: `anydb.createFormShare`, `anydb.updateFormShare`, `anydb.deleteFormShare`, and `anydb.getShare({ shareId, kind })`. `anydb.updateShare` can also change a record share's `name`, `expiresAt` and `visibility`. They run as the workflow's execution user with the same access rules as the share dialog, and only reach shares in the workflow's own workspace. Read their exact signatures from the `action_script` entry of `anydb_list_workflow_actions` rather than from memory.
+- Scripts can manage form shares as well as record shares. They run as the workflow's execution user with the same access rules as the share dialog, and only reach shares in the workflow's own workspace. Signatures (`?` = optional):
+  - `anydb.createRecordShare({ adoid, visibility?, userIds?, emails?, groupIds?, role?, withAttachments?, name?, expiresAt? })`
+  - `anydb.updateShare({ adoid, shareId?, addUserIds?, addEmails?, addGroupIds?, removeUserIds?, removeEmails?, removeGroupIds?, role?, withAttachments?, name?, expiresAt?, visibility? })`
+  - `anydb.deleteShare({ shareId })`
+  - `anydb.createFormShare({ templateName, parentRecordId?, visibility?, userIds?, emails?, groupIds?, name?, expiresAt?, childForms?, submissionGrouping?, submissionNotifications? })`
+  - `anydb.updateFormShare({ shareId, name?, expiresAt?, visibility?, childForms?, submissionGrouping?, submissionNotifications?, addUserIds?, addEmails?, addGroupIds?, removeUserIds?, removeEmails?, removeGroupIds? })`
+  - `anydb.deleteFormShare({ shareId })`
+  - `anydb.getShare({ shareId, kind })`, where `kind` is `"record"` or `"form"`.
+- Share behaviour to script against: every create or update returns `{ shareId, kind, visibility, name, url, expiresAt, userIds, groupIds, ... }`, so hand `url` to people rather than building a link. `expiresAt` is `YYYY-MM-DD` (today or later); on updates `null` clears it and omitting it keeps it. `childForms` is `[{ templateName, min?, max? }]` and an update replaces the whole list. `submissionGrouping` is `NONE|DAY|WEEK|MONTH|YEAR`. A form share without `parentRecordId` gets a new folder at the workspace root. Creating a share for the same record or parent again adds recipients and never removes them: use the update function to remove people. `role` and `withAttachments` on `updateShare` apply only to people added in that call. Only the share's creator can change a record share's settings. Only people newly added are emailed. A new form share at the plan's limit throws; adding a person to an existing form share does not. `getShare` returns empty recipients with `recipientsHidden: true` to a caller who may read but not manage the share. A simulated run makes no share changes, but `getShare` and the existence checks are real.
+- Example: share a form with a contractor, then add someone and read back the link.
+
+  ```javascript
+  const form = await anydb.createFormShare({
+    templateName: "Safety Report",
+    emails: ["contractor@company.com"],
+    expiresAt: "2030-12-31",
+    childForms: [{ templateName: "Photo", min: 1, max: 4 }],
+    submissionGrouping: "MONTH"
+  });
+  const updated = await anydb.updateFormShare({ shareId: form.shareId, addEmails: ["second@company.com"] });
+  output.set("formLink", updated.url);
+  ```
+- Read the current signatures from the `action_script` entry of `anydb_list_workflow_actions` if they may have changed since this guide was written.
 
 Data access contracts:
 
