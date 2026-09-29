@@ -10,6 +10,7 @@ import type {
   ExecuteWorkflowRequest,
   ExtApiClient,
   RevokeShareRequest,
+  UpdateShareRequest,
   UpdateWorkflowRequest,
   UpdateTypeRequest,
 } from "./ext-api-client.js";
@@ -95,6 +96,8 @@ const listSharesInputSchema = exposedInputSchema("listSharesInput");
 const getShareInputSchema = exposedInputSchema("getShareInput");
 
 const revokeShareInputSchema = exposedInputSchema("revokeShareInput");
+
+const updateShareInputSchema = exposedInputSchema("updateShareInput");
 
 const listTeamGroupsInputSchema = exposedInputSchema("listTeamGroupsInput");
 
@@ -186,7 +189,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_create_share",
     description:
-      'Create a public or private share for a record or form through standard AnyDB sharing policy. Use target {kind: "record", recordId: "<adoid>"} for an existing record, or {kind: "form", templateName: "<stable type name>"} for a form (optionally with parentRecordId). Call anydb_list_shares first to reuse an existing compatible share. Public shares omit recipients and return publicUrl. Private shares require emails and/or stable group names from anydb_list_team_groups. role and withAttachments apply only to records.',
+      'Create a public or private share for a record or form through standard AnyDB sharing policy, as the authenticated user, applying the same access rules as the share dialog: they must be allowed to share the record. Use target {kind: "record", recordId: "<adoid>"} for an existing record, or {kind: "form", templateName: "<stable type name>"} for a form (optionally with parentRecordId). Call anydb_list_shares first to reuse an existing compatible share. Public shares omit recipients and return publicUrl. Private shares require emails and/or stable group names from anydb_list_team_groups. Every created share returns url, the link to give people (public /s/ or /f/ link, a private record share\'s "shared with me" page, or the form\'s /f/ link). Optional: expiresAt (YYYY-MM-DD, today or later). role and withAttachments apply only to records. For forms: childForms [{templateName, min?, max?}] are child types the submitter fills in with the form, submissionGrouping is NONE|DAY|WEEK|MONTH|YEAR, and submissionNotifications turns the submission email on or off. Creating a form share again for the same parentRecordId updates that share and adds the people named, but leaves out anything it does not name; to change or remove people, use anydb_update_share. At the plan\'s form-share limit a new form share is refused with the reason.',
     inputSchema: createShareInputSchema as unknown as Tool["inputSchema"],
   },
   {
@@ -198,8 +201,14 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_get_share",
     description:
-      "Get one accessible record or form share facet by shareId and kind. The kind is required because one internal share can contain both facets.",
+      "Get one accessible record or form share facet by shareId and kind. The kind is required because one internal share can contain both facets. Returns who the share is with (recipients.users with email and, for record shares, role; recipients.groups with name; left out with recipientsHidden: true when the caller may read the share but not manage it), the link to give people (url), expiresAt, and for forms the childForms, submissionGrouping and submissionNotifications. Read it before adding or removing people.",
     inputSchema: getShareInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_update_share",
+    description:
+      'Change an existing record or form share (from anydb_create_share or anydb_list_shares) as the authenticated user, applying the same access rules as the share dialog: the user must be allowed to share the record, and only the person who created a record share can change its settings. Pass shareId, kind and changes; only what changes names is changed. changes: name; expiresAt (YYYY-MM-DD, today or later, or null to remove the expiry); privacy "public" turns the public link on, "private" turns it off and keeps the named people; addRecipients / removeRecipients {emails?, groupNames?} to add or remove people (a person is removed by the email they were shared with; only newly added people are emailed; removing the last person from a record share deletes it and returns deleted: true). Record shares: role and withAttachments (role applies to everyone on the share). Form shares: childForms [{templateName, min?, max?}] replaces the child-form list ([] removes them), submissionGrouping NONE|DAY|WEEK|MONTH|YEAR, submissionNotifications. Adding a person to an existing form share works at the plan\'s form-share limit. Returns the share after the change, including recipients and url. Replay-safe by clientRequestId. To remove the whole share use anydb_revoke_share.',
+    inputSchema: updateShareInputSchema as unknown as Tool["inputSchema"],
   },
   {
     name: "anydb_revoke_share",
@@ -317,6 +326,11 @@ export async function callSolutionAuthoringTool(
       String(args.adbid || ""),
       String(args.shareId || ""),
       String(args.kind || "") as "record" | "form",
+    );
+  } else if (name === "anydb_update_share") {
+    const normalized = normalizeStructuredArgument(args, "changes", name);
+    result = await client.updateShare(
+      normalized as unknown as UpdateShareRequest,
     );
   } else if (name === "anydb_revoke_share") {
     result = await client.revokeShare(args as unknown as RevokeShareRequest);

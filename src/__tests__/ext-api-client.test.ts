@@ -529,6 +529,14 @@ describe("ExtApiClient", () => {
     await client.listShares(teamid, adbid);
     await client.getShare(teamid, adbid, shareId, "form");
     await client.revokeShare(revokeShareRequest);
+    await client.updateShare({
+      teamid,
+      adbid,
+      shareId,
+      kind: "form",
+      clientRequestId: "update-form-v1",
+      changes: { expiresAt: null, addRecipients: { emails: ["a@example.com"] } },
+    });
 
     expect(received).toEqual([
       {
@@ -564,6 +572,20 @@ describe("ExtApiClient", () => {
           adbid,
           kind: "form",
           clientRequestId: "revoke-form-v1",
+        },
+      },
+      {
+        method: "PATCH",
+        url: `/integrations/ext/shares/${shareId}`,
+        body: {
+          teamid,
+          adbid,
+          kind: "form",
+          clientRequestId: "update-form-v1",
+          changes: {
+            expiresAt: null,
+            addRecipients: { emails: ["a@example.com"] },
+          },
         },
       },
     ]);

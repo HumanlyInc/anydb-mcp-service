@@ -362,8 +362,27 @@ export interface CreateShareRequest {
     };
     role?: "viewer" | "editor";
     withAttachments?: boolean;
+    /** YYYY-MM-DD, today or later. */
+    expiresAt?: string;
+    /** Form shares only. */
+    childForms?: ShareChildForm[];
+    submissionGrouping?: ShareSubmissionGrouping;
+    submissionNotifications?: boolean;
   };
 }
+
+export interface ShareChildForm {
+  templateName: string;
+  min?: number;
+  max?: number;
+}
+
+export type ShareSubmissionGrouping =
+  | "NONE"
+  | "DAY"
+  | "WEEK"
+  | "MONTH"
+  | "YEAR";
 
 export interface CreateShareResult {
   success: true;
@@ -373,6 +392,9 @@ export interface CreateShareResult {
     shareId?: string;
     shareToken?: string;
     publicUrl?: string;
+    /** The link to give people, for public and private shares of both kinds. */
+    url?: string;
+    expiresAt?: string | null;
     targetKind: "record" | "form";
     privacy: "public" | "private";
     name: string;
@@ -409,6 +431,64 @@ export interface ShareDefinition {
   recipientGroupNames: string[];
   createdOn: string;
   publicUrl?: string;
+  url?: string;
+  expiresAt?: string | null;
+}
+
+/** What GET /shares/:id returns: the listing entry plus who is on the share and its settings. */
+export interface ShareDetails extends ShareDefinition {
+  recipients: {
+    users: {
+      userId: string;
+      email?: string;
+      name?: string;
+      role?: "viewer" | "editor";
+      withAttachments?: boolean;
+    }[];
+    groups: {
+      groupId: string;
+      name?: string;
+      role?: "viewer" | "editor";
+      withAttachments?: boolean;
+    }[];
+  };
+  /** Set when the caller may read the share but not manage it: recipients is then empty. */
+  recipientsHidden?: true;
+  publicRole?: "viewer" | "editor";
+  publicWithAttachments?: boolean;
+  childForms?: { templateName: string; min: number; max: number }[];
+  submissionGrouping?: ShareSubmissionGrouping;
+  submissionNotifications?: boolean;
+}
+
+export interface UpdateShareRequest {
+  teamid: string;
+  adbid: string;
+  shareId: string;
+  kind: "record" | "form";
+  clientRequestId: string;
+  changes: {
+    name?: string;
+    /** YYYY-MM-DD to set, null to remove. */
+    expiresAt?: string | null;
+    privacy?: "public" | "private";
+    role?: "viewer" | "editor";
+    withAttachments?: boolean;
+    childForms?: ShareChildForm[];
+    submissionGrouping?: ShareSubmissionGrouping;
+    submissionNotifications?: boolean;
+    addRecipients?: { emails?: string[]; groupNames?: string[] };
+    removeRecipients?: { emails?: string[]; groupNames?: string[] };
+  };
+}
+
+export interface UpdateShareResult {
+  success: true;
+  operation: "update_share";
+  requestId: string;
+  /** The share after the change; null when removing the last person deleted a record share. */
+  result: ShareDetails | null;
+  deleted?: true;
 }
 
 export interface RevokeShareRequest {
@@ -1000,11 +1080,19 @@ export class ExtApiClient {
     adbid: string,
     shareId: string,
     kind: "record" | "form",
-  ): Promise<ShareDefinition> {
-    const response = await this.client.get<ExtApiResponse<ShareDefinition>>(
+  ): Promise<ShareDetails> {
+    const response = await this.client.get<ExtApiResponse<ShareDetails>>(
       `/integrations/ext/shares/${encodeURIComponent(shareId)}`,
       { params: { teamid, adbid, kind } },
     );
+    return this.unwrap(response.data);
+  }
+
+  async updateShare(params: UpdateShareRequest): Promise<UpdateShareResult> {
+    const { shareId, ...data } = params;
+    const response = await this.client.patch<
+      ExtApiResponse<UpdateShareResult>
+    >(`/integrations/ext/shares/${encodeURIComponent(shareId)}`, data);
     return this.unwrap(response.data);
   }
 
