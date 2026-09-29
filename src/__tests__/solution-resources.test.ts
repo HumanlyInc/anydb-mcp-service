@@ -366,6 +366,8 @@ describe("solution resources", () => {
       "anydb.updateFormShare({ shareId, name?, expiresAt?",
     );
     expect(resource.text).toContain("anydb.getShare({ shareId, kind })");
+    expect(resource.text).toContain("anydb.addComment({ adoid, text, cell? })");
+    expect(resource.text).toContain("which REPLACES a whole thread");
     expect(resource.text).toContain("`recipientsHidden: true`");
     expect(resource.text).toContain('templateName: "Safety Report"');
     expect(resource.text).toContain(
