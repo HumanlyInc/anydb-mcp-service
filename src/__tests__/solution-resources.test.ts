@@ -363,6 +363,12 @@ describe("solution resources", () => {
     expect(resource.text).toContain("childForms");
     expect(resource.text).toContain("anydb.createFormShare");
     expect(resource.text).toContain(
+      "anydb.updateFormShare({ shareId, name?, expiresAt?",
+    );
+    expect(resource.text).toContain("anydb.getShare({ shareId, kind })");
+    expect(resource.text).toContain("`recipientsHidden: true`");
+    expect(resource.text).toContain('templateName: "Safety Report"');
+    expect(resource.text).toContain(
       'A public share uses `privacy: "public"`, must omit `recipients`',
     );
     expect(resource.text).toContain(
