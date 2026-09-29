@@ -153,6 +153,8 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_list_shares: reads("List shares"),
   anydb_get_share: reads("Get share"),
   anydb_create_share: publishes("Create share"),
+  // Recipient lists, expiry and child forms are replaced or edited in place.
+  anydb_update_share: replaces("Update share"),
   anydb_revoke_share: replaces("Revoke share"),
 
   // Workflows

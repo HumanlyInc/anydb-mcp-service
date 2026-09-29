@@ -546,6 +546,7 @@ describe("solution authoring tools", () => {
       recipientGroupNames: [],
       createdOn: "1786400000000",
       publicUrl: "https://workspace.example.com/s/token",
+      recipients: { users: [], groups: [] },
     });
     const revokeShare = jest
       .fn<ExtApiClient["revokeShare"]>()
@@ -1032,5 +1033,121 @@ describe("solution authoring tools", () => {
       },
     });
     expect(isSolutionAuthoringTool("anydb_list_workflow_actions")).toBe(true);
+  });
+
+  // ISSUE - 397: shares can carry an expiry and child forms, and be updated.
+  it("advertises expiry, child forms and form settings when creating a share", () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_create_share",
+    )!;
+    const share = (tool.inputSchema as any).properties.share;
+    expect(share.properties.expiresAt).toMatchObject({
+      type: "string",
+      pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+    });
+    expect(share.properties.childForms).toMatchObject({
+      type: "array",
+      items: { required: ["templateName"] },
+    });
+    expect(share.properties.submissionGrouping.enum).toEqual([
+      "NONE",
+      "DAY",
+      "WEEK",
+      "MONTH",
+      "YEAR",
+    ]);
+    expect(share.properties.submissionNotifications.type).toBe("boolean");
+    expect(JSON.stringify(tool.inputSchema)).not.toContain('"$ref"');
+    for (const phrase of [
+      "same access rules as the share dialog",
+      "expiresAt",
+      "childForms",
+      "anydb_update_share",
+      "url",
+    ]) {
+      expect(tool.description).toContain(phrase);
+    }
+    // Child forms and form settings are form-only: a record share must not carry them.
+    expect(JSON.stringify(share.allOf)).toContain('"childForms"');
+  });
+
+  it("advertises and dispatches anydb_update_share", async () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_update_share",
+    )!;
+    expect(isSolutionAuthoringTool("anydb_update_share")).toBe(true);
+    const schema = tool.inputSchema as any;
+    expect(schema.required).toEqual([
+      "teamid",
+      "adbid",
+      "shareId",
+      "kind",
+      "clientRequestId",
+      "changes",
+    ]);
+    expect(schema.properties.kind.enum).toEqual(["record", "form"]);
+    expect(schema.properties.changes.minProperties).toBe(1);
+    expect(Object.keys(schema.properties.changes.properties).sort()).toEqual([
+      "addRecipients",
+      "childForms",
+      "expiresAt",
+      "name",
+      "privacy",
+      "removeRecipients",
+      "role",
+      "submissionGrouping",
+      "submissionNotifications",
+      "withAttachments",
+    ]);
+    // null clears the expiry.
+    expect(schema.properties.changes.properties.expiresAt.type).toEqual([
+      "string",
+      "null",
+    ]);
+    expect(schema.properties.changes.properties.addRecipients.properties.emails.type).toBe("array");
+    expect(JSON.stringify(schema)).not.toContain('"$ref"');
+    for (const phrase of [
+      "same access rules as the share dialog",
+      "removing the last person",
+      "form-share limit",
+      "anydb_revoke_share",
+    ]) {
+      expect(tool.description!.toLowerCase()).toContain(phrase.toLowerCase());
+    }
+
+    const updateShare = jest.fn<ExtApiClient["updateShare"]>().mockResolvedValue({
+      success: true,
+      operation: "update_share",
+      requestId: "update-share-v1",
+      result: null,
+      deleted: true,
+    });
+    const client = { updateShare } as unknown as ExtApiClient;
+    const base = {
+      teamid: "507f1f77bcf86cd799439011",
+      adbid: "507f1f77bcf86cd799439012",
+      shareId: "507f1f77bcf86cd799439015",
+      kind: "form" as const,
+      clientRequestId: "update-share-v1",
+    };
+    const changes = {
+      expiresAt: null,
+      addRecipients: { emails: ["new@example.com"] },
+      removeRecipients: { groupNames: ["Operations"] },
+    };
+
+    // an object, and the same object as a JSON string, are forwarded the same way
+    await callSolutionAuthoringTool("anydb_update_share", { ...base, changes }, client);
+    await callSolutionAuthoringTool(
+      "anydb_update_share",
+      { ...base, changes: JSON.stringify(changes) },
+      client,
+    );
+    expect(updateShare).toHaveBeenNthCalledWith(1, { ...base, changes });
+    expect(updateShare).toHaveBeenNthCalledWith(2, { ...base, changes });
+
+    await expect(
+      callSolutionAuthoringTool("anydb_update_share", { ...base, changes: "not json" }, client),
+    ).rejects.toThrow(/anydb_update_share.changes must be an object/);
   });
 });

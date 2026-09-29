@@ -266,12 +266,18 @@ the column layout set in the app survives, and `All` cannot be deleted.
 | `anydb_list_shares`      | List semantic record and form share facets                 |
 | `anydb_get_share`        | Get one share facet by `shareId` and `kind`                |
 | `anydb_create_share`     | Create a public or private record or form share            |
+| `anydb_update_share`     | Change a share: settings, expiry, people, child forms      |
 | `anydb_revoke_share`     | Revoke one facet while preserving another facet            |
 
 Public shares omit recipients and return a usable `publicUrl`. Private shares
 require recipient emails and/or exact group names. Record shares may specify a
 `viewer` or `editor` role and include attachments. Form shares use a stable
-template name and may specify the parent that receives submissions.
+template name and may specify the parent that receives submissions, child
+forms the submitter fills in with the form, and submission settings. Shares can
+carry an expiry (`expiresAt`, `YYYY-MM-DD`). `anydb_get_share` returns who a
+share is with and its link, and `anydb_update_share` adds or removes people and
+changes settings without recreating the share. All of it runs as the
+authenticated user under the same access rules as the share dialog.
 
 ### Workflows
 
@@ -384,6 +390,16 @@ Every prompt requires a `goal` and accepts optional `constraints`.
 an existing workflow's script instead of writing a new one.
 
 ## Release Notes
+
+### Unreleased
+
+**Added.** `anydb_update_share`: change a record or form share -- name,
+expiry, public link, add and remove people by email or group name, and
+(record shares) role, (form shares) child forms and submission settings.
+`anydb_create_share` accepts `expiresAt`, `childForms`, `submissionGrouping`
+and `submissionNotifications` and returns a `url` for private shares too, and
+`anydb_get_share` returns the share's recipients, link, expiry and settings.
+See ISSUE - 397.
 
 ### 3.0.3
 

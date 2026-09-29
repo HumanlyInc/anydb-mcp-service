@@ -374,6 +374,47 @@
         }
       ]
     },
+    "shareChildForms": {
+      "type": "array",
+      "maxItems": 50,
+      "description": "Form shares only. Child types the submitter fills in together with the form, e.g. [{\"templateName\":\"Photo\",\"min\":1,\"max\":4}]. Replaces the whole list when updating; [] removes them.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "templateName"
+        ],
+        "properties": {
+          "templateName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Stable workspace type name of the child form."
+          },
+          "min": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Fewest child records the submitter must add. Defaults to 0."
+          },
+          "max": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Most child records the submitter may add. Defaults to 1. Must be at least min."
+          }
+        }
+      }
+    },
+    "shareSubmissionGrouping": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "DAY",
+        "WEEK",
+        "MONTH",
+        "YEAR"
+      ],
+      "description": "Form shares only. Whether submissions are filed into a new folder per day, week, month or year. NONE files them straight under the form's parent."
+    },
     "createShareInput": {
       "type": "object",
       "additionalProperties": false,
@@ -436,9 +477,65 @@
             "withAttachments": {
               "type": "boolean",
               "description": "Optional for record shares; the server uses false when omitted. Must be omitted for form shares."
+            },
+            "expiresAt": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Optional. A date, YYYY-MM-DD (today or later), after which the share stops working. Omit for a share that does not expire."
+            },
+            "childForms": {
+              "$ref": "#/$defs/shareChildForms"
+            },
+            "submissionGrouping": {
+              "$ref": "#/$defs/shareSubmissionGrouping"
+            },
+            "submissionNotifications": {
+              "type": "boolean",
+              "description": "Form shares only. Whether the sharer is emailed when someone submits the form. The server uses true when omitted."
             }
           },
           "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "target": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "const": "record"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ]
+              },
+              "then": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "childForms"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "submissionGrouping"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "submissionNotifications"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
             {
               "if": {
                 "properties": {
@@ -594,6 +691,172 @@
           "maxLength": 200
         }
       }
+    },
+    "updateShareInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "teamid",
+        "adbid",
+        "shareId",
+        "kind",
+        "clientRequestId",
+        "changes"
+      ],
+      "properties": {
+        "teamid": {
+          "$ref": "#/$defs/objectId"
+        },
+        "adbid": {
+          "$ref": "#/$defs/objectId"
+        },
+        "shareId": {
+          "$ref": "#/$defs/objectId"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "record",
+            "form"
+          ],
+          "description": "Share facet to change; one internal share may contain both facets."
+        },
+        "clientRequestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "changes": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "description": "Only what is named changes; everything else is kept.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "expiresAt": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "A date, YYYY-MM-DD (today or later), to set the expiry to, or null to remove it."
+            },
+            "privacy": {
+              "type": "string",
+              "enum": [
+                "public",
+                "private"
+              ],
+              "description": "public turns the public link on; private turns it off and keeps the named people."
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "viewer",
+                "editor"
+              ],
+              "description": "Record shares only. Applied to everyone on the share and to anyone added in this call."
+            },
+            "withAttachments": {
+              "type": "boolean",
+              "description": "Record shares only."
+            },
+            "childForms": {
+              "$ref": "#/$defs/shareChildForms"
+            },
+            "submissionGrouping": {
+              "$ref": "#/$defs/shareSubmissionGrouping"
+            },
+            "submissionNotifications": {
+              "type": "boolean",
+              "description": "Form shares only."
+            },
+            "addRecipients": {
+              "$ref": "#/$defs/shareRecipients",
+              "description": "People to add, by email and/or stable team group name. Only people not already on the share are emailed."
+            },
+            "removeRecipients": {
+              "$ref": "#/$defs/shareRecipients",
+              "description": "People to remove, by the email they are on the share with and/or stable team group name. Removing the last person from a record share deletes it."
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "form"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "changes": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "role"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "withAttachments"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "record"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "changes": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "childForms"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "submissionGrouping"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "submissionNotifications"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "typeDefinition": {
       "type": "object",
@@ -1248,6 +1511,9 @@
     },
     "anydb_revoke_share": {
       "$ref": "#/$defs/revokeShareInput"
+    },
+    "anydb_update_share": {
+      "$ref": "#/$defs/updateShareInput"
     },
     "anydb_list_team_groups": {
       "$ref": "#/$defs/listTeamGroupsInput"

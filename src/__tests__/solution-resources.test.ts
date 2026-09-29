@@ -358,6 +358,10 @@ describe("solution resources", () => {
     expect(resource.text).toContain("anydb_list_team_groups");
     expect(resource.text).toContain("anydb_list_shares");
     expect(resource.text).toContain("anydb_revoke_share");
+    expect(resource.text).toContain("anydb_update_share");
+    expect(resource.text).toContain("same access rules as the share dialog");
+    expect(resource.text).toContain("childForms");
+    expect(resource.text).toContain("anydb.createFormShare");
     expect(resource.text).toContain(
       'A public share uses `privacy: "public"`, must omit `recipients`',
     );
