@@ -1615,6 +1615,107 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  // ISSUE - 418: inbound webhooks. A public signed URL that turns a form submission (Framer, or any
+  // sender that signs JSON) into a record of one type under one parent record.
+  async createInboundWebhook(body: {
+    teamid: string;
+    adbid: string;
+    parentId: string;
+    templateName: string;
+    name: string;
+    adapter: "framer" | "generic";
+    description?: string;
+    fieldMap?: Record<string, string>;
+    recordName?: string;
+    startActive?: boolean;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      "/integrations/ext/inboundwebhooks",
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listInboundWebhooks(params: { teamid: string; parentId?: string }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/inboundwebhooks",
+      { params: { teamid: params.teamid, ...(params.parentId ? { parentId: params.parentId } : {}) } },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getInboundWebhook(params: { hookId: string }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/inboundwebhooks/${encodeURIComponent(params.hookId)}`,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async updateInboundWebhook(params: {
+    hookId: string;
+    name?: string;
+    description?: string;
+    fieldMap?: Record<string, string>;
+    recordName?: string;
+    templateName?: string;
+  }): Promise<unknown> {
+    const { hookId, ...fields } = params;
+    const response = await this.client.put<ExtApiResponse<unknown>>(
+      `/integrations/ext/inboundwebhooks/${encodeURIComponent(hookId)}`,
+      fields,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async setInboundWebhookStatus(params: {
+    hookId: string;
+    status: "active" | "disabled" | "capturing";
+  }): Promise<unknown> {
+    const response = await this.client.put<ExtApiResponse<unknown>>(
+      `/integrations/ext/inboundwebhooks/${encodeURIComponent(params.hookId)}/status`,
+      { status: params.status },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async rotateInboundWebhookSecret(params: { hookId: string }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/inboundwebhooks/${encodeURIComponent(params.hookId)}/rotate-secret`,
+      {},
+    );
+    return this.unwrap(response.data);
+  }
+
+  async deleteInboundWebhook(params: { hookId: string }): Promise<unknown> {
+    const response = await this.client.delete<ExtApiResponse<unknown>>(
+      `/integrations/ext/inboundwebhooks/${encodeURIComponent(params.hookId)}`,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listInboundWebhookDeliveries(params: { hookId: string; limit?: number }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/inboundwebhooks/${encodeURIComponent(params.hookId)}/deliveries`,
+      { params: params.limit ? { limit: params.limit } : {} },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getInboundWebhookDelivery(params: { hookId: string; deliveryKey: string }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/inboundwebhooks/${encodeURIComponent(params.hookId)}/deliveries/${encodeURIComponent(params.deliveryKey)}`,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async replayInboundWebhookDelivery(params: { hookId: string; deliveryKey: string }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/inboundwebhooks/${encodeURIComponent(params.hookId)}/deliveries/${encodeURIComponent(params.deliveryKey)}/replay`,
+      {},
+    );
+    return this.unwrap(response.data);
+  }
+
   async addComment(params: {
     teamid: string;
     adbid: string;
