@@ -68,6 +68,19 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
 
   // Teams, databases, permissions
   list_teams: reads("List teams"),
+  // ISSUE - 418: inbound webhooks. Creating one makes a public URL; replaying adds a record.
+  anydb_create_inbound_webhook: publishes("Create inbound webhook"),
+  anydb_list_inbound_webhooks: reads("List inbound webhooks"),
+  anydb_get_inbound_webhook: reads("Get inbound webhook"),
+  anydb_update_inbound_webhook: replaces("Update inbound webhook"),
+  anydb_set_inbound_webhook_status: replaces("Set inbound webhook status"),
+  anydb_rotate_inbound_webhook_secret: replaces("Rotate inbound webhook secret"),
+  // Destructive: it also deletes every stored submission.
+  anydb_delete_inbound_webhook: replaces("Delete inbound webhook"),
+  anydb_list_inbound_webhook_deliveries: reads("List inbound webhook deliveries"),
+  anydb_get_inbound_webhook_delivery: reads("Get inbound webhook delivery"),
+  anydb_replay_inbound_webhook_delivery: adds("Replay inbound webhook delivery"),
+
   // ISSUE - 297: installed apps, read-only.
   anydb_list_apps: reads("List installed apps"),
   anydb_get_app: reads("Get installed app"),

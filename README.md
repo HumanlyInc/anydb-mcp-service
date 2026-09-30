@@ -279,6 +279,28 @@ share is with and its link, and `anydb_update_share` adds or removes people and
 changes settings without recreating the share. All of it runs as the
 authenticated user under the same access rules as the share dialog.
 
+### Inbound webhooks
+
+| Tool                                     | Description                                                          |
+| ---------------------------------------- | -------------------------------------------------------------------- |
+| `anydb_create_inbound_webhook`           | Create a signed public URL that turns form submissions into records  |
+| `anydb_list_inbound_webhooks`            | List the endpoints you can manage, optionally for one record         |
+| `anydb_get_inbound_webhook`              | Read one endpoint, its status, stats and URL (never the secret)      |
+| `anydb_update_inbound_webhook`           | Change name, field map, record-name pattern or type                  |
+| `anydb_set_inbound_webhook_status`       | Set `active`, `capturing` or `disabled`                              |
+| `anydb_rotate_inbound_webhook_secret`    | Replace the signing secret (returned once)                           |
+| `anydb_delete_inbound_webhook`           | Delete an endpoint and the submissions it stored                     |
+| `anydb_list_inbound_webhook_deliveries`  | Recent submissions with outcome, ignored fields and errors           |
+| `anydb_get_inbound_webhook_delivery`     | One submission with its payload (personal data)                      |
+| `anydb_replay_inbound_webhook_delivery`  | Turn a failed or captured submission into a record                   |
+
+An endpoint belongs to one record and one record type. A Framer form (or any
+sender that signs JSON) posts to its URL; each submission becomes a record of
+that type under that record. A new endpoint captures submissions without
+creating records, so the field names can be checked and mapped before it is set
+active. Workflows react through the type's On record create trigger. Needs a
+Business or Enterprise plan.
+
 ### Workflows
 
 | Tool                    | Description                                                        |
@@ -392,6 +414,11 @@ an existing workflow's script instead of writing a new one.
 ## Release Notes
 
 ### Unreleased
+
+**Added.** Inbound webhooks: ten `anydb_*_inbound_webhook*` tools to create a
+signed public URL that turns Framer (or any signed JSON) form submissions into
+records of one type under one record, check and map the sender's field names,
+switch it on, and replay failed or captured submissions. See ISSUE - 418.
 
 **Added.** `anydb_update_share`: change a record or form share -- name,
 expiry, public link, add and remove people by email or group name, and
