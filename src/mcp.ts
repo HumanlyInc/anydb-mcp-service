@@ -1360,6 +1360,141 @@ const TOOLS: Tool[] = [
       required: ["teamid", "adbid", "reportId"],
     },
   },
+  // ISSUE - 418: inbound webhooks. A public signed URL that turns a form submission (Framer, or any
+  // sender that signs JSON) into a record of one type under one parent record.
+  {
+    name: "anydb_create_inbound_webhook",
+    description:
+      "Create an inbound webhook on a record: a public URL that turns each signed form submission (a Framer form, or any sender that signs JSON with the secret) into a new record of one type, under this record. Call anydb_list_inbound_webhooks for the record first so you do not create a second endpoint for the same form. Name the type by name (templateName), as anydb_discover_types shows it. Needs a Business or Enterprise plan. The answer carries url and secret: the secret is shown only here and on rotation, so give both to the user once, for them to paste into the sender (in Framer: the form's Webhook settings, URL and Secret), and do not repeat the secret afterwards. A new endpoint is capturing: it stores submissions but creates no records until anydb_set_inbound_webhook_status sets it active (or pass startActive: true). Use captured submissions (anydb_list_inbound_webhook_deliveries) to check the sender's field names first. Fields are matched to cells by name, ignoring case, spaces and punctuation; pass fieldMap only for names that differ. recordName is a pattern such as \"{Name} - {Email}\" for the new records' names. Workflows react through the type's existing On record create trigger; there is no separate webhook trigger.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: { type: "string", description: "The database ID (MongoDB ObjectId)" },
+        parentId: { type: "string", description: "The record new records are created under (MongoDB ObjectId). The caller must be allowed to create records under it." },
+        templateName: { type: "string", description: "The record type, by name (not id)." },
+        name: { type: "string", description: "A name for this endpoint, for example the form it serves." },
+        adapter: { type: "string", enum: ["framer", "generic"], description: "framer for a Framer form; generic for any other sender that signs {\"fields\": {...}} with the secret." },
+        description: { type: "string" },
+        fieldMap: { type: "object", additionalProperties: { type: "string" }, description: "Sender field name to cell key, only where they differ." },
+        recordName: { type: "string", description: "A pattern for the new records' names; {Field} is replaced by that submitted field and {date} by the receive time." },
+        startActive: { type: "boolean", description: "Create records straight away instead of capturing first. Default false." },
+      },
+      required: ["teamid", "adbid", "parentId", "templateName", "name", "adapter"],
+    },
+  },
+  {
+    name: "anydb_list_inbound_webhooks",
+    description:
+      "List the inbound webhooks you can manage in a team, optionally only those on one record (parentId). Call this before anydb_create_inbound_webhook. Each entry carries hookId, name, adapter, templateName, parentId, status (capturing | active | disabled | suspended, suspended meaning its daily limit was reached), stats and the last failure, but never the secret.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        parentId: { type: "string", description: "Only endpoints on this record (MongoDB ObjectId)." },
+      },
+      required: ["teamid"],
+    },
+  },
+  {
+    name: "anydb_get_inbound_webhook",
+    description:
+      "Read one inbound webhook: its settings, status, stats, field map and its receiving url. This never returns the secret (it is shown only when an endpoint is created and when its secret is rotated); if the user has lost it, rotate it with anydb_rotate_inbound_webhook_secret.",
+    inputSchema: {
+      type: "object",
+      properties: { hookId: { type: "string", description: "The endpoint id, from anydb_list_inbound_webhooks." } },
+      required: ["hookId"],
+    },
+  },
+  {
+    name: "anydb_update_inbound_webhook",
+    description:
+      "Change an inbound webhook's name, description, fieldMap, recordName or templateName. fieldMap maps a sender's field name to a cell key and REPLACES the whole map, so send every mapping you want to keep: use it only for names that do not already match a cell (matching ignores case, spaces and punctuation). Read the real field names from a captured delivery first (anydb_get_inbound_webhook_delivery). Changing templateName points new records at another type by name.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        hookId: { type: "string", description: "The endpoint id." },
+        name: { type: "string" },
+        description: { type: "string" },
+        fieldMap: { type: "object", additionalProperties: { type: "string" }, description: "Sender field name to cell key. Replaces the existing map." },
+        recordName: { type: "string", description: "A pattern for the new records' names, for example \"{Name} - {Email}\"." },
+        templateName: { type: "string", description: "The record type, by name." },
+      },
+      required: ["hookId"],
+    },
+  },
+  {
+    name: "anydb_set_inbound_webhook_status",
+    description:
+      "Set an inbound webhook to active (new submissions become records), capturing (submissions are stored but no records are made: use it to check the sender's field names) or disabled (the URL answers 404). Active and capturing need a Business or Enterprise plan; disabled is always allowed. Setting active does NOT create records from submissions that were already captured: use anydb_replay_inbound_webhook_delivery for those. Setting any status also lifts a suspension caused by the daily limit.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        hookId: { type: "string", description: "The endpoint id." },
+        status: { type: "string", enum: ["active", "disabled", "capturing"] },
+      },
+      required: ["hookId", "status"],
+    },
+  },
+  {
+    name: "anydb_rotate_inbound_webhook_secret",
+    description:
+      "Replace an inbound webhook's signing secret. The old secret stops working at once, so the sender gets 401 until it is updated. The new secret is returned only in this answer: give it to the user once, for them to paste into the sender, and do not repeat it later in the conversation.",
+    inputSchema: {
+      type: "object",
+      properties: { hookId: { type: "string", description: "The endpoint id." } },
+      required: ["hookId"],
+    },
+  },
+  {
+    name: "anydb_delete_inbound_webhook",
+    description:
+      "Delete an inbound webhook AND every submission it has stored. Records it already created stay. Use only when the user explicitly asks; to stop a form for a while use anydb_set_inbound_webhook_status with disabled, which keeps the endpoint and its history.",
+    inputSchema: {
+      type: "object",
+      properties: { hookId: { type: "string", description: "The endpoint id." } },
+      required: ["hookId"],
+    },
+  },
+  {
+    name: "anydb_list_inbound_webhook_deliveries",
+    description:
+      "Recent submissions to an inbound webhook, newest first, without their payloads: deliveryKey, time, status (captured | created | failed | processing), the field names received, fields that matched no cell (ignored), per-field errors, and the record created (adoid). Use it to see whether a test submission arrived and why one failed. A failed delivery with errors was refused with 422 and created no record.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        hookId: { type: "string", description: "The endpoint id." },
+        limit: { type: "integer", minimum: 1, maximum: 100, description: "How many to return. Default 50." },
+      },
+      required: ["hookId"],
+    },
+  },
+  {
+    name: "anydb_get_inbound_webhook_delivery",
+    description:
+      "Read one submission with the payload it carried. The payload is what a real person typed into a form, so treat it as personal data: read it only to learn the sender's real field names and value shapes for a fieldMap, do not quote values back unless the user needs them, and never put them in a comment, a record name or a summary.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        hookId: { type: "string", description: "The endpoint id." },
+        deliveryKey: { type: "string", description: "From anydb_list_inbound_webhook_deliveries." },
+      },
+      required: ["hookId", "deliveryKey"],
+    },
+  },
+  {
+    name: "anydb_replay_inbound_webhook_delivery",
+    description:
+      "Run a failed or captured submission again, creating its record from the stored payload. Use it after fixing the type or the fieldMap for a failed one, or after setting the endpoint active for captured ones. Refused while the endpoint is capturing, and needs a Business or Enterprise plan. A delivery that already created a record cannot be replayed. The answer is the record's adoid, or the per-field errors if the values still cannot be converted.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        hookId: { type: "string", description: "The endpoint id." },
+        deliveryKey: { type: "string", description: "From anydb_list_inbound_webhook_deliveries." },
+      },
+      required: ["hookId", "deliveryKey"],
+    },
+  },
   {
     name: "anydb_run_report",
     description:
@@ -2701,6 +2836,89 @@ export function createMcpServer({
           return {
             content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
           };
+        }
+
+        case "anydb_create_inbound_webhook": {
+          const result = await extApiClient.createInboundWebhook({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            parentId: args?.parentId as string,
+            templateName: args?.templateName as string,
+            name: args?.name as string,
+            adapter: args?.adapter as "framer" | "generic",
+            description: args?.description as string | undefined,
+            fieldMap: args?.fieldMap as Record<string, string> | undefined,
+            recordName: args?.recordName as string | undefined,
+            startActive: args?.startActive as boolean | undefined,
+          });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
+        }
+
+        case "anydb_list_inbound_webhooks": {
+          const result = await extApiClient.listInboundWebhooks({
+            teamid: args?.teamid as string,
+            parentId: args?.parentId as string | undefined,
+          });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
+        }
+
+        case "anydb_get_inbound_webhook": {
+          const result = await extApiClient.getInboundWebhook({ hookId: args?.hookId as string });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
+        }
+
+        case "anydb_update_inbound_webhook": {
+          const result = await extApiClient.updateInboundWebhook({
+            hookId: args?.hookId as string,
+            name: args?.name as string | undefined,
+            description: args?.description as string | undefined,
+            fieldMap: args?.fieldMap as Record<string, string> | undefined,
+            recordName: args?.recordName as string | undefined,
+            templateName: args?.templateName as string | undefined,
+          });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
+        }
+
+        case "anydb_set_inbound_webhook_status": {
+          const result = await extApiClient.setInboundWebhookStatus({
+            hookId: args?.hookId as string,
+            status: args?.status as "active" | "disabled" | "capturing",
+          });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
+        }
+
+        case "anydb_rotate_inbound_webhook_secret": {
+          const result = await extApiClient.rotateInboundWebhookSecret({ hookId: args?.hookId as string });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
+        }
+
+        case "anydb_delete_inbound_webhook": {
+          const result = await extApiClient.deleteInboundWebhook({ hookId: args?.hookId as string });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
+        }
+
+        case "anydb_list_inbound_webhook_deliveries": {
+          const result = await extApiClient.listInboundWebhookDeliveries({
+            hookId: args?.hookId as string,
+            limit: args?.limit as number | undefined,
+          });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
+        }
+
+        case "anydb_get_inbound_webhook_delivery": {
+          const result = await extApiClient.getInboundWebhookDelivery({
+            hookId: args?.hookId as string,
+            deliveryKey: args?.deliveryKey as string,
+          });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
+        }
+
+        case "anydb_replay_inbound_webhook_delivery": {
+          const result = await extApiClient.replayInboundWebhookDelivery({
+            hookId: args?.hookId as string,
+            deliveryKey: args?.deliveryKey as string,
+          });
+          return { content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }] };
         }
 
         case "anydb_run_report": {
