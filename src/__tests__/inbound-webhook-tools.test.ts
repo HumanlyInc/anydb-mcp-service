@@ -5,6 +5,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { createMcpServer } from "../mcp.js";
+import { readSolutionResource, SOLUTION_BUILDING_GUIDE_URI } from "../solution-resources.js";
 import { TOOL_ANNOTATIONS } from "../tool-annotations.js";
 
 /**
@@ -98,6 +99,27 @@ describe("inbound webhook tools", () => {
     for (const name of ["anydb_get_inbound_webhook_delivery", "anydb_replay_inbound_webhook_delivery"]) {
       expect(tools.find((t) => t.name === name)!.inputSchema.required).toEqual(["hookId", "deliveryKey"]);
     }
+  });
+
+  it("the authoring guide walks through setting one up: create, capture, map, activate, replay", () => {
+    const guide = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
+    const start = guide.indexOf("## Receiving Form Submissions");
+    expect(start).toBeGreaterThan(-1);
+    const section = guide.slice(start, guide.indexOf("\n## ", start + 5));
+    for (const tool of [
+      "anydb_list_inbound_webhooks",
+      "anydb_create_inbound_webhook",
+      "anydb_list_inbound_webhook_deliveries",
+      "anydb_get_inbound_webhook_delivery",
+      "anydb_update_inbound_webhook",
+      "anydb_set_inbound_webhook_status",
+      "anydb_replay_inbound_webhook_delivery",
+    ]) {
+      expect(section).toContain(tool);
+    }
+    expect(section).toMatch(/captur/i);
+    expect(section).toMatch(/On record create/i);
+    expect(section).toMatch(/secret/i);
   });
 
   it("each tool call reaches the ext API with the right request and returns its answer", async () => {

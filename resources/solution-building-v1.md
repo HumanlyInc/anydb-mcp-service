@@ -663,6 +663,54 @@ pages through one group's rows. `anydb_export_report` returns the ready
 snapshot as CSV text or an XLSX workbook (base64), and `anydb_delete_report`
 removes the report with its snapshots.
 
+## Receiving Form Submissions (Inbound Webhooks)
+
+Use an inbound webhook when an outside form or system should create records in
+AnyDB: a Framer contact form, a signup page, any sender that can POST signed
+JSON. An endpoint is a public URL bound to one record (where the new records
+go) and one record type (what they are). It needs a Business or Enterprise
+plan.
+
+1. Call `anydb_list_inbound_webhooks` for the record first, so you do not
+   create a second endpoint for the same form.
+2. Create it with `anydb_create_inbound_webhook`: the parent record, the type
+   **by name** (`templateName`, as `anydb_discover_types` shows it), a name, and
+   the sender (`framer` for a Framer form, `generic` for anything else that
+   signs `{"fields": {...}}`). The answer carries the `url` and a `secret`.
+   Give both to the user once, for them to paste into the sender (in Framer:
+   the form's Webhook settings). The secret is never returned again, so do not
+   repeat it later; if it is lost, `anydb_rotate_inbound_webhook_secret` makes a
+   new one and the old one stops working at once.
+3. A new endpoint is **capturing**: it stores what the form sends and creates no
+   records yet. Ask the user to submit one test entry.
+4. Read it with `anydb_list_inbound_webhook_deliveries` and, for the real field
+   names and value shapes, `anydb_get_inbound_webhook_delivery`. The payload is
+   what a person typed into a form, so it is personal data: read it to learn the
+   field names, do not quote values back or put them in records, comments or
+   summaries.
+5. Fields are matched to the type's cells by name, ignoring case, spaces and
+   punctuation, so "E-mail" fills a cell called Email. For names that differ,
+   set `fieldMap` (`{"Your name": "Name"}`) with `anydb_update_inbound_webhook`.
+   It replaces the whole map, so send every mapping you want to keep. Values are
+   converted as forgivingly as possible ("$5,000" becomes 5000, "yes" ticks a
+   checkbox, an option's label selects it); a value that still cannot be
+   converted is refused with a per-field error and creates no record.
+6. When the field names match, switch it on with
+   `anydb_set_inbound_webhook_status` (`active`). This does not create records
+   from submissions already captured: run `anydb_replay_inbound_webhook_delivery`
+   for each one the user wants. The same tool repairs a `failed` delivery after
+   the type or the map is fixed.
+7. To react to new submissions, build an ordinary workflow on that type with
+   the **On record create** trigger. There is no separate webhook trigger. The
+   record is created first and its cells are written straight after, so a
+   workflow sees the submitted values a moment later, not at the instant of
+   creation.
+
+To stop a form for a while use `disabled` (the URL then answers 404 and the
+history is kept); `anydb_delete_inbound_webhook` also deletes every stored
+submission, so use it only when asked. An endpoint that reaches its daily limit
+reports `suspended` until it is set to a status again.
+
 ## Comments
 
 Use `anydb_add_comment` to leave a comment, and `anydb_resolve_comment` to
