@@ -421,6 +421,36 @@ On `anydb_update_type`, `props` replaces the whole map for that field. Omit it t
 leave existing properties untouched; to change one property, read the field with
 `anydb_get_type_definition` and resend the full map with your edit applied.
 
+### Reactive Properties (advanced)
+
+Every cell property can carry an `expr` as well as a `value`. The expression is an ordinary formula, re-evaluated for each record whenever a field it reads changes, and `value` is the fallback shown until it first evaluates. A property whose `expr` is not empty is a **reactive property**: the field's behaviour follows other data instead of being fixed. Conditional formatting (above) and `targetType` with an `expr` (Polymorphic References) are the same mechanism.
+
+**Reading an existing type.** Treat a property whose `expr` is not empty, in an `anydb_get_type_definition` result, as logic that someone built on purpose, not as noise. Do not flatten it to its `value`, and do not "tidy" it. A cell's own `expr` is different: that makes the cell a computed value. A type often also carries hidden, locked helper cells that only compute an intermediate for other formulas (for example the name of the record a `ref` points at, kept in a cell so the property formulas stay short). Leave them alone.
+
+What reactive properties are commonly used for:
+
+| Property | What a formula makes it do |
+| --- | --- |
+| `SELECT_OPTIONS` | The option list of a `select` follows another field: a **dependent dropdown** |
+| `ATTACHMENTS_TEMPLATE_NAME` | Which type a `ref` or `attachments` field points at follows another field (`targetType` with an `expr`) |
+| `CELL_DESCRIPTION` | The hint under a field follows a choice |
+| `CELL_DISPLAY_AS` | The same field is a dropdown for some choices and free text for others (`select` versus `general`) |
+| `CELL_HIDDEN`, `CELL_REQUIRED`, `CELL_LOCKED` | Show, require or lock a field depending on another |
+| `CELL_ERROR`, `BACKGROUND_COLOR` | Validation message and colour |
+
+**The dependent-dropdown pattern.** Keep each option list in a cell of one **config record**: a list cell holds the options (in existing types often a range formula such as `A3:A31` over the cells below it). A property formula then picks the list from the controlling field, reading the list with `O@<recordId>!{{Cell Key}}`, which reads the cell named `Cell Key` on the record with that id:
+
+```
+IF({{Category}} == 'Athletics', O@<configRecordId>!{{Athletics}},
+  IF({{Category}} == 'Department', O@<configRecordId>!{{Department}}, []))
+```
+
+Add a list by adding a cell to the config record and a branch to the formula; nothing else changes.
+
+**What this API can author of them.** `targetType` with `{ value, expr }` can (Polymorphic References), and so can any property that goes through `props` (`CELL_HIDDEN`, `CELL_DISPLAY_AS`, `CELL_ERROR`, `BACKGROUND_COLOR`, and so on). The dependent dropdown itself **cannot be authored through this API**: `SELECT_OPTIONS` and `CELL_DESCRIPTION` belong to the named fields `options` and `description`, which take plain values, and sending them in `props` is rejected. The designer in the app can set them. When a task needs one, say so rather than approximating it, and do not send `options` or `description` for a field you only read: they are the named fields for those properties and may replace a formula that was there. Check with `validateOnly` before changing a field of an existing type that uses them.
+
+**In a public form** (what a guest of a public link gets). This was run, over HTTP as an anonymous guest against the real server: a property formula that reads a record the guest cannot read still works for the guest. The option list a `SELECT_OPTIONS` formula picked from a private config record was shown to the guest, and it switched when the guest changed the field it depends on; a `CELL_DESCRIPTION` formula read the private record too; and the guest still could not read the record itself. That is the opposite of a *cell-level* formula or `ref` default that reads a private record, which stops the form being created at all (see What a guest can read when a public form opens). One more point is read from the code, not run: in a public form a `ref` field's dropdown is served by the share's reference endpoint, which lists every record of the field's type and ignores the field's `Filter` property, so filtering a `ref` dropdown does not narrow what a guest sees. To narrow it, point the field at a smaller type, or use `targetType` with an `expr` to pick the type.
+
 ### Canonical Type Layout
 
 When defining a type, the MCP client must design the complete cell layout and send it in each field's `layout`. Use this visual style unless the user explicitly requests another arrangement:
