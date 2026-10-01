@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { SHARED_FORM_TOOLS, isSharedFormTool, callSharedFormTool } from "./shared-form-tools.js";
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
@@ -147,6 +148,7 @@ const TOOLS: Tool[] = [
   ...SOLUTION_AUTHORING_TOOLS,
   ...SOLUTION_DISCOVERY_TOOLS,
   ...SEMANTIC_SEARCH_TOOLS,
+  ...SHARED_FORM_TOOLS,
   {
     name: "list_templates",
     description:
@@ -1965,7 +1967,9 @@ export function createMcpServer({
     const { name, arguments: args } = request.params;
 
     // Log incoming MCP request
-    const loggedArgs = isSemanticSearchTool(name)
+    const loggedArgs = isSharedFormTool(name)
+      ? "[REDACTED shared-item arguments]"
+      : isSemanticSearchTool(name)
       ? { ...args, query: args?.query ? "[REDACTED]" : undefined }
       : args;
     console.error(`\n========== MCP Tool Request ==========`);
@@ -2019,6 +2023,10 @@ export function createMcpServer({
 
       if (isSolutionDiscoveryTool(name)) {
         return await callSolutionDiscoveryTool(name, args, extApiClient);
+      }
+
+      if (isSharedFormTool(name)) {
+        return await callSharedFormTool(name, args, extApiClient);
       }
 
       if (isSemanticSearchTool(name)) {
@@ -3094,7 +3102,11 @@ export function createMcpServer({
         error instanceof Error ? error.message : String(error);
       console.error(`\n========== MCP Tool Error ==========`);
       console.error(`Tool: ${name}`);
-      console.error(`Error: ${errorMessage}`);
+      // Shared-item failures can echo private URLs, field values, and rejected
+      // inputs from the API. Keep the detailed error in the caller response only.
+      console.error(isSharedFormTool(name)
+        ? "Error: Shared-item request failed; details returned to caller."
+        : `Error: ${errorMessage}`);
       console.error(`====================================\n`);
       return {
         content: [

@@ -128,6 +128,12 @@ npx -y anydb-mcp-service
 Configure environment variables in the MCP host rather than passing credentials
 through a conversation.
 
+### Running this checkout locally
+
+Build with `npm run build`, then configure the MCP host to launch `node` with the absolute path to this checkout's `dist/index.js`. Set `ANYDB_API_URL` to your intended server's API base (for example `http://localhost:3000/api`) and supply `ANYDB_DEFAULT_API_KEY` and `ANYDB_DEFAULT_USER_EMAIL` through the host environment. The configured identity determines which private shares are available. Avoid placing credentials in prompts or command arguments.
+
+The recipient tools `anydb_list_shared_records` and `anydb_list_shared_forms` discover items shared with that identity. Use `anydb_get_shared_record` or `anydb_get_shared_form` with a share ID or URL to inspect them. Form submissions use `anydb_start_form_submission`, `anydb_get_form_submission`, `anydb_update_form_submission`, and `anydb_submit_form_submission`. Starting saves a draft; submitting finalizes it and may run workflows or send notifications. These tools require a server exposing `/api/integrations/ext/shared-records` and `/api/integrations/ext/shared-forms`.
+
 ### HTTP Transport
 
 This is the transport the hosted service runs on. In your own deployment, it
