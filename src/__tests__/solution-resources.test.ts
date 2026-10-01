@@ -816,3 +816,34 @@ describe("ISSUE-278: appendOptions on anydb_update_type", () => {
     expect(tool?.description).toContain("appendOptions");
   });
 });
+
+describe("public form guidance (ISSUE - 446)", () => {
+  const guide = readFileSync(
+    new URL("../../resources/solution-building-v1.md", import.meta.url),
+    "utf8",
+  );
+
+  // A customer's AI client built a public stock-count form whose type defaulted a ref to a
+  // private record and looked a snapshot up through it. A guest cannot read that record, so no
+  // guest could get a form, and the client's own tests (as the owner) passed.
+  it("tells a client what a guest can read when a public form opens", () => {
+    for (const phrase of [
+      "### What a guest can read when a public form opens",
+      // The mechanism, so a client can reason about cases the guide does not list.
+      "created and its formulas are evaluated as the guest",
+      // What not to do.
+      "must not depend on a record the guest cannot read",
+      "`ref` default",
+      "`lookup`",
+      // What the failure looks like, so a client can recognise it.
+      "Invalid form reference",
+      // The safe alternative that was run.
+      "dedicated record",
+      "share that record publicly",
+      // How to catch it: a test as the owner passes.
+      "open the public link as a guest",
+    ]) {
+      expect(guide).toContain(phrase);
+    }
+  });
+});
