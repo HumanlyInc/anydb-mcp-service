@@ -847,3 +847,38 @@ describe("public form guidance (ISSUE - 446)", () => {
     }
   });
 });
+
+describe("reactive property guidance (ISSUE - 448)", () => {
+  const guide = readFileSync(
+    new URL("../../resources/solution-building-v1.md", import.meta.url),
+    "utf8",
+  );
+
+  // A production public form builds dependent dropdowns from property formulas that read a list
+  // on a config record. A client reading such a type, or asked to build one, needs to know what
+  // these are, what this API can author of them, and what a guest of a public form gets.
+  it("explains reactive properties for building and for reading existing types", () => {
+    for (const phrase of [
+      "### Reactive Properties (advanced)",
+      // Recognising one in a definition.
+      "Reading an existing type",
+      "a property whose `expr` is not empty",
+      // What they are for.
+      "`SELECT_OPTIONS`",
+      "`ATTACHMENTS_TEMPLATE_NAME`",
+      "`CELL_DISPLAY_AS`",
+      // The dependent-dropdown pattern.
+      "O@<configRecordId>!{{",
+      "config record",
+      // What this API can and cannot author.
+      "cannot be authored through this API",
+      "`targetType`",
+      // Public forms: what was run, what was only read.
+      "was run",
+      "read from the code, not run",
+      "ignores the field's `Filter` property",
+    ]) {
+      expect(guide).toContain(phrase);
+    }
+  });
+});
