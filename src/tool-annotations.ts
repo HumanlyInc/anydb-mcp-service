@@ -162,6 +162,16 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   // Regenerating supersedes the previous output of the same template.
   anydb_generate_document: replaces("Generate document"),
 
+  // Recipient shared items; finalizing can trigger automation and notifications.
+  anydb_list_shared_records: reads("List records shared with me"),
+  anydb_get_shared_record: reads("Read shared record"),
+  anydb_list_shared_forms: reads("List forms shared with me"),
+  anydb_get_shared_form: reads("Inspect shared form"),
+  anydb_start_form_submission: { ...adds("Start form submission"), idempotentHint: true },
+  anydb_get_form_submission: reads("Read form submission"),
+  anydb_update_form_submission: replaces("Update form draft"),
+  anydb_submit_form_submission: replacesAndReachesOut("Submit shared form"),
+
   // Shares
   anydb_list_shares: reads("List shares"),
   anydb_get_share: reads("Get share"),

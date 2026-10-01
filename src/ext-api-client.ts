@@ -52,6 +52,19 @@ interface ExtApiResponse<T> {
   message?: string;
 }
 
+export interface SharedItemListParams {
+  search?: string;
+  teamid?: string;
+  adbid?: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface FormSubmissionParams {
+  shareId: string;
+  submissionId: string;
+}
+
 export interface CreateWorkspaceRequest {
   teamid: string;
   name: string;
@@ -1617,6 +1630,61 @@ export class ExtApiClient {
 
   // ISSUE - 418: inbound webhooks. A public signed URL that turns a form submission (Framer, or any
   // sender that signs JSON) into a record of one type under one parent record.
+  // ISSUE - 440: recipient access stays within the shared-item endpoints.
+  async listSharedForms(params: SharedItemListParams): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>("/integrations/ext/shared-forms", { params });
+    return this.unwrap(response.data);
+  }
+
+  async listSharedRecords(params: SharedItemListParams): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>("/integrations/ext/shared-records", { params });
+    return this.unwrap(response.data);
+  }
+
+  async getSharedForm(params: { shareId?: string; shareUrl?: string }): Promise<unknown> {
+    return await this.getSharedItem("shared-forms", params);
+  }
+
+  async getSharedRecord(params: { shareId?: string; shareUrl?: string }): Promise<unknown> {
+    return await this.getSharedItem("shared-records", params);
+  }
+
+  private async getSharedItem(kind: "shared-forms" | "shared-records", params: { shareId?: string; shareUrl?: string }): Promise<unknown> {
+    if (Boolean(params.shareId) === Boolean(params.shareUrl)) throw new Error("Provide exactly one of shareId or shareUrl");
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/${kind}/${params.shareUrl ? "resolve" : encodeURIComponent(params.shareId!)}`,
+      params.shareUrl ? { params: { shareUrl: params.shareUrl } } : undefined,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async startFormSubmission(params: { shareId: string; clientRequestId: string }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/shared-forms/${encodeURIComponent(params.shareId)}/submissions`,
+      { clientRequestId: params.clientRequestId },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getFormSubmission(params: FormSubmissionParams): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(this.formSubmissionPath(params));
+    return this.unwrap(response.data);
+  }
+
+  async updateFormSubmission(params: FormSubmissionParams & { fields: Record<string, unknown> }): Promise<unknown> {
+    const response = await this.client.patch<ExtApiResponse<unknown>>(this.formSubmissionPath(params), { fields: params.fields });
+    return this.unwrap(response.data);
+  }
+
+  async submitFormSubmission(params: FormSubmissionParams): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(`${this.formSubmissionPath(params)}/submit`, {});
+    return this.unwrap(response.data);
+  }
+
+  private formSubmissionPath(params: FormSubmissionParams): string {
+    return `/integrations/ext/shared-forms/${encodeURIComponent(params.shareId)}/submissions/${encodeURIComponent(params.submissionId)}`;
+  }
+
   async createInboundWebhook(body: {
     teamid: string;
     adbid: string;
