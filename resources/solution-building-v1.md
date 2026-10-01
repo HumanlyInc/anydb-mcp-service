@@ -568,6 +568,16 @@ Use `anydb_create_share` to share an accessible record or publish a form backed 
 - Use `validateOnly: true` to check target access, template resolution, recipient syntax, and group availability without creating the share or sending invitations.
 - If a workflow uses `trigger_on_form_submit`, create the form share first and use the share's stable `name` as the trigger `formName`.
 
+### What a guest can read when a public form opens
+
+When a guest opens a public form, the form's draft record is created and its formulas are evaluated as the guest (the public user), not as the person who built the form. Everything the form's type reads at that moment has to be readable by a guest.
+
+- **A public form's type must not depend on a record the guest cannot read.** Do not give it a `ref` default (an `expr` such as `O@<recordId>!F@GO!M@MINI`), a `lookup`, or a formula that reads a private record such as the location, parent or customer record. If it does, the draft cannot be created and **every guest gets a broken link** ("Invalid form reference", then a login page). Nothing else looks wrong: the form share, its settings and the folder permissions are all fine, so the failure does not point at the cause.
+- **It fails silently at authoring time.** `anydb_update_type` accepts such a type, and a test as the owner passes because the owner can read the record. After every change to a public form's type, open the public link as a guest (a private browser window, signed out) and confirm a form appears. Do not hand over the link on the strength of owner-side tests.
+- **To show data to guests** (for example a current stock figure), put it on a dedicated record that holds only what guests may see, share that record publicly with `anydb_create_share` (`kind: "record"`, `privacy: "public"`), and point the form's `ref` at it. This was run: with the dedicated record shared publicly, a guest gets the form and the looked-up value. Anyone with that record's public link can read the record, so keep only guest-visible data on it. Otherwise leave the data out.
+- **An empty `ref` default creates the form, but a lookup through it is blank** because there is nothing to look up. Do not "fix" that by defaulting the ref to a record the guest cannot read; that breaks the form for everyone. Share a dedicated record instead.
+- **Do not share the whole record the data lives on** just to make a lookup work. A public record share exposes that record. Move the guest-visible data to its own record.
+
 Example public form share:
 
 ```json
