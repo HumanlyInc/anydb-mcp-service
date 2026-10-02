@@ -817,6 +817,44 @@ describe("ISSUE-278: appendOptions on anydb_update_type", () => {
   });
 });
 
+describe("ISSUE-455: propsMerge on anydb_update_type", () => {
+  const schema = JSON.parse(
+    readFileSync(
+      new URL("../../resources/solution-authoring-v1.schema.json", import.meta.url),
+      "utf8",
+    ),
+  ) as any;
+  const guide = readFileSync(
+    new URL("../../resources/solution-building-v1.md", import.meta.url),
+    "utf8",
+  );
+
+  it("declares updateFields[].propsMerge, since a field update refuses unknown keys", () => {
+    // fieldUpdate is additionalProperties:false, so without this entry the tool would refuse
+    // propsMerge before it reached the server.
+    const update = schema.$defs.fieldUpdate;
+    expect(update.additionalProperties).toBe(false);
+    expect(update.properties.propsMerge).toMatchObject({
+      type: "object",
+      additionalProperties: { $ref: "#/$defs/cellProp" },
+    });
+    expect(update.properties.propsMerge.description).toContain("not both");
+    expect(update.properties.props.description).toContain("propsMerge");
+  });
+
+  it("tells the guide reader that props replaces and propsMerge keeps the rest", () => {
+    expect(guide).toContain("`propsMerge`");
+    expect(guide).toContain("replaces that field's whole property map");
+  });
+
+  it("names propsMerge in the tool description", () => {
+    const tool = SOLUTION_AUTHORING_TOOLS.find(
+      (candidate) => candidate.name === "anydb_update_type",
+    );
+    expect(tool?.description).toContain("propsMerge");
+  });
+});
+
 describe("public form guidance (ISSUE - 446)", () => {
   const guide = readFileSync(
     new URL("../../resources/solution-building-v1.md", import.meta.url),
