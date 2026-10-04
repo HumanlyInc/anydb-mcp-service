@@ -110,8 +110,24 @@ describe("tool annotations", () => {
     }
   });
 
-  it("marks share creation open-world, since it can publish a public link", async () => {
-    expect(await annotationsOf("anydb_create_share")).toMatchObject({
+  // ISSUE - 471: the OpenAI plugin scan held these updates. A share exposes
+  // content to people outside the workspace and revoking it later does not undo
+  // what they already saw, so the scanner reads "destructiveHint: false" as an
+  // understatement. Do not relax these back to match the old assertion.
+  it("marks share creation and updates destructive and open-world", async () => {
+    for (const name of ["anydb_create_share", "anydb_update_share"]) {
+      expect(await annotationsOf(name)).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+      });
+    }
+  });
+
+  // ISSUE - 471: comments and @mentions email people, so the effect leaves the
+  // workspace even though nothing existing is replaced.
+  it("marks comments open-world but not destructive", async () => {
+    expect(await annotationsOf("anydb_add_comment")).toMatchObject({
       readOnlyHint: false,
       destructiveHint: false,
       openWorldHint: true,

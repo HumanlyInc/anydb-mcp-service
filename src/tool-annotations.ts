@@ -52,6 +52,14 @@ const replacesAndReachesOut = (title: string): ToolAnnotations => ({
   openWorldHint: true,
 });
 
+/** Adds something new, but the effect reaches people outside the workspace (email). */
+const addsAndReachesOut = (title: string): ToolAnnotations => ({
+  title,
+  readOnlyHint: false,
+  destructiveHint: false,
+  openWorldHint: true,
+});
+
 /** Adds a public link that anyone outside the workspace can open. */
 const publishes = (title: string): ToolAnnotations => ({
   title,
@@ -115,7 +123,8 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_revert_record_to_version: replaces("Revert record to a version"),
 
   // Comments
-  anydb_add_comment: adds("Add comment"),
+  // ISSUE - 471: a comment emails the record's creator and anyone @mentioned.
+  anydb_add_comment: addsAndReachesOut("Add comment"),
   anydb_resolve_comment: adds("Resolve or reopen comment"),
 
   // Files
@@ -175,9 +184,12 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   // Shares
   anydb_list_shares: reads("List shares"),
   anydb_get_share: reads("Get share"),
-  anydb_create_share: publishes("Create share"),
-  // Recipient lists, expiry and child forms are replaced or edited in place.
-  anydb_update_share: replaces("Update share"),
+  // ISSUE - 471: a share exposes content outside the workspace, and revoking it
+  // does not undo what recipients already saw, so it is marked destructive too.
+  anydb_create_share: replacesAndReachesOut("Create share"),
+  // Recipient lists, expiry and child forms are replaced or edited in place, and
+  // changing recipients changes who outside the workspace can open the share.
+  anydb_update_share: replacesAndReachesOut("Update share"),
   anydb_revoke_share: replaces("Revoke share"),
 
   // Workflows
