@@ -780,8 +780,14 @@ is refused whatever the prompt says.
 - `anydb_agent_send_email` sends a **plain-text summary the agent wrote itself**
   from data it read (for example a backlog report built from `search_records`).
   It needs **no record**: omit `adoid` and `expectedRevision`, which are only for
-  an email tied to a record in scope. Plain text, no attachments, up to 20000
-  characters.
+  an email tied to a record in scope. Write the body as light markdown: the server
+  renders it as a formatted business email (the subject is the title, with a context
+  line, the owner named as sender and Reply-To going to them). Supported: `#` `##` `###`
+  headings, `**bold**`, `*italic*`, `` `code` ``, `[text](https://url)` links (absolute
+  http or https only), `-` and `1.` lists, pipe tables with a `|---|` separator row and
+  `---` rules. Raw HTML is never rendered (it shows as literal text); there are no
+  images, colours or attachments. Up to 20000 characters; the original text is also
+  sent as the plain-text part.
 - `anydb_agent_email_report` and `anydb_agent_email_document` email a scoped
   report export or rendered document. `anydb_agent_email_report` needs no
   triggering record, so a scheduled agent can use it; `refresh: true` runs the
