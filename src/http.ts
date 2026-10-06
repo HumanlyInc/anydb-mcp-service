@@ -6,6 +6,7 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { config } from "./config.js";
 import { createMcpServer } from "./mcp.js";
+import { requestLogger } from "./request-log.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   buildAuthenticateHeader,
@@ -55,6 +56,9 @@ if (config.http.allowedOrigins.length > 0) {
 }
 
 app.use(express.json({ limit: "4mb" }));
+
+// After the body parser, so the JSON-RPC method name is available to log.
+app.use(requestLogger());
 
 const verifier = config.oauth.enabled
   ? new TokenVerifier({
