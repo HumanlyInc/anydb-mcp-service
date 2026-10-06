@@ -1653,6 +1653,8 @@ export class ExtApiClient {
     const response = await this.client.post<ExtApiResponse<unknown>>(
       `/integrations/ext/agents/${encodeURIComponent(agentid)}/validate`,
       body,
+      // ISSUE - 516: this runs the agent's model; wait for the run instead of reporting a finished run as failed.
+      { timeout: longCallTimeoutMs() },
     );
     return this.unwrap(response.data);
   }
@@ -1662,6 +1664,7 @@ export class ExtApiClient {
     const response = await this.client.post<ExtApiResponse<unknown>>(
       `/integrations/ext/agents/${encodeURIComponent(agentid)}/test`,
       body,
+      { timeout: longCallTimeoutMs() },
     );
     return this.unwrap(response.data);
   }
