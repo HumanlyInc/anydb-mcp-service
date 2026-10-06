@@ -183,6 +183,7 @@ app.post("/", async (req, res) => {
   if (!credentials) return;
 
   const server = createMcpServer({
+    agentCapability: typeof req.headers["x-anydb-agent-capability"] === "string" ? req.headers["x-anydb-agent-capability"] : undefined,
     apiKey: credentials.apiKey,
     userEmail: credentials.userEmail,
     accessToken: credentials.accessToken,

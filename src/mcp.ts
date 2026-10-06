@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { AGENT_TOOLS, isAgentTool, callAgentTool } from "./agent-tools.js";
 import { SHARED_FORM_TOOLS, isSharedFormTool, callSharedFormTool } from "./shared-form-tools.js";
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -149,6 +150,7 @@ const TOOLS: Tool[] = [
   ...SOLUTION_DISCOVERY_TOOLS,
   ...SEMANTIC_SEARCH_TOOLS,
   ...SHARED_FORM_TOOLS,
+  ...AGENT_TOOLS,
   {
     name: "list_templates",
     description:
@@ -1871,8 +1873,10 @@ export function createMcpServer({
   token,
   baseURL,
   originClient,
+  agentCapability,
 }: {
   /** Legacy API-key auth. Ignored when accessToken is present. */
+  agentCapability?: string;
   apiKey?: string;
   userEmail?: string;
   /** OAuth 2.1 bearer token, forwarded verbatim to the ext API. */
@@ -1904,6 +1908,7 @@ export function createMcpServer({
     baseURL: baseURL || config.anydbApiBaseUrl,
     originClient,
     clientVersion: config.serverVersion,
+    agentCapability,
   });
 
   // Mirrors what the ext client is sending, so anydb_whoami can report who
@@ -1967,7 +1972,7 @@ export function createMcpServer({
     const { name, arguments: args } = request.params;
 
     // Log incoming MCP request
-    const loggedArgs = isSharedFormTool(name)
+    const loggedArgs = isAgentTool(name) || isSharedFormTool(name)
       ? "[REDACTED shared-item arguments]"
       : isSemanticSearchTool(name)
       ? { ...args, query: args?.query ? "[REDACTED]" : undefined }
@@ -2025,6 +2030,7 @@ export function createMcpServer({
         return await callSolutionDiscoveryTool(name, args, extApiClient);
       }
 
+      if (isAgentTool(name)) return await callAgentTool(name, args, extApiClient);
       if (isSharedFormTool(name)) {
         return await callSharedFormTool(name, args, extApiClient);
       }
