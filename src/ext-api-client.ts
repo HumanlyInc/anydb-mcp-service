@@ -1342,6 +1342,8 @@ export class ExtApiClient {
     adoid: string;
     attachTo?: string;
     asPdf?: boolean;
+    /** ISSUE - 501: email the document this call generates (and nothing else). */
+    email?: { to: string[]; note?: string; clientRequestId: string };
   }): Promise<unknown> {
     const response = await this.client.post<ExtApiResponse<unknown>>(
       "/integrations/ext/docgentemplates/generate",
@@ -1604,6 +1606,26 @@ export class ExtApiClient {
       /filename="?([^";]+)"?/.exec(disposition)?.[1] ||
       `report.${params.format}`;
     return { format: params.format, filename, body: Buffer.from(response.data) };
+  }
+
+  /** ISSUE - 501: email the report's export. The server attaches it; no file ever passes through here. */
+  async emailReport(params: {
+    teamid: string;
+    adbid: string;
+    reportId: string;
+    format: "csv" | "xlsx";
+    to: string[];
+    clientRequestId: string;
+    note?: string;
+    refresh?: boolean;
+    generationId?: string;
+  }): Promise<unknown> {
+    const { reportId, ...body } = params;
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/reports/${encodeURIComponent(reportId)}/email`,
+      body,
+    );
+    return this.unwrap(response.data);
   }
 
   async deleteReport(params: {

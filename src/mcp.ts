@@ -429,6 +429,34 @@ const TOOLS: Tool[] = [
           description:
             "Convert the filled template to PDF. Defaults to true, which is what an invoice or quote normally wants; false returns the rendered .docx/.xlsx instead.",
         },
+        email: {
+          type: "object",
+          additionalProperties: false,
+          description:
+            "Optional. Also email the document THIS call generates, and nothing else: there is no way to attach any other file, and no way to write the message (a fixed AnyDB message names you as the sender; note is the only free text). Recipients can be any email address (1 to 25). Needs a Business or Enterprise plan and counts against the team's daily email limit. If the email fails after the document was generated, the document is kept and the result's email.state is failed or unknown; an unknown state means delivery could not be confirmed, so do NOT retry with a new clientRequestId. A refused email (bad address, plan, limit) is refused BEFORE anything is generated.",
+          properties: {
+            to: {
+              type: "array",
+              minItems: 1,
+              maxItems: 25,
+              items: { type: "string", format: "email" },
+              description: "Recipient email addresses, any domain.",
+            },
+            note: {
+              type: "string",
+              maxLength: 2000,
+              description: "Optional short plain-text note shown in the email. No HTML is rendered.",
+            },
+            clientRequestId: {
+              type: "string",
+              minLength: 1,
+              maxLength: 200,
+              description:
+                "Required. Make one per intended send and REUSE it when retrying the same call: the same id and arguments return the first result and never send twice.",
+            },
+          },
+          required: ["to", "clientRequestId"],
+        },
       },
       required: ["teamid", "adbid", "docgenId", "adoid"],
     },
@@ -1573,6 +1601,38 @@ const TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_email_report",
+    description:
+      "Email a report's export (csv or xlsx) to people by email address. This is NOT a general email tool: the only thing it can send is the export of a report you can read, produced by the server, so no file, path, URL or message body can be supplied (a fixed AnyDB message names you as the sender; note is the only free text and is shown as plain text). Recipients can be any email address (1 to 25). Needs a Business or Enterprise plan and counts against the team's daily email limit (a refused or over-limit send is reported, never silently dropped). It emails the LAST READY snapshot; to email current numbers set refresh:true, which runs the report and waits up to 60 seconds, and sends NOTHING if the new snapshot is not ready (the call is refused rather than mailing stale numbers). Exports over 5 MB are refused with the reason: use csv or narrow the report. clientRequestId is required: make one per intended send and REUSE it when retrying, because the same id and arguments return the first result and never send twice, while a new id sends again. The result's email.state is sent (the mail server accepted it, not proof it reached an inbox), failed (not sent, safe to retry with a NEW id), or unknown (delivery could not be confirmed: do NOT retry with a new id).",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        teamid: { type: "string", description: "The team ID (MongoDB ObjectId)" },
+        adbid: { type: "string", description: "The database ID (MongoDB ObjectId)" },
+        reportId: { type: "string", description: "The report ID, from anydb_list_reports." },
+        format: { type: "string", enum: ["csv", "xlsx"], description: "csv or xlsx." },
+        to: {
+          type: "array",
+          minItems: 1,
+          maxItems: 25,
+          items: { type: "string", format: "email" },
+          description: "Recipient email addresses, any domain.",
+        },
+        clientRequestId: {
+          type: "string",
+          minLength: 1,
+          maxLength: 200,
+          description: "Required idempotency key; reuse it when retrying the same send.",
+        },
+        note: { type: "string", maxLength: 2000, description: "Optional short plain-text note." },
+        refresh: { type: "boolean", description: "Run the report first and email the new snapshot; sends nothing if it is not ready within 60 seconds." },
+        generationId: { type: "string", description: "A specific snapshot generation; defaults to the latest. Ignored when refresh is true." },
+      },
+      required: ["teamid", "adbid", "reportId", "format", "to", "clientRequestId"],
+    },
+  },
+  {
     name: "anydb_delete_report",
     description:
       "Delete a saved report and every snapshot computed for it. Not reversible.",
@@ -2668,6 +2728,9 @@ export function createMcpServer({
             ...(args?.asPdf !== undefined
               ? { asPdf: args.asPdf as boolean }
               : {}),
+            ...(args?.email !== undefined
+              ? { email: args.email as { to: string[]; note?: string; clientRequestId: string } }
+              : {}),
           });
           return {
             content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
@@ -2957,6 +3020,23 @@ export function createMcpServer({
             start: args?.start as number | undefined,
             limit: args?.limit as number | undefined,
             skipDetails: args?.skipDetails as boolean | undefined,
+          });
+          return {
+            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
+          };
+        }
+
+        case "anydb_email_report": {
+          const result = await extApiClient.emailReport({
+            teamid: args?.teamid as string,
+            adbid: args?.adbid as string,
+            reportId: args?.reportId as string,
+            format: args?.format as "csv" | "xlsx",
+            to: args?.to as string[],
+            clientRequestId: args?.clientRequestId as string,
+            ...(args?.note !== undefined ? { note: args.note as string } : {}),
+            ...(args?.refresh !== undefined ? { refresh: args.refresh as boolean } : {}),
+            ...(args?.generationId ? { generationId: args.generationId as string } : {}),
           });
           return {
             content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],

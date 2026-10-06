@@ -73,6 +73,8 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_agent_update_fields: replaces("Update scoped agent fields"),
   anydb_agent_set_cell_lock: replaces("Set scoped agent cell lock"),
   anydb_agent_send_email: replacesAndReachesOut("Send scoped agent email"),
+  anydb_agent_email_report: addsAndReachesOut("Email scoped report export"),
+  anydb_agent_email_document: addsAndReachesOut("Email scoped rendered document"),
   anydb_agent_create_record: { title: "Create scoped agent child record", readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   // Guides and identity
   anydb_get_setup_guide: reads("Get setup guide"),
@@ -165,6 +167,8 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_run_report: replaces("Run report"),
   anydb_get_report_result: reads("Get report result"),
   anydb_export_report: reads("Export report"),
+  // ISSUE - 501. Reads a snapshot and emails it to people outside the workspace.
+  anydb_email_report: addsAndReachesOut("Email report"),
   anydb_delete_report: replaces("Delete report"),
 
   // Document generation
@@ -173,8 +177,9 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   // Implemented as remove-then-add; omitted fields are lost.
   anydb_update_docgen_template: replaces("Update document template"),
   anydb_delete_docgen_template: replaces("Delete document template"),
-  // Regenerating supersedes the previous output of the same template.
-  anydb_generate_document: replaces("Generate document"),
+  // Regenerating supersedes the previous output of the same template; with an email block the new
+  // document is also mailed to people outside the workspace (ISSUE - 501).
+  anydb_generate_document: replacesAndReachesOut("Generate document"),
 
   // Recipient shared items; finalizing can trigger automation and notifications.
   anydb_list_shared_records: reads("List records shared with me"),

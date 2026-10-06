@@ -22,7 +22,7 @@ it("carries capability only in authenticated HTTP header and returns structured 
  expect(JSON.stringify(logs.mock.calls)).not.toContain("synthetic-secret");
 });
 it("advertises narrow operations and rejects caller mode and identity injection",async()=>{
- const tools=await client.listTools();expect(tools.tools.filter(t=>t.name.startsWith("anydb_agent_")).map(t=>t.name)).toEqual(["anydb_agent_read_record","anydb_agent_update_fields","anydb_agent_set_cell_lock","anydb_agent_send_email","anydb_agent_create_record"]);
+ const tools=await client.listTools();expect(tools.tools.filter(t=>t.name.startsWith("anydb_agent_")).map(t=>t.name)).toEqual(["anydb_agent_read_record","anydb_agent_update_fields","anydb_agent_set_cell_lock","anydb_agent_send_email","anydb_agent_create_record","anydb_agent_email_report","anydb_agent_email_document"]);
  const result=await client.callTool({name:"anydb_agent_send_email",arguments:{teamid:"t",adbid:"d",runId:"run",operationId:"op",simulate:false,input:{adoid:"r",expectedRevision:"v",to:["recipient@example.invalid"],subject:"Hello",body:"World"}}});
  expect(result.isError).toBe(true);expect(seen).toEqual([]);
 });
