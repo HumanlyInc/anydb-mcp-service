@@ -741,6 +741,33 @@ is kept and `email.state` says what happened. A request the email rules refuse
 (a bad address, no `clientRequestId`, a plan that does not allow it) is refused
 **before** anything is generated.
 
+### Authoring custom agents
+
+A custom workflow agent is an AI that runs on a trigger, reads data through AnyDB tools and can do only what
+its **saved scope** allows. You can author one end to end from MCP; the browser's Custom Agents tab does the
+same things and the same rules apply (workspace admin access, a Business or Enterprise plan, AI credits).
+
+1. `anydb_save_agent` creates or updates a **draft**. Pass `configuration.id` and the `version` you last read to
+   update (a stale version is refused). It never runs the agent and never spends tokens. The agent **runs as the
+   person who saves it**, with that person's access, so a user id you need inside the prompt is theirs.
+2. `anydb_validate_agent` has an AI review the prompt: assessment, suggestions and blocking questions. **It spends
+   real AI tokens.** A blocking question means it did not pass; fix the prompt or the scope and validate again.
+3. `anydb_test_agent` runs it for real reads with every write and email a **preview** (`simulated`); nothing is
+   sent. It also spends tokens. Read what it did with `anydb_get_agent_run`: the tool calls are the evidence, the
+   model's summary is only an explanation.
+4. `anydb_publish_agent` publishes the exact draft `version`. It is refused unless that same revision has a
+   successful validation and trial; the server loads that proof, you cannot supply it. Any behaviour-changing edit
+   makes a new draft that must be validated and tested again.
+5. Run or enable it with the workflow tools using the agent's `workflowId` (from `anydb_get_agent`):
+   `anydb_execute_workflow`, `anydb_update_workflow`. Use `anydb_list_agent_runs` to see what it did.
+
+What the saved scope (`mutationScope`) authorises is the whole story. `emailRecipients` are the only people the
+agent may email; `artifacts.reports` and `artifacts.docgenTemplates` are the only reports and document templates it
+may email; `fields` and `recordIds` bound any record change. An agent with no `mutationScope` can only read, so a
+prompt that says "email it" without a saved scope fails validation with `mutation_scope_required`. Say in the
+prompt how queries are written when the agent must search (`search_records` takes Lucene-style queries) and how to
+stop when something fails, so validation has nothing left to ask.
+
 ### Custom agents: emailing a report or a summary
 
 A custom workflow agent has its own scoped tools, and the scope is saved on the

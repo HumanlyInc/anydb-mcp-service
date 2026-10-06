@@ -1628,6 +1628,67 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  // ISSUE - 506: custom workflow agent authoring. Thin wrappers over /integrations/ext/agents.
+  async saveAgentDraft(params: { teamid: string; adbid: string; configuration: Record<string, unknown> }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>("/integrations/ext/agents", params);
+    return this.unwrap(response.data);
+  }
+
+  async listAgentDrafts(params: { teamid: string; adbid: string; limit?: number; cursor?: string }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>("/integrations/ext/agents", { params });
+    return this.unwrap(response.data);
+  }
+
+  async getAgentDraft(params: { teamid: string; adbid: string; agentid: string }): Promise<unknown> {
+    const { agentid, ...query } = params;
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/agents/${encodeURIComponent(agentid)}`,
+      { params: query },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async validateAgent(params: { teamid: string; adbid: string; agentid: string }): Promise<unknown> {
+    const { agentid, ...body } = params;
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/agents/${encodeURIComponent(agentid)}/validate`,
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async testAgent(params: { teamid: string; adbid: string; agentid: string; fixture?: Record<string, unknown> }): Promise<unknown> {
+    const { agentid, ...body } = params;
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/agents/${encodeURIComponent(agentid)}/test`,
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async publishAgent(params: { teamid: string; adbid: string; agentid: string; version: number }): Promise<unknown> {
+    const { agentid, ...body } = params;
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/agents/${encodeURIComponent(agentid)}/publish`,
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listAgentRuns(params: { teamid: string; adbid: string; agentid?: string; limit?: number; cursor?: string }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>("/integrations/ext/agents/runs", { params });
+    return this.unwrap(response.data);
+  }
+
+  async getAgentRun(params: { teamid: string; adbid: string; runid: string; page?: number }): Promise<unknown> {
+    const { runid, ...query } = params;
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/agents/runs/${encodeURIComponent(runid)}`,
+      { params: query },
+    );
+    return this.unwrap(response.data);
+  }
+
   async deleteReport(params: {
     teamid: string;
     adbid: string;
