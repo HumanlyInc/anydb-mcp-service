@@ -1666,7 +1666,7 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
-  async publishAgent(params: { teamid: string; adbid: string; agentid: string; version: number }): Promise<unknown> {
+  async publishAgent(params: { teamid: string; adbid: string; agentid: string; version: number; enable?: boolean }): Promise<unknown> {
     const { agentid, ...body } = params;
     const response = await this.client.post<ExtApiResponse<unknown>>(
       `/integrations/ext/agents/${encodeURIComponent(agentid)}/publish`,

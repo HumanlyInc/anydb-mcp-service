@@ -84,8 +84,11 @@ describe("custom agent authoring tools", () => {
     it("publish says the proof is loaded by the server and cannot be supplied", async () => {
       const t = await tool("anydb_publish_agent");
       expect(t.description).toMatch(/you cannot supply that proof/);
-      expect(Object.keys(t.inputSchema.properties).sort()).toEqual(["adbid", "agentid", "teamid", "version"]);
+      // ISSUE - 516: publishing starts nothing unless asked, and the tool says so.
+      expect(Object.keys(t.inputSchema.properties).sort()).toEqual(["adbid", "agentid", "enable", "teamid", "version"]);
       expect(t.inputSchema.required).toEqual(["teamid", "adbid", "agentid", "version"]);
+      expect(t.inputSchema.properties.enable).toMatchObject({ type: "boolean" });
+      expect(t.description).toMatch(/does not start its schedule unless enable is true/i);
     });
 
     it("save is strict: no identity, model or mode, and the scope is the whole authority", async () => {
@@ -164,6 +167,13 @@ describe("custom agent authoring tools", () => {
       expect(seen[0]!.body).toEqual(ids);
       expect(seen[1]!.body).toEqual({ ...ids, fixture: { trigger: {} } });
       expect(seen[2]!.body).toEqual({ ...ids, version: 3 });
+    });
+
+    it("publish forwards enable only when it is given", async () => {
+      await call("anydb_publish_agent", { ...ids, agentid, version: 4 });
+      await call("anydb_publish_agent", { ...ids, agentid, version: 4, enable: true });
+      expect(seen[0]!.body).toEqual({ ...ids, version: 4 }); // omitted: the server keeps the workflow's state
+      expect(seen[1]!.body).toEqual({ ...ids, version: 4, enable: true });
     });
 
     it("a plain test sends no fixture", async () => {

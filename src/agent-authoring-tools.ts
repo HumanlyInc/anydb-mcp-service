@@ -151,11 +151,15 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_publish_agent",
     description:
-      "Publish a draft so it can run live. Refused unless the SAME revision has a successful user-initiated validation and a successful trial; you cannot supply that proof, the server loads it. version must be the draft's current version (from anydb_get_agent). Publishing does not itself run or enable the agent: do that with the workflow tools using its workflowId. Once enabled, a live run does what the saved scope allows, including emailing the saved recipients.",
+      "Publish a draft so it can run live. Refused unless the SAME revision has a successful user-initiated validation and a successful trial; you cannot supply that proof, the server loads it. version must be the draft's current version (from anydb_get_agent). Publishing does not run the agent and does not start its schedule unless enable is true: without it a new workflow is left disabled and an existing one keeps its state, so nothing is emailed until you start it (enable: true here, or anydb_update_workflow with enabled true) or run it once with anydb_execute_workflow using its workflowId (from anydb_get_agent). Once running, a live run does what the saved scope allows, including emailing the saved recipients.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
-      properties: { teamid, adbid, agentid, version: { type: "integer", minimum: 1, description: "The draft version to publish." } },
+      properties: {
+        teamid, adbid, agentid,
+        version: { type: "integer", minimum: 1, description: "The draft version to publish." },
+        enable: { type: "boolean", description: "true also starts the agent's schedule or trigger. Omit to leave it as it is (a new agent is created off)." },
+      },
       required: ["teamid", "adbid", "agentid", "version"],
     },
   },
@@ -213,7 +217,7 @@ export async function callAgentAuthoringTool(name: string, args: Record<string, 
       result = await client.testAgent({ ...scope, agentid: a.agentid, ...(a.fixture !== undefined ? { fixture: a.fixture } : {}) });
       break;
     case "anydb_publish_agent":
-      result = await client.publishAgent({ ...scope, agentid: a.agentid, version: a.version });
+      result = await client.publishAgent({ ...scope, agentid: a.agentid, version: a.version, ...(a.enable === undefined ? {} : { enable: a.enable }) });
       break;
     case "anydb_list_agent_runs":
       result = await client.listAgentRuns({ ...scope, ...(a.agentid ? { agentid: a.agentid } : {}), ...(a.limit !== undefined ? { limit: a.limit } : {}), ...(a.cursor ? { cursor: a.cursor } : {}) });
