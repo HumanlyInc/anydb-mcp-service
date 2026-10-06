@@ -307,6 +307,19 @@ describe("email on report export and document generation", () => {
       }
     });
 
+    it("the summary email tool tells the model what formatting is rendered and what never is", async () => {
+      const text = (await tool("anydb_agent_send_email")).description as string;
+      expect(text).toMatch(/light markdown/);
+      expect(text).toMatch(/formatted business email/);
+      expect(text).toMatch(/pipe tables/);
+      expect(text).toMatch(/http or https only/);
+      expect(text).toMatch(/Raw HTML is never rendered/);
+      expect(text).toMatch(/no images, colours or attachments/);
+      const guide = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
+      expect(guide).toMatch(/light markdown/);
+      expect(guide).toMatch(/Raw HTML is never rendered/);
+    });
+
     it("advertises the receipt fields an agent needs to describe what happened", async () => {
       const t = await tool("anydb_agent_email_report");
       expect(t.outputSchema.properties.receipt.properties).toMatchObject({
