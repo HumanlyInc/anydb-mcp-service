@@ -1078,5 +1078,20 @@ describe("ExtApiClient", () => {
       const api = client(await slowServer());
       await expect(api.listTeams()).rejects.toThrow(/timeout/i);
     });
+
+    // ISSUE - 516. Validating or testing a custom agent runs the agent: 20 to 60 seconds with a real model, up to the
+    // agent's own limit of 5 minutes. At 30 s the client gave up while the server finished the run, so the caller got
+    // an error for a run that had completed (and could not tell, or was tempted to start a second one).
+    it("validateAgent and testAgent wait for the run, not the default request timeout", async () => {
+      const api = client(await slowServer());
+      await expect(api.validateAgent({ teamid: "t", adbid: "a", agentid: "11111111-1111-4111-8111-111111111111" })).resolves.toEqual({ ok: true });
+      await expect(api.testAgent({ teamid: "t", adbid: "a", agentid: "11111111-1111-4111-8111-111111111111" })).resolves.toEqual({ ok: true });
+    });
+
+    it("reading, listing and publishing an agent still use the default timeout", async () => {
+      const api = client(await slowServer());
+      await expect(api.listAgentDrafts({ teamid: "t", adbid: "a" })).rejects.toThrow(/timeout/i);
+      await expect(api.publishAgent({ teamid: "t", adbid: "a", agentid: "11111111-1111-4111-8111-111111111111", version: 1 })).rejects.toThrow(/timeout/i);
+    });
   });
 });

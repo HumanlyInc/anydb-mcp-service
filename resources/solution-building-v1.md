@@ -758,8 +758,11 @@ same things and the same rules apply (workspace admin access, a Business or Ente
 4. `anydb_publish_agent` publishes the exact draft `version`. It is refused unless that same revision has a
    successful validation and trial; the server loads that proof, you cannot supply it. Any behaviour-changing edit
    makes a new draft that must be validated and tested again.
-5. Run or enable it with the workflow tools using the agent's `workflowId` (from `anydb_get_agent`):
-   `anydb_execute_workflow`, `anydb_update_workflow`. Use `anydb_list_agent_runs` to see what it did.
+5. Publishing does not start the schedule. Without `enable: true` a new agent's workflow is left disabled and an
+   existing one keeps its state, so nothing is sent until you start it: `anydb_publish_agent` with `enable: true`,
+   or `anydb_update_workflow` with `enabled: true`. To try it once, run it with `anydb_execute_workflow` using the
+   agent's `workflowId` (from `anydb_get_agent`). A live run does what the saved scope allows, including emailing
+   the saved recipients. Use `anydb_list_agent_runs` to see what it did.
 
 What the saved scope (`mutationScope`) authorises is the whole story. `emailRecipients` are the only people the
 agent may email; `artifacts.reports` and `artifacts.docgenTemplates` are the only reports and document templates it
