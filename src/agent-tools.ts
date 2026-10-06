@@ -17,7 +17,9 @@ const schemas={
 const string={type:"string",minLength:1};const scopeProperties={teamid:string,adbid:string,runId:{...string,description:"Run ID supplied by the trusted workflow runtime"}};
 const snapshotSchema = { type: "object", properties: { name: {type:"string"}, templateName: {type:"string"}, revision: string, values: { type: "object", additionalProperties: true }, locks: { type: "object", additionalProperties: { type: "boolean" } }, fieldLabels: {type:"object",additionalProperties:{type:"string"}} }, required: ["name", "templateName", "revision", "values", "locks"], additionalProperties: false };
 const outcomeSchema: NonNullable<Tool["outputSchema"]> = { type: "object", properties: {
- state: { type: "string", enum: ["simulated", "applied", "sent", "reused", "failed", "unknown"] }, before: snapshotSchema,
+ state: { type: "string", enum: ["simulated", "applied", "sent", "reused", "failed", "unknown"] },
+ // ISSUE - 515: null when no record is named (an email that sends a summary or a report): there is nothing to snapshot.
+ before: { anyOf: [snapshotSchema, { type: "null" }] },
  after: { anyOf: [snapshotSchema, { type: "null" }] },
  receipt: { type: "object", properties: { operationId: string, correlationId: string, messageId: { type: "string" },childRecordId:{type:"string"},reusedExisting:{type:"boolean"},recipients:{type:"array",items:{type:"string"}},attachment:{type:"object",properties:{filename:{type:"string"},bytes:{type:"number"}},required:["filename","bytes"],additionalProperties:false},note:{type:"string"} }, required: ["operationId", "correlationId"], additionalProperties: false },
  error: { type: "string" }
