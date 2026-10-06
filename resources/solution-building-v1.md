@@ -704,6 +704,67 @@ pages through one group's rows. `anydb_export_report` returns the ready
 snapshot as CSV text or an XLSX workbook (base64), and `anydb_delete_report`
 removes the report with its snapshots.
 
+### Emailing a report or a generated document
+
+There is deliberately **no general send-email tool**. Email is an option on the
+call that produces the file, and the only thing that can be attached is the file
+that call produced from data the caller can already read:
+
+- `anydb_email_report` emails the export of a report (`format` csv or xlsx).
+  It sends the **last ready snapshot**; set `refresh: true` to run the report
+  first. A refresh that does not finish within 60 seconds sends nothing and
+  fails, so you never mail stale numbers while believing them fresh.
+- `anydb_generate_document` takes an optional `email` block and mails the
+  document it just generated (the File record is created as before).
+
+Both take `to` (1 to 25 addresses, **any** domain, not only team members), an
+optional plain-text `note` (up to 2000 characters, never rendered as HTML) and a
+required `clientRequestId`. You cannot supply a file, a path, a URL, a subject
+or a body: the message is fixed wording that names the real caller as the
+sender. A Business or Enterprise plan is required, and each team has a daily
+limit on emailed recipients.
+
+`clientRequestId` makes a send safe to retry: the same id with the same
+arguments returns the first result and never sends twice, a different set of
+arguments with a reused id is refused, and a new id is a new send. Read
+`email.state` in the result:
+
+| state | meaning | what to do |
+|---|---|---|
+| `sent` | the mail server accepted it (not proof it reached an inbox) | done |
+| `failed` | it was not sent (limit reached, delivery disabled, file too large, report not ready) | fix the cause; retry with a **new** `clientRequestId` |
+| `unknown` | delivery could not be confirmed | do **not** retry with a new id; it may have been delivered |
+
+An export over 5 MB is refused with the reason: use csv or narrow the report.
+If `generate_document` generates the document but the email fails, the document
+is kept and `email.state` says what happened. A request the email rules refuse
+(a bad address, no `clientRequestId`, a plan that does not allow it) is refused
+**before** anything is generated.
+
+### Custom agents: emailing a report or a summary
+
+A custom workflow agent has its own scoped tools, and the scope is saved on the
+agent by a person, not chosen by the model. The agent's saved scope lists the
+recipients it may mail (`emailRecipients`, any addresses) and, for the two
+export tools, the exact reports and document templates it may mail
+(`artifacts.reports`, `artifacts.docgenTemplates`). Anything outside that scope
+is refused whatever the prompt says.
+
+- `anydb_agent_send_email` sends a **plain-text summary the agent wrote itself**
+  from data it read (for example a backlog report built from `search_records`).
+  It needs **no record**: omit `adoid` and `expectedRevision`, which are only for
+  an email tied to a record in scope. Plain text, no attachments, up to 20000
+  characters.
+- `anydb_agent_email_report` and `anydb_agent_email_document` email a scoped
+  report export or rendered document. `anydb_agent_email_report` needs no
+  triggering record, so a scheduled agent can use it; `refresh: true` runs the
+  report first and fails (sending nothing) if it does not finish.
+- In a **test** run these only check and produce the file and answer `simulated`
+  with the attachment name and size. A test never runs the report and never
+  sends. Live runs share the team's daily recipient limit.
+- A `failed` or `unknown` result stops the run. Never retry an `unknown` result
+  under a new `operationId`.
+
 ## Receiving Shared Records and Forms
 
 Use recipient tools when a person asks about records or forms shared with them. `anydb_list_shared_records` and `anydb_list_shared_forms` discover accessible shares with optional `search`, `teamid`, `adbid`, `offset`, and `limit` filters. Results include `items`, `total`, `offset`, and `limit`. These tools use the authenticated caller; they take no alternate user identity.
