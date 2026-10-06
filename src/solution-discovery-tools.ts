@@ -38,7 +38,7 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
   {
     name: "anydb_get_type_definition",
     description:
-      "Get the latest complete definition of a workspace or built-in type by its stable name. Use it to judge reuse from semantic content and behavior, not the candidate name, description, or search score. Use the candidate name returned by anydb_discover_types, never a version-specific template ID. A workspace definition also returns revision, the value anydb_update_type takes as expectedRevision.",
+      "Get the latest complete definition of a workspace or built-in type by its stable name. Use it to judge reuse from semantic content and behavior, not the candidate name, description, or search score. Use templateId for the exact stored workspace schema referenced by agent chips or creation scope; it is mutually exclusive with templateName and only accepts workspace source. Otherwise use the candidate name returned by anydb_discover_types. A workspace definition also returns revision, the value anydb_update_type takes as expectedRevision.",
     inputSchema: {
       type: "object",
       properties: {
@@ -48,13 +48,15 @@ export const SOLUTION_DISCOVERY_TOOLS: Tool[] = [
           type: "string",
           description: "The stable candidate name returned by discovery",
         },
+        templateId: {type:"string",description:"Exact stored workspace type ID from an authorized prompt binding or saved creation rule; excludes templateName"},
         source: {
           type: "string",
           enum: ["workspace", "builtin"],
           description: "The candidate source returned by discovery",
         },
       },
-      required: ["teamid", "adbid", "templateName", "source"],
+      required: ["teamid", "adbid"],
+      oneOf: [{required:["templateId"],not:{required:["templateName"]}},{required:["templateName","source"],not:{required:["templateId"]}}],
     },
   },
   {
@@ -173,19 +175,13 @@ export async function callSolutionDiscoveryTool(
       );
     }
     case "anydb_get_type_definition": {
-      const templateName = requiredString(args, "templateName");
-      const source = requiredString(args, "source");
-      if (source !== "workspace" && source !== "builtin") {
-        throw new Error("source must be workspace or builtin");
-      }
-      return textResult(client.getOriginClient?.(), 
-        await client.getTypeDefinition({
-          teamid,
-          adbid,
-          templateName,
-          source,
-        }),
-      );
+      const templateId=args?.templateId === undefined ? undefined : requiredString(args,"templateId");
+      if(templateId && args?.templateName !== undefined) throw new Error("templateId and templateName are mutually exclusive");
+      const templateName=templateId ? undefined : requiredString(args,"templateName");
+      const source=templateId && args?.source === undefined ? "workspace" : requiredString(args,"source");
+      if (source !== "workspace" && source !== "builtin") throw new Error("source must be workspace or builtin");
+      if(templateId && source !== "workspace") throw new Error("templateId requires workspace source");
+      return textResult(client.getOriginClient?.(),await client.getTypeDefinition({teamid,adbid,...(templateId ? {templateId} : {templateName}),source}));
     }
     case "anydb_list_workflows":
       return textResult(client.getOriginClient?.(), await client.listWorkflows(teamid, adbid));

@@ -69,6 +69,11 @@ const publishes = (title: string): ToolAnnotations => ({
 });
 
 export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
+  anydb_agent_read_record: reads("Read agent record overlay"),
+  anydb_agent_update_fields: replaces("Update scoped agent fields"),
+  anydb_agent_set_cell_lock: replaces("Set scoped agent cell lock"),
+  anydb_agent_send_email: replacesAndReachesOut("Send scoped agent email"),
+  anydb_agent_create_record: { title: "Create scoped agent child record", readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   // Guides and identity
   anydb_get_setup_guide: reads("Get setup guide"),
   anydb_whoami: reads("Show connected AnyDB identity"),

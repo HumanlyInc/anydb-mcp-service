@@ -29,6 +29,7 @@ export const longCallTimeoutMs = (scriptTimeoutMs?: number): number =>
   LONG_CALL_MARGIN_MS;
 
 interface ExtApiClientConfig {
+  agentCapability?: string;
   baseURL: string;
   /** Legacy API-key auth. Ignored when accessToken is present. */
   apiKey?: string;
@@ -176,7 +177,8 @@ export interface TemplateDiscoveryResult {
 export interface GetTypeDefinitionParams {
   teamid: string;
   adbid: string;
-  templateName: string;
+  templateName?: string;
+  templateId?: string;
   source: "workspace" | "builtin";
 }
 
@@ -773,6 +775,12 @@ const CLIENT_HEADER = "x-anydb-client";
 const ORIGIN_CLIENT_HEADER = "x-anydb-origin-client";
 
 export class ExtApiClient {
+  async readAgentRecord(input: unknown): Promise<unknown> {
+    return (await this.client.post("/integrations/ext/agent/read-record", input)).data.data;
+  }
+  async executeAgentOperation(input: unknown): Promise<unknown> {
+    return (await this.client.post("/integrations/ext/agent/operation", input)).data.data;
+  }
   private client: AxiosInstance;
   private originClient?: string;
 
@@ -784,6 +792,7 @@ export class ExtApiClient {
         [CLIENT_HEADER]: clientIdentity(config.clientVersion),
         "User-Agent": clientIdentity(config.clientVersion),
         ...ExtApiClient.authHeaders(config),
+        ...(config.agentCapability ? { "x-anydb-agent-capability": config.agentCapability } : {}),
       },
       timeout: config.requestTimeoutMs ?? 30000,
     });
@@ -926,11 +935,11 @@ export class ExtApiClient {
   async getTypeDefinition(
     params: GetTypeDefinitionParams,
   ): Promise<TypeDefinitionResult> {
-    const { templateName, ...query } = params;
+    const { templateName, templateId, ...query } = params;
     const response = await this.client.get<
       ExtApiResponse<TypeDefinitionResult>
     >(
-      `/integrations/ext/templates/${encodeURIComponent(templateName)}/definition`,
+      templateId ? `/integrations/ext/templates/by-id/${encodeURIComponent(templateId)}/definition` : `/integrations/ext/templates/${encodeURIComponent(templateName!)}/definition`,
       { params: query },
     );
     return this.unwrap(response.data);
