@@ -179,15 +179,81 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_get_agent_run",
     description:
-      "Read one agent run: outcome, summary, issues, every tool call it made with arguments and results, token usage and cost, and the state of each operation (simulated, applied, sent, failed, unknown). The model's own summary is an explanation; the tool calls are the evidence. Large runs are paged: pass page (0 first).",
+      "Read one agent run. By default a short summary: outcome, the reason it stopped, each tool call with its status and error, the email text and record changes it made or previewed (state simulated, applied, sent, failed, unknown), token usage and cost. Pass detail full for every tool call with its arguments and results, which can be 80 KB or more. The model's own summary is an explanation; the tool calls are the evidence. Large runs are paged: pass page (0 first).",
     inputSchema: {
       type: "object",
       additionalProperties: false,
-      properties: { teamid, adbid, runid: { type: "string", description: "The run id from anydb_list_agent_runs or a validate/test result." }, page: { type: "integer", minimum: 0 } },
+      properties: {
+        teamid, adbid,
+        runid: { type: "string", description: "The run id from anydb_list_agent_runs or a validate/test result." },
+        detail: { type: "string", enum: ["summary", "full"], description: "summary (default): outcome, why it stopped, each tool call with its status and error, the emails and changes, usage; no tool results. full: every tool call with its arguments and results, which can be 80 KB or more." },
+        page: { type: "integer", minimum: 0, description: "With detail full, the page of the run to read." },
+      },
       required: ["teamid", "adbid", "runid"],
     },
   },
 ];
+
+/**
+ * ISSUE - 514. A run with two 100-record searches reads back as 80 KB, more than most clients take, so a caller could
+ * not see why it stopped. The summary keeps what answers "what happened and why": the outcome, every call with its
+ * status and error (arguments shortened, results reduced to their size), the emails and changes, usage and what the
+ * trial checked. detail "full" is the whole run.
+ */
+const clip = (value: unknown, max = 200): unknown => {
+  if (typeof value === "string") return value.length > max ? `${value.slice(0, max)}… (${value.length} characters)` : value;
+  if (Array.isArray(value)) return value.slice(0, 10).map((item) => clip(item, max));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, clip(item, max)]));
+  return value;
+};
+export function summariseAgentRun(run: any): unknown {
+  if (!run || typeof run !== "object") return run;
+  const latest = new Map<string, any>();
+  for (const event of Array.isArray(run.events) ? run.events : []) {
+    const call = event?.call;
+    if (call?.id) latest.set(call.id, call); // a call is journaled as running, then as success or failure
+  }
+  const toolCalls = [...latest.values()].map((call) => {
+    const size = call.result === undefined ? undefined : typeof call.result === "string" ? call.result.length : JSON.stringify(call.result).length;
+    return {
+      id: call.id, name: call.name, status: call.status,
+      ...(call.error ? { error: call.error } : {}),
+      arguments: clip(call.arguments),
+      ...(size !== undefined ? { resultBytes: size } : {}),
+    };
+  });
+  const operations = (Array.isArray(run.operations) ? run.operations : []).map((operation: any) => ({
+    kind: operation.kind,
+    state: operation.result?.state,
+    ...(operation.result?.error ? { error: operation.result.error } : {}),
+    ...(operation.input?.to ? { to: operation.input.to } : {}),
+    ...(operation.input?.subject ? { subject: operation.input.subject } : {}),
+    ...(operation.input?.body ? { body: operation.input.body } : {}),
+    ...(operation.input?.values ? { values: clip(operation.input.values) } : {}),
+    receipt: operation.result?.receipt,
+  }));
+  const result = run.result ?? {};
+  return {
+    runId: run.header?.runId ?? result.runId,
+    mode: run.header?.mode ?? result.mode,
+    status: run.status ?? result.status,
+    reasonCode: result.reasonCode,
+    summary: result.summary,
+    ...(result.issues?.length ? { issues: result.issues } : {}),
+    partialEffects: run.partialEffects,
+    startedAt: result.startedAt ?? run.header?.startedAt,
+    completedAt: result.completedAt,
+    model: result.model,
+    usage: result.usage,
+    toolCalls,
+    operations,
+    trialAssertions: run.trialAssertions ?? undefined,
+    evidenceReferences: Array.isArray(run.evidenceReferences) ? run.evidenceReferences.length : undefined,
+    unverifiableEvidence: run.unverifiableEvidence,
+    nextPage: run.nextPage ?? null,
+    note: "Summary. Tool results are left out; call again with detail full for every tool call with its arguments and results.",
+  };
+}
 
 const NAMES = new Set(AGENT_AUTHORING_TOOLS.map((tool) => tool.name));
 export const isAgentAuthoringTool = (name: string): boolean => NAMES.has(name);
@@ -219,7 +285,10 @@ export async function callAgentAuthoringTool(name: string, args: Record<string, 
       result = await client.listAgentRuns({ ...scope, ...(a.agentid ? { agentid: a.agentid } : {}), ...(a.limit !== undefined ? { limit: a.limit } : {}), ...(a.cursor ? { cursor: a.cursor } : {}) });
       break;
     case "anydb_get_agent_run":
-      result = await client.getAgentRun({ ...scope, runid: a.runid, ...(a.page !== undefined ? { page: a.page } : {}) });
+      {
+        const run = await client.getAgentRun({ ...scope, runid: a.runid, ...(a.page !== undefined ? { page: a.page } : {}) });
+        result = a.detail === "full" ? run : summariseAgentRun(run);
+      }
       break;
     default:
       throw new Error(`Unknown agent authoring tool ${name}`);

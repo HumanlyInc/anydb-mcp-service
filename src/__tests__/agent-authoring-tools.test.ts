@@ -21,12 +21,14 @@ describe("custom agent authoring tools", () => {
   let client: Client;
   let logs: ReturnType<typeof jest.spyOn>;
   let seen: Array<{ method?: string; url?: string; body: any }> = [];
+  let reply: unknown;
 
   const ids = { teamid: "6aa04513740f7dca84450aa8", adbid: "6aa0455c740f7dca84450aaf" };
   const agentid = "11111111-1111-4111-8111-111111111111";
 
   beforeEach(async () => {
     seen = [];
+    reply = { ok: true, key: agentid, version: 1 };
     logs = jest.spyOn(console, "error").mockImplementation(() => {});
     api = createServer((req, res) => {
       let raw = "";
@@ -34,7 +36,7 @@ describe("custom agent authoring tools", () => {
       req.on("end", () => {
         seen.push({ method: req.method, url: req.url, body: raw ? JSON.parse(raw) : undefined });
         res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ status: "success", data: { ok: true, key: agentid, version: 1 } }));
+        res.end(JSON.stringify({ status: "success", data: reply }));
       });
     });
     await new Promise<void>((resolve) => api.listen(0, "127.0.0.1", resolve));
@@ -164,6 +166,61 @@ describe("custom agent authoring tools", () => {
       expect(seen[0]!.body).toEqual(ids);
       expect(seen[1]!.body).toEqual({ ...ids, fixture: { trigger: {} } });
       expect(seen[2]!.body).toEqual({ ...ids, version: 3 });
+    });
+
+    // ISSUE - 514. A run with two 100-record searches read back as 80 KB, more than most clients accept, so a caller
+    // could not see why it stopped. The default is a summary; detail "full" is the whole run.
+    describe("anydb_get_agent_run summary", () => {
+      const bigResult = JSON.stringify(Array.from({ length: 200 }, (_, i) => ({ meta: { adoid: `r${i}`, name: `ISSUE - ${i} - a long title that makes the result large` } })));
+      const run = (over: any = {}) => ({
+        header: { runId: "run-1", mode: "test", agentid },
+        status: "failure",
+        partialEffects: false,
+        result: { runId: "run-1", mode: "test", status: "failure", reasonCode: "limit_reached", summary: "Search discovery requires contiguous offsets beginning at zero", issues: ["Search discovery requires contiguous offsets beginning at zero"], model: "m", usage: { inputTokens: 100, outputTokens: 10, costUsd: 0.01 }, startedAt: "t0", completedAt: "t1" },
+        events: [
+          { type: "usage", usage: { inputTokens: 1 } },
+          { call: { id: "call-1", name: "search_records", status: "running", arguments: { teamid: "t", adbid: "a", search: "meta.templateName:Issue", start: "0", limit: "100" } } },
+          { call: { id: "call-1", name: "search_records", status: "success", arguments: { teamid: "t", adbid: "a", search: "meta.templateName:Issue", start: "0", limit: "100" }, result: bigResult } },
+          { call: { id: "call-2", name: "search_records", status: "failure", arguments: { teamid: "t", adbid: "a", search: "meta.templateName:Issue", start: "100", limit: "100" }, error: "Search discovery requires contiguous offsets beginning at zero" } },
+        ],
+        operations: [{ kind: "send_email", input: { to: ["a@example.invalid"], subject: "Report", body: "## At a glance\n\nAll good" }, result: { state: "simulated", before: null, after: null, receipt: { operationId: "op" } } }],
+        evidenceReferences: Array.from({ length: 93 }, (_, i) => ({ adoid: `r${i}`, fields: ["name"] })),
+        unverifiableEvidence: false,
+        nextPage: null,
+        trialAssertions: { assertions: [], assertionsPassed: true, verified: false },
+        ...over,
+      });
+      const read = async (args: any) => JSON.parse(((await call("anydb_get_agent_run", { ...ids, runid: "run-1", ...args })).content as any)[0].text);
+
+      it("is the default and says why the run stopped without the tool results", async () => {
+        reply = run();
+        const out = await read({});
+        expect(out).toMatchObject({ runId: "run-1", mode: "test", status: "failure", reasonCode: "limit_reached", summary: expect.stringMatching(/contiguous offsets/) });
+        expect(out.toolCalls).toEqual([
+          expect.objectContaining({ id: "call-1", name: "search_records", status: "success" }),
+          expect.objectContaining({ id: "call-2", name: "search_records", status: "failure", error: expect.stringMatching(/contiguous offsets/) }),
+        ]);
+        expect(JSON.stringify(out)).not.toContain("a long title that makes the result large");
+        expect(out.toolCalls[0].resultBytes).toBeGreaterThan(1000);
+        expect(out.usage).toMatchObject({ inputTokens: 100 });
+        expect(JSON.stringify(out).length).toBeLessThan(4000);
+        expect(out.note).toMatch(/detail.*full/i);
+      });
+
+      it("shows the email the agent wrote, and what was checked", async () => {
+        reply = run({ status: "success" });
+        const out = await read({});
+        expect(out.operations).toEqual([expect.objectContaining({ kind: "send_email", state: "simulated", to: ["a@example.invalid"], subject: "Report", body: expect.stringContaining("At a glance") })]);
+        expect(out.trialAssertions).toMatchObject({ verified: false });
+        expect(out.evidenceReferences).toBe(93);
+      });
+
+      it("detail full returns the whole run", async () => {
+        reply = run();
+        const out = await read({ detail: "full" });
+        expect(JSON.stringify(out)).toContain("a long title that makes the result large");
+        expect(out.events).toHaveLength(4);
+      });
     });
 
     it("a plain test sends no fixture", async () => {
