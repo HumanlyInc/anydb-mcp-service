@@ -69,6 +69,16 @@ const publishes = (title: string): ToolAnnotations => ({
 });
 
 export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
+  // ISSUE - 506: authoring custom workflow agents. Saving replaces a draft (a published revision is immutable);
+  // validate and test spend AI tokens and write run records; publishing makes a revision runnable.
+  anydb_save_agent: replaces("Save agent draft"),
+  anydb_list_agents: reads("List agents"),
+  anydb_get_agent: reads("Get agent"),
+  anydb_validate_agent: adds("Validate agent"),
+  anydb_test_agent: adds("Test agent"),
+  anydb_publish_agent: replaces("Publish agent"),
+  anydb_list_agent_runs: reads("List agent runs"),
+  anydb_get_agent_run: reads("Get agent run"),
   anydb_agent_read_record: reads("Read agent record overlay"),
   anydb_agent_update_fields: replaces("Update scoped agent fields"),
   anydb_agent_set_cell_lock: replaces("Set scoped agent cell lock"),

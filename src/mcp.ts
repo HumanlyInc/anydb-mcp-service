@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { AGENT_TOOLS, isAgentTool, callAgentTool } from "./agent-tools.js";
+import { AGENT_AUTHORING_TOOLS, callAgentAuthoringTool, isAgentAuthoringTool } from "./agent-authoring-tools.js";
 import { SHARED_FORM_TOOLS, isSharedFormTool, callSharedFormTool } from "./shared-form-tools.js";
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -151,6 +152,7 @@ const TOOLS: Tool[] = [
   ...SEMANTIC_SEARCH_TOOLS,
   ...SHARED_FORM_TOOLS,
   ...AGENT_TOOLS,
+  ...AGENT_AUTHORING_TOOLS,
   {
     name: "list_templates",
     description:
@@ -1228,7 +1230,7 @@ const TOOLS: Tool[] = [
   {
     name: "search_records",
     description:
-      "Search for records in a database using a keyword. Optionally filter by parent record and specify pagination. Pass fields to keep only the header keys and cells you need per hit; a full hit carries every cell.",
+      "Search for records in a database. The search string is a Lucene-style query: a bare keyword matches record text; field:value matches a cell by its key (Status:New); meta.templateName:Issue restricts to one type (quote a multi-word name: meta.templateName:\"Decision Needed\"); combine with AND, OR, NOT and parentheses, e.g. meta.templateName:Issue AND (Status:New OR Status:Open). Page with start (0, then 100, 200, ...) and limit (at most 100): a page with fewer hits than limit is the last, so keep paging until then. Optionally filter by parent record. Pass fields to keep only the header keys and cells you need per hit; a full hit carries every cell.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1242,7 +1244,8 @@ const TOOLS: Tool[] = [
         },
         search: {
           type: "string",
-          description: "The search keyword",
+          description:
+            "The search query: a keyword, or a Lucene-style query such as meta.templateName:Issue AND (Status:New OR Status:Open).",
         },
         parentid: {
           type: "string",
@@ -2091,6 +2094,7 @@ export function createMcpServer({
       }
 
       if (isAgentTool(name)) return await callAgentTool(name, args, extApiClient);
+      if (isAgentAuthoringTool(name)) return await callAgentAuthoringTool(name, args as Record<string, any> | undefined, extApiClient);
       if (isSharedFormTool(name)) {
         return await callSharedFormTool(name, args, extApiClient);
       }
