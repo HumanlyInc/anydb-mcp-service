@@ -752,9 +752,20 @@ same things and the same rules apply (workspace admin access, a Business or Ente
    person who saves it**, with that person's access, so a user id you need inside the prompt is theirs.
 2. `anydb_validate_agent` has an AI review the prompt: assessment, suggestions and blocking questions. **It spends
    real AI tokens.** A blocking question means it did not pass; fix the prompt or the scope and validate again.
+   The review is itself an AI and does not always agree with itself: the same revision can pass, then fail on a
+   question it did not raise before. If it asks about something the prompt already settles, validate again before
+   rewriting the prompt.
 3. `anydb_test_agent` runs it for real reads with every write and email a **preview** (`simulated`); nothing is
-   sent. It also spends tokens. Read what it did with `anydb_get_agent_run`: the tool calls are the evidence, the
-   model's summary is only an explanation.
+   sent. It also spends tokens. The fixture is optional: with none the test just runs the agent, and the result says
+   `verified: false` because nothing was checked beyond "it completed". Read what it did with
+   `anydb_get_agent_run`: by default a short summary with each tool call, its status and error, and the email text
+   the agent wrote (recipients, subject and body), so you can judge the output yourself. The tool calls are the
+   evidence; the model's summary is only an explanation.
+
+   Validating and testing run the model and take 20 seconds to a few minutes. If your client's own time limit ends
+   the call first, the run carries on and finishes on the server: find it with `anydb_list_agent_runs` (newest
+   first) and read it with `anydb_get_agent_run`. Do not start a second validation of the same agent while one is
+   running; it is refused with "Agent credits are reserved".
 4. `anydb_publish_agent` publishes the exact draft `version`. It is refused unless that same revision has a
    successful validation and trial; the server loads that proof, you cannot supply it. Any behaviour-changing edit
    makes a new draft that must be validated and tested again.
@@ -767,9 +778,32 @@ same things and the same rules apply (workspace admin access, a Business or Ente
 What the saved scope (`mutationScope`) authorises is the whole story. `emailRecipients` are the only people the
 agent may email; `artifacts.reports` and `artifacts.docgenTemplates` are the only reports and document templates it
 may email; `fields` and `recordIds` bound any record change. An agent with no `mutationScope` can only read, so a
-prompt that says "email it" without a saved scope fails validation with `mutation_scope_required`. Say in the
-prompt how queries are written when the agent must search (`search_records` takes Lucene-style queries) and how to
-stop when something fails, so validation has nothing left to ask.
+prompt that says "email it" without a saved scope fails validation with `mutation_scope_required`.
+
+#### Writing the prompt
+
+Write what the agent should do in plain business language. The runtime supplies what used to have to be spelled out:
+
+- The team and workspace ids are supplied from the agent's saved settings on every tool call; the prompt does not
+  need them, and a wrong id the model writes is corrected rather than failing the run.
+- The record id (`adoid`) is added to every search and listing it makes, so its run stays readable.
+- Paging is checked for it: a request for a page after the last one returns an empty page instead of failing.
+
+What still belongs in the prompt:
+
+- The exact type and cell names it should use, for example the type "Issue" with the cells Status, Priority and
+  Assigned To. The validator asks for them otherwise, and a guessed cell name silently returns nothing.
+- What counts as each group or outcome, so every record lands in exactly one place, and what to do when a value is
+  empty or missing.
+- If it sends an email: **send the email exactly once**, only when the text is final, and never a corrected or
+  follow-up email. An email cannot be taken back; without this a model that notices a mistake sends a second and a
+  third copy. Ask it to check the text once before sending.
+- How to stop when something fails: "stop and send nothing" is the safe default.
+
+The browser lets a prompt mention a person, a record type, a field or a record (`@` and the + button); those are
+saved as prompt references. `anydb_save_agent` cannot set prompt references, and saving an agent from MCP drops any
+it had, so a UI-made agent that uses an @mention loses that binding when re-saved through MCP. Write the value as
+plain text instead (for example "Me = user id ...", from `anydb_whoami`).
 
 ### Custom agents: emailing a report or a summary
 
