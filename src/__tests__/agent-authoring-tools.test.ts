@@ -264,6 +264,18 @@ describe("custom agent authoring tools", () => {
         expect(out.note).toMatch(/detail.*full/i);
       });
 
+      // ISSUE - 513: a validation's review, questions and suggested rewrites are the point of reading it.
+      it("keeps a validation's feedback, including the suggested prompts", async () => {
+        const validationFeedback = { assessment: "Feasible", suggestions: ["Name the amount cell"], clarificationQuestions: ["What is a big spender?"],
+          revisedPrompts: [{ label: "Top 10", prompt: "List the 10 customers with the highest Lifetime Value.", why: "Avoids a threshold.", recommended: true }] };
+        reply = run({ header: { runId: "run-1", mode: "validate", agentid }, result: { ...run().result, mode: "validate", reasonCode: "clarification_required", validationFeedback } });
+        expect((await read({})).validationFeedback).toEqual(validationFeedback);
+      });
+      it("validate says it offers rewritten prompts and how to apply one", async () => {
+        expect((await tool("anydb_validate_agent")).description).toMatch(/revisedPrompts.*recommended.*anydb_save_agent/is);
+        expect(readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text).toMatch(/revisedPrompts/);
+      });
+
       it("shows the email the agent wrote, and what was checked", async () => {
         reply = run({ status: "success" });
         const out = await read({});

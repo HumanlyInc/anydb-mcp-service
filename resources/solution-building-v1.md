@@ -752,6 +752,9 @@ same things and the same rules apply (workspace admin access, a Business or Ente
    person who saves it**, with that person's access, so a user id you need inside the prompt is theirs.
 2. `anydb_validate_agent` has an AI review the prompt: assessment, suggestions and blocking questions. **It spends
    real AI tokens.** A blocking question means it did not pass; fix the prompt or the scope and validate again.
+   The review may also return `revisedPrompts`: up to three complete rewrites of the prompt that settle what it
+   found, each with a short label and reason, exactly one marked `recommended`. Show them to the user with the
+   recommended one first; applying one means saving it as the prompt with `anydb_save_agent` and validating again.
    The review is itself an AI and does not always agree with itself: the same revision can pass, then fail on a
    question it did not raise before. If it asks about something the prompt already settles, validate again before
    rewriting the prompt.
