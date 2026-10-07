@@ -148,7 +148,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_validate_agent",
     description:
-      "Validate an agent draft: an AI reviews the prompt for clarity, scope and supported capabilities and returns an assessment, suggestions and any blocking clarification questions. THIS SPENDS REAL AI TOKENS from the team's credits and takes up to a couple of minutes. It does not run the task, change data or send anything. A blocking question means the validation did not pass: answer it by editing the prompt (anydb_save_agent) and validate again. The result applies only to the exact current revision. " +
+      "Validate an agent draft: an AI reviews the prompt for clarity, scope and supported capabilities and returns an assessment, suggestions and any blocking clarification questions. THIS SPENDS REAL AI TOKENS from the team's credits and takes up to a couple of minutes. It does not run the task, change data or send anything. A blocking question means the validation did not pass: answer it by editing the prompt (anydb_save_agent) and validate again. The feedback may include revisedPrompts: up to three complete rewrites of the prompt that apply the review, exactly one marked recommended. Offer them to the user, recommended first; to apply one, save it as the prompt with anydb_save_agent (keep the draft's other settings and promptReferences) and validate again. The result applies only to the exact current revision. " +
       lifecycle,
     inputSchema: { type: "object", additionalProperties: false, properties: { teamid, adbid, agentid }, required: ["teamid", "adbid", "agentid"] },
   },
@@ -278,6 +278,7 @@ export function summariseAgentRun(run: any): unknown {
     reasonCode: result.reasonCode,
     summary: result.summary,
     ...(result.issues?.length ? { issues: result.issues } : {}),
+    ...(result.validationFeedback ? { validationFeedback: result.validationFeedback } : {}),
     partialEffects: run.partialEffects,
     startedAt: result.startedAt ?? run.header?.startedAt,
     completedAt: result.completedAt,
