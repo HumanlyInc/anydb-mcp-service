@@ -108,7 +108,9 @@ export interface ListRecordsParams {
       | "startswith"
       | "endswith"
       | "includes"
-      | "notincludes";
+      | "notincludes"
+      | "isempty"
+      | "isnotempty";
     value: unknown;
   }>;
 }
@@ -284,7 +286,9 @@ export interface CreateViewRequest {
           | "startswith"
           | "endswith"
           | "includes"
-          | "notincludes";
+          | "notincludes"
+          | "isempty"
+          | "isnotempty";
         value: string | number | boolean;
         fieldType?: "string" | "number" | "boolean" | "date" | "array";
       }>;
