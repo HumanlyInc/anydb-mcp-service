@@ -801,9 +801,14 @@ What still belongs in the prompt:
 - How to stop when something fails: "stop and send nothing" is the safe default.
 
 The browser lets a prompt mention a person, a record type, a field or a record (`@` and the + button); those are
-saved as prompt references. `anydb_save_agent` cannot set prompt references, and saving an agent from MCP drops any
-it had, so a UI-made agent that uses an @mention loses that binding when re-saved through MCP. Write the value as
-plain text instead (for example "Me = user id ...", from `anydb_whoami`).
+saved as `promptReferences`, and `anydb_save_agent` takes the same list. Each reference has a fresh UUID `key` that
+appears in the prompt exactly once as `[[ref:<key>]]`, for example `Email the summary to [[ref:0b8c…]].` with
+`{ "key": "0b8c…", "kind": "user", "userid": "<from anydb_whoami>", "label": "Me" }`. Kinds: `user` (userid),
+`record` (adoid), `type` (templateId), `field` (templateId and position) and `triggering_record`. A marker without an
+entry, or an entry without a marker, is refused. When you update an agent, send back the `promptReferences` that
+`anydb_get_agent` returned (under `value.revision.configuration`): a prompt that keeps its markers without them is
+refused with "Prompt reference markers and unique bindings must match". Plain text ("the Issue type", an email
+address) also works when the prompt does not need an id bound to it.
 
 ### Custom agents: emailing a report or a summary
 
