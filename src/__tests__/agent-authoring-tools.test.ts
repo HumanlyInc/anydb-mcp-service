@@ -86,7 +86,7 @@ describe("custom agent authoring tools", () => {
 
     it("publish says the proof is loaded by the server and cannot be supplied", async () => {
       const t = await tool("anydb_publish_agent");
-      expect(t.description).toMatch(/you cannot supply that proof/);
+      expect(t.description).toMatch(/You cannot supply the proof, the server loads it/);
       // ISSUE - 516: publishing starts nothing unless asked, and the tool says so.
       expect(Object.keys(t.inputSchema.properties).sort()).toEqual(["adbid", "agentid", "enable", "teamid", "version"]);
       expect(t.inputSchema.required).toEqual(["teamid", "adbid", "agentid", "version"]);
@@ -111,6 +111,20 @@ describe("custom agent authoring tools", () => {
       expect(scope.properties.artifacts.properties.reports.maxItems).toBe(10);
       expect(t.description).toMatch(/runs as YOU/);
       expect(t.description).toMatch(/Lifecycle:/);
+    });
+
+    // ISSUE - 527: a passing validation is enough to publish; the test is optional.
+    it("publish needs only a validation, and every place that describes the lifecycle says the test is optional", async () => {
+      const publish = await tool("anydb_publish_agent");
+      expect(publish.description).toMatch(/Refused unless the SAME revision has a successful user-initiated validation\./);
+      expect(publish.description).not.toMatch(/and a successful trial/);
+      expect(publish.description).toMatch(/anydb_test_agent is optional/i);
+      const save = await tool("anydb_save_agent");
+      expect(save.description).toMatch(/anydb_validate_agent -> anydb_publish_agent/);
+      expect(save.description).toMatch(/anydb_test_agent.*optional/is);
+      const guide = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
+      expect(guide).toMatch(/refused unless that same revision has a\s+successful validation\./);
+      expect(guide).not.toMatch(/successful validation and trial/);
     });
 
     it("search_records documents the query syntax a validating agent must be able to trust", async () => {

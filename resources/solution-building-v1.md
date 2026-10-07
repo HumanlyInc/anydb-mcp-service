@@ -770,8 +770,11 @@ same things and the same rules apply (workspace admin access, a Business or Ente
    first) and read it with `anydb_get_agent_run`. Do not start a second validation of the same agent while one is
    running; it is refused with "Agent credits are reserved".
 4. `anydb_publish_agent` publishes the exact draft `version`. It is refused unless that same revision has a
-   successful validation and trial; the server loads that proof, you cannot supply it. Any behaviour-changing edit
-   makes a new draft that must be validated and tested again.
+   successful validation. Step 3 is optional: a test whose expected outcomes did not match still blocks
+   publishing, but with no test, or one that did not run to completion, you can publish. For an agent that emails
+   or changes data a test is worth it, because it shows what the agent would send before it first does. The server
+   loads the proof, you cannot supply it. Any behaviour-changing edit makes a new draft that must be validated
+   again.
 5. Publishing does not start the schedule. Without `enable: true` a new agent's workflow is left disabled and an
    existing one keeps its state, so nothing is sent until you start it: `anydb_publish_agent` with `enable: true`,
    or `anydb_update_workflow` with `enabled: true`. To try it once, run it with `anydb_execute_workflow` using the
