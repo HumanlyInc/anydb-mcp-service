@@ -164,6 +164,20 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
     },
   },
   {
+    name: "anydb_delete_agent",
+    description:
+      "Delete an agent. This cannot be undone. It removes the draft and the workflow that publishing created for it, and stops every published revision from running. Its past runs stay readable (with anydb_get_agent_run) until they expire. Refused while another workflow still uses the agent: the error names those workflows; remove the agent from them first. version must be the draft's current version (from anydb_get_agent). Requires workspace admin access.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        teamid, adbid, agentid,
+        version: { type: "integer", minimum: 1, description: "The draft's current version." },
+      },
+      required: ["teamid", "adbid", "agentid", "version"],
+    },
+  },
+  {
     name: "anydb_list_agent_runs",
     description:
       "List runs of custom agents in a workspace (validation, test and live), newest first, optionally for one agent: status, reason code, mode and usage. Use it to see what an agent did.",
@@ -284,6 +298,9 @@ export async function callAgentAuthoringTool(name: string, args: Record<string, 
       break;
     case "anydb_publish_agent":
       result = await client.publishAgent({ ...scope, agentid: a.agentid, version: a.version, ...(a.enable === undefined ? {} : { enable: a.enable }) });
+      break;
+    case "anydb_delete_agent":
+      result = await client.deleteAgent({ ...scope, agentid: a.agentid, version: a.version });
       break;
     case "anydb_list_agent_runs":
       result = await client.listAgentRuns({ ...scope, ...(a.agentid ? { agentid: a.agentid } : {}), ...(a.limit !== undefined ? { limit: a.limit } : {}), ...(a.cursor ? { cursor: a.cursor } : {}) });

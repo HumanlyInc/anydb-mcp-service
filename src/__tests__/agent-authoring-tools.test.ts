@@ -54,7 +54,7 @@ describe("custom agent authoring tools", () => {
 
   const tool = async (name: string) => (await client.listTools()).tools.find((t) => t.name === name) as any;
   const call = (name: string, args: any) => client.callTool({ name, arguments: args });
-  const NAMES = ["anydb_save_agent", "anydb_list_agents", "anydb_get_agent", "anydb_validate_agent", "anydb_test_agent", "anydb_publish_agent", "anydb_list_agent_runs", "anydb_get_agent_run"];
+  const NAMES = ["anydb_save_agent", "anydb_list_agents", "anydb_get_agent", "anydb_validate_agent", "anydb_test_agent", "anydb_publish_agent", "anydb_delete_agent", "anydb_list_agent_runs", "anydb_get_agent_run"];
 
   describe("advertised contract", () => {
     it("exposes the whole lifecycle, none of it named like the tools a running agent calls", async () => {
@@ -68,6 +68,7 @@ describe("custom agent authoring tools", () => {
     it("annotations never understate: saving and publishing replace, validate and test add, reads read", async () => {
       expect((await tool("anydb_save_agent")).annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
       expect((await tool("anydb_publish_agent")).annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
+      expect((await tool("anydb_delete_agent")).annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
       for (const name of ["anydb_validate_agent", "anydb_test_agent"]) {
         expect((await tool(name)).annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: false });
       }
@@ -264,6 +265,20 @@ describe("custom agent authoring tools", () => {
       await call("anydb_publish_agent", { ...ids, agentid, version: 4, enable: true });
       expect(seen[0]!.body).toEqual({ ...ids, version: 4 }); // omitted: the server keeps the workflow's state
       expect(seen[1]!.body).toEqual({ ...ids, version: 4, enable: true });
+    });
+
+    // ISSUE - 516: delete takes the current version, sends it as a query, and says what it keeps.
+    it("delete sends DELETE with the version, and its description says what goes and what stays", async () => {
+      const result = await call("anydb_delete_agent", { ...ids, agentid, version: 3 });
+      expect(result.isError).toBeFalsy();
+      expect(seen[0]!.method).toBe("DELETE");
+      expect(seen[0]!.url).toBe(`/api/integrations/ext/agents/${agentid}?teamid=${ids.teamid}&adbid=${ids.adbid}&version=3`);
+      const t = await tool("anydb_delete_agent");
+      expect(t.inputSchema.required).toEqual(["teamid", "adbid", "agentid", "version"]);
+      expect(t.description).toMatch(/cannot be undone/i);
+      expect(t.description).toMatch(/workflow/i);
+      expect(t.description).toMatch(/runs.*stay|remain readable/i);
+      expect(readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text).toMatch(/anydb_delete_agent/);
     });
 
     it("a plain test sends no fixture", async () => {

@@ -774,6 +774,9 @@ same things and the same rules apply (workspace admin access, a Business or Ente
    or `anydb_update_workflow` with `enabled: true`. To try it once, run it with `anydb_execute_workflow` using the
    agent's `workflowId` (from `anydb_get_agent`). A live run does what the saved scope allows, including emailing
    the saved recipients. Use `anydb_list_agent_runs` to see what it did.
+6. `anydb_delete_agent` deletes an agent for good: its draft and the workflow publishing made for it go, and no
+   published revision can run again. Its past runs stay readable until they expire. It is refused while another
+   workflow still uses the agent.
 
 What the saved scope (`mutationScope`) authorises is the whole story. `emailRecipients` are the only people the
 agent may email; `artifacts.reports` and `artifacts.docgenTemplates` are the only reports and document templates it

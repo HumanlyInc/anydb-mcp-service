@@ -1669,6 +1669,12 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  async deleteAgent(params: { teamid: string; adbid: string; agentid: string; version: number }): Promise<unknown> {
+    const { agentid, ...query } = params;
+    const response = await this.client.delete<ExtApiResponse<unknown>>(`/integrations/ext/agents/${encodeURIComponent(agentid)}`, { params: query });
+    return this.unwrap(response.data);
+  }
+
   async publishAgent(params: { teamid: string; adbid: string; agentid: string; version: number; enable?: boolean }): Promise<unknown> {
     const { agentid, ...body } = params;
     const response = await this.client.post<ExtApiResponse<unknown>>(
