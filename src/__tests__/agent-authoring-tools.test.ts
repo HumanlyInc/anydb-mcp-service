@@ -98,7 +98,7 @@ describe("custom agent authoring tools", () => {
       const config = t.inputSchema.properties.configuration;
       expect(config.additionalProperties).toBe(false);
       expect(Object.keys(config.properties).sort()).toEqual(
-        ["authoringTrigger", "displayName", "id", "limits", "mutationScope", "prompt", "requiredTools", "version"].sort(),
+        ["authoringTrigger", "displayName", "id", "limits", "mutationScope", "prompt", "promptReferences", "requiredTools", "version"].sort(),
       );
       for (const forbidden of ["executionUserId", "model", "mode", "teamid", "adbid", "trigger"]) {
         expect(config.properties).not.toHaveProperty(forbidden);
@@ -146,11 +146,23 @@ describe("custom agent authoring tools", () => {
       expect(text).toMatch(/verified: false/);
       expect(text).toMatch(/email (text|body)/i);
     });
-    it("the guide says validation can disagree with itself and that MCP saves drop prompt references", () => {
+    it("the guide says validation can disagree with itself", () => {
       const text = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
       expect(text).toMatch(/validate again/i);
       expect(text).toMatch(/same revision/i);
-      expect(text).toMatch(/promptReferences|@mention/i);
+    });
+    it("prompt references can be set from MCP: the guide and the schema say how, and nothing says they are dropped", async () => {
+      const text = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
+      expect(text).toMatch(/promptReferences/);
+      expect(text).toContain("[[ref:");
+      expect(text).not.toMatch(/drops any it had/);
+      const t = await tool("anydb_save_agent");
+      expect(t.description).not.toMatch(/cannot be set here/);
+      const refs = t.inputSchema.properties.configuration.properties.promptReferences;
+      expect(refs).toMatchObject({ type: "array", maxItems: 50 });
+      expect(refs.items.properties.kind.enum.sort()).toEqual(["field", "record", "triggering_record", "type", "user"]);
+      expect(refs.items.required).toEqual(["key", "kind"]);
+      expect(refs.description).toContain("[[ref:");
     });
     it("save_agent no longer asks the author to spell out queries", async () => {
       const t = await tool("anydb_save_agent");
@@ -158,7 +170,7 @@ describe("custom agent authoring tools", () => {
       expect(prompt).not.toMatch(/Name the exact queries/);
       expect(prompt).toMatch(/plain business language/);
       expect(prompt).toMatch(/exact type and cell names/i);
-      expect(t.description).toMatch(/@mention|prompt references/i);
+      expect(t.description).toMatch(/promptReferences/);
     });
   });
 
@@ -175,6 +187,14 @@ describe("custom agent authoring tools", () => {
       expect(result.isError).toBeFalsy();
       expect(seen[0]).toMatchObject({ method: "POST", url: "/api/integrations/ext/agents" });
       expect(seen[0]!.body).toEqual({ ...ids, configuration });
+    });
+
+    it("save forwards prompt references with the prompt that marks them", async () => {
+      const key = "0b8c6a52-3f0e-4c1d-9a55-2f4b7c1e9d10";
+      const withRefs = { ...configuration, prompt: `Email [[ref:${key}]] the report.`, promptReferences: [{ key, kind: "user", userid: "u1", label: "Me" }] };
+      const result = await call("anydb_save_agent", { ...ids, configuration: withRefs });
+      expect(result.isError).toBeFalsy();
+      expect(seen[0]!.body).toEqual({ ...ids, configuration: withRefs });
     });
 
     it("list, get, runs and run read the right routes with only what was asked", async () => {

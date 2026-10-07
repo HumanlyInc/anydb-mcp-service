@@ -33,7 +33,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
     name: "anydb_save_agent",
     description:
       "Create or update a custom workflow agent DRAFT in a workspace. A custom agent is an AI that runs on a trigger, reads data through AnyDB tools, and can only do what its saved scope allows. Omit configuration.id to create; to update pass the id and the version from the last read (a stale version is refused with a conflict, so nothing is overwritten). Saving never runs the agent and never spends AI tokens. Requires workspace admin access and a Business or Enterprise plan. The agent runs as YOU (the saver), with your access. " +
-      "Prompt references (@mentions of people, types, fields and records made in the browser) cannot be set here, and saving from MCP drops any the draft had; write such values as plain text. mutationScope is the whole of what the agent may change or send: fields (writable cell positions), recordIds (records it may target), emailRecipients (who it may email) and artifacts {reports, docgenTemplates} (the only reports and document templates it may email). An agent with no mutationScope can only read. To email a plain-text summary it wrote itself, set emailRecipients; to email a report export set artifacts.reports too (see anydb_email_report for the rules). " +
+      "promptReferences bind a person, record, type or field to the prompt by id, as an @mention does in the browser; send the draft's promptReferences back unchanged when you update it: a prompt that keeps its [[ref:]] markers without them is refused. mutationScope is the whole of what the agent may change or send: fields (writable cell positions), recordIds (records it may target), emailRecipients (who it may email) and artifacts {reports, docgenTemplates} (the only reports and document templates it may email). An agent with no mutationScope can only read. To email a plain-text summary it wrote itself, set emailRecipients; to email a report export set artifacts.reports too (see anydb_email_report for the rules). " +
       lifecycle,
     inputSchema: {
       type: "object",
@@ -50,6 +50,26 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
             version: { type: "integer", minimum: 1, description: "Required with id: the draft version you last read." },
             displayName: { type: "string", maxLength: 200, description: "A short name." },
             prompt: { type: "string", maxLength: 20000, description: "What the agent should do, in plain business language. It may not override the safety contract. The workspace ids and record ids are supplied by the runtime; give the exact type and cell names it should use, what each group or outcome means, how to stop if something fails, and, if it emails, to send exactly once. See the solution guide, Writing the prompt." },
+            promptReferences: {
+              type: "array",
+              maxItems: 50,
+              description:
+                "What the prompt mentions, bound by id (the browser's @mentions). Each entry has a fresh UUID key that appears in the prompt exactly once as [[ref:<key>]] where the mention belongs; every marker needs an entry and every entry a marker. kind user takes userid, record takes adoid, type takes templateId, field takes templateId and position (such as A1), triggering_record takes nothing. label is the text shown for it. Omit when the prompt mentions nothing; on update, send the list from anydb_get_agent back; markers left without their entries are refused with \"Prompt reference markers and unique bindings must match\".",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  key: { type: "string", format: "uuid" },
+                  kind: { type: "string", enum: ["user", "record", "type", "field", "triggering_record"] },
+                  label: { type: "string", maxLength: 200 },
+                  userid: { type: "string" },
+                  adoid: { type: "string" },
+                  templateId: { type: "string" },
+                  position: { type: "string", pattern: "^[A-Z]+[1-9][0-9]*$" },
+                },
+                required: ["key", "kind"],
+              },
+            },
             authoringTrigger: {
               type: "object",
               additionalProperties: false,
