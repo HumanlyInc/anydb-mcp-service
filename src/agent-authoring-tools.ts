@@ -8,7 +8,7 @@ import { toolJson } from "./result-format.js";
  *
  * These are the same operations the browser's Custom Agents tab performs, over the same service, so every
  * rule still applies on the server: workspace admin access, a Business or Enterprise plan, AI credits, and the
- * mandatory exact-revision validation and trial before an agent can be published. They add no capability:
+ * mandatory exact-revision validation before an agent can be published (a trial is optional, ISSUE - 527). They add no capability:
  * what an agent may DO is only what its saved scope allows (recipients, reports, document templates).
  *
  * Not to be confused with the anydb_agent_* tools, which are what a RUNNING agent calls.
@@ -19,7 +19,7 @@ const adbid = { ...id, description: "The workspace (database) ID (MongoDB Object
 const agentid = { type: "string", format: "uuid", description: "The agent id (a UUID), from anydb_list_agents or anydb_save_agent." } as const;
 
 const lifecycle =
-  "Lifecycle: anydb_save_agent (draft) -> anydb_validate_agent -> anydb_test_agent -> anydb_publish_agent, then run or enable it with the workflow tools using the agent's workflowId (anydb_execute_workflow, anydb_update_workflow). Editing any behaviour-changing setting creates a new draft revision that must be validated and tested again.";
+  "Lifecycle: anydb_save_agent (draft) -> anydb_validate_agent -> anydb_publish_agent, then run or enable it with the workflow tools using the agent's workflowId (anydb_execute_workflow, anydb_update_workflow). anydb_test_agent (a preview run that sends and changes nothing) is optional between validate and publish, and worth doing for an agent that emails or changes data. Editing any behaviour-changing setting creates a new draft revision that must be validated again.";
 
 const recipients = {
   type: "array",
@@ -171,7 +171,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_publish_agent",
     description:
-      "Publish a draft so it can run live. Refused unless the SAME revision has a successful user-initiated validation and a successful trial; you cannot supply that proof, the server loads it. version must be the draft's current version (from anydb_get_agent). Publishing does not run the agent and does not start its schedule unless enable is true: without it a new workflow is left disabled and an existing one keeps its state, so nothing is emailed until you start it (enable: true here, or anydb_update_workflow with enabled true) or run it once with anydb_execute_workflow using its workflowId (from anydb_get_agent). Once running, a live run does what the saved scope allows, including emailing the saved recipients.",
+      "Publish a draft so it can run live. Refused unless the SAME revision has a successful user-initiated validation. A test run with anydb_test_agent is optional; one whose expected outcomes did not match still blocks publishing, and one that passed is kept with the publication. You cannot supply the proof, the server loads it. version must be the draft's current version (from anydb_get_agent). Publishing does not run the agent and does not start its schedule unless enable is true: without it a new workflow is left disabled and an existing one keeps its state, so nothing is emailed until you start it (enable: true here, or anydb_update_workflow with enabled true) or run it once with anydb_execute_workflow using its workflowId (from anydb_get_agent). Once running, a live run does what the saved scope allows, including emailing the saved recipients.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
