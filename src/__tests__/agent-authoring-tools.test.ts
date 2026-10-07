@@ -127,6 +127,39 @@ describe("custom agent authoring tools", () => {
       expect(text).toMatch(/validate.*test.*publish/is);
       expect(text).toMatch(/runs as the\s+person who saves/i);
     });
+
+    // ISSUE - 516: what taking a real agent through MCP on Dev1 taught, so the next author does not relearn it.
+    it("the guide says what the runtime supplies, so prompts carry no ids or projection rules", () => {
+      const text = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
+      expect(text).toMatch(/team and workspace ids.*supplied/is);
+      expect(text).toMatch(/record id \(`adoid`\) is added/i);
+      expect(text).toMatch(/exact type and cell names/i);
+    });
+    it("the guide warns that an agent may email more than once and how to prevent it", () => {
+      const text = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
+      expect(text).toMatch(/send the email exactly once/i);
+      expect(text).toMatch(/cannot be taken back/i);
+    });
+    it("the guide says what to do when a validation or test call times out, and how to read a test", () => {
+      const text = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
+      expect(text).toMatch(/time limit.*the run (carries on|continues).*anydb_list_agent_runs/is);
+      expect(text).toMatch(/verified: false/);
+      expect(text).toMatch(/email (text|body)/i);
+    });
+    it("the guide says validation can disagree with itself and that MCP saves drop prompt references", () => {
+      const text = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
+      expect(text).toMatch(/validate again/i);
+      expect(text).toMatch(/same revision/i);
+      expect(text).toMatch(/promptReferences|@mention/i);
+    });
+    it("save_agent no longer asks the author to spell out queries", async () => {
+      const t = await tool("anydb_save_agent");
+      const prompt = t.inputSchema.properties.configuration.properties.prompt.description;
+      expect(prompt).not.toMatch(/Name the exact queries/);
+      expect(prompt).toMatch(/plain business language/);
+      expect(prompt).toMatch(/exact type and cell names/i);
+      expect(t.description).toMatch(/@mention|prompt references/i);
+    });
   });
 
   describe("forwarding", () => {
