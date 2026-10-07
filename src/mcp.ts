@@ -223,7 +223,7 @@ const TOOLS: Tool[] = [
         values: {
           type: "boolean",
           description:
-            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]; a comments cell (such as a Discussion) becomes its thread, [{id, date, text, status, author: {userid, display_name}}] - an empty list means no comments. Use it with fields to read a few cells of many records.",
+            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}], and a group held in it (such as an Assigned Team) is {groupid, group_name}; a comments cell (such as a Discussion) becomes its thread, [{id, date, text, status, author: {userid, display_name}}] - an empty list means no comments. Use it with fields to read a few cells of many records.",
         },
       },
       required: ["teamid", "adbid", "adoid"],
@@ -836,7 +836,7 @@ const TOOLS: Tool[] = [
         filter: {
           type: "array",
           description:
-            "Optional structured filters. With templatename, field may use '{{Field Name}}' and will be resolved to its cell position. Multiple filters are combined by the backend. A date comparison - type meta on created or updated, or a date cell - takes an ISO 8601 string (\"2026-09-21T05:00:00Z\", the format records return those fields in), epoch seconds or milliseconds, or date math such as now-7d/d. eq/neq compare the calendar day; gt/gte/lt/lte compare the instant. A value that is not a date is refused.",
+            "Optional structured filters. With templatename, field may use '{{Field Name}}' and will be resolved to its cell position. Multiple filters are combined by the backend. A date comparison - type meta on created or updated, or a date cell - takes an ISO 8601 string (\"2026-09-21T05:00:00Z\", the format records return those fields in), epoch seconds or milliseconds, or date math such as now-7d/d. eq/neq compare the calendar day; gt/gte/lt/lte compare the instant. A value that is not a date is refused. On a person cell, a user id matches that user and the groups they belong to, \"@me\" stands for the caller (and so their groups too), and \"G@<groupid>\" matches that group directly. isempty / isnotempty test whether a cell has a value; send an empty string as the value.",
           items: {
             type: "object",
             properties: {
@@ -860,6 +860,8 @@ const TOOLS: Tool[] = [
                   "endswith",
                   "includes",
                   "notincludes",
+                  "isempty",
+                  "isnotempty",
                 ],
               },
               value: {},
@@ -1269,7 +1271,7 @@ const TOOLS: Tool[] = [
         values: {
           type: "boolean",
           description:
-            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]; a comments cell (such as a Discussion) becomes its thread, [{id, date, text, status, author: {userid, display_name}}] - an empty list means no comments. Use it with fields to read a few cells of many records.",
+            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}], and a group held in it (such as an Assigned Team) is {groupid, group_name}; a comments cell (such as a Discussion) becomes its thread, [{id, date, text, status, author: {userid, display_name}}] - an empty list means no comments. Use it with fields to read a few cells of many records.",
         },
       },
       required: ["adbid", "teamid", "search"],
@@ -1304,7 +1306,7 @@ const TOOLS: Tool[] = [
         values: {
           type: "boolean",
           description:
-            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}]; a comments cell (such as a Discussion) becomes its thread, [{id, date, text, status, author: {userid, display_name}}] - an empty list means no comments. Use it with fields to read a few cells of many records.",
+            "Optional. true returns each record as {meta, values} where values maps each named cell's key to its value (\"Status\": \"New\"), instead of whole cell objects with their props and formulas - typically 10x smaller. A person cell becomes [{userid, display_name}], and a group held in it (such as an Assigned Team) is {groupid, group_name}; a comments cell (such as a Discussion) becomes its thread, [{id, date, text, status, author: {userid, display_name}}] - an empty list means no comments. Use it with fields to read a few cells of many records.",
         },
       },
       required: ["teamid", "search"],
@@ -2271,7 +2273,9 @@ export function createMcpServer({
                   | "startswith"
                   | "endswith"
                   | "includes"
-                  | "notincludes";
+                  | "notincludes"
+                  | "isempty"
+                  | "isnotempty";
                 value: unknown;
               }>
             | undefined;
