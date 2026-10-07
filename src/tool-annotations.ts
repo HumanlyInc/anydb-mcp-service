@@ -77,6 +77,7 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_validate_agent: adds("Validate agent"),
   anydb_test_agent: adds("Test agent"),
   anydb_publish_agent: replaces("Publish agent"),
+  anydb_delete_agent: replaces("Delete agent"),
   anydb_list_agent_runs: reads("List agent runs"),
   anydb_get_agent_run: reads("Get agent run"),
   anydb_agent_read_record: reads("Read agent record overlay"),
