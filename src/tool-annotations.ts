@@ -222,6 +222,8 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_create_workflow: adds("Create workflow"),
   // Replaces the complete action chain.
   anydb_update_workflow: replaces("Update workflow"),
+  anydb_update_workflow_trigger: replaces("Update workflow trigger"),
+  anydb_delete_workflow: replaces("Delete workflow"),
   // A workflow's actions can write records and send email.
   anydb_execute_workflow: replacesAndReachesOut("Run workflow"),
 

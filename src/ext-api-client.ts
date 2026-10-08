@@ -623,6 +623,15 @@ export interface CreateWorkflowResult {
   validation: { valid: true; errors: [] };
 }
 
+export interface WorkflowAddress {
+  teamid: string;
+  adbid: string;
+  workflowId: string;
+}
+export interface UpdateWorkflowTriggerRequest extends WorkflowAddress {
+  config: Record<string, unknown>;
+}
+
 export interface UpdateWorkflowRequest {
   teamid: string;
   adbid: string;
@@ -1169,6 +1178,28 @@ export class ExtApiClient {
     const response = await this.client.put<
       ExtApiResponse<UpdateWorkflowResult>
     >(`/integrations/ext/workflows/${encodeURIComponent(workflowId)}`, body);
+    return this.unwrap(response.data);
+  }
+
+  async updateWorkflowTrigger(
+    params: UpdateWorkflowTriggerRequest,
+  ): Promise<{ success: true; workflowId: string }> {
+    const { workflowId, ...body } = params;
+    const response = await this.client.put<ExtApiResponse<{ success: true; workflowId: string }>>(
+      `/integrations/ext/workflows/${encodeURIComponent(workflowId)}/trigger`,
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async deleteWorkflow(
+    params: WorkflowAddress,
+  ): Promise<{ success: true; workflowId: string; deleted: true }> {
+    const { workflowId, ...query } = params;
+    const response = await this.client.delete<ExtApiResponse<{ success: true; workflowId: string; deleted: true }>>(
+      `/integrations/ext/workflows/${encodeURIComponent(workflowId)}`,
+      { params: query },
+    );
     return this.unwrap(response.data);
   }
 

@@ -12,6 +12,8 @@ import type {
   RevokeShareRequest,
   UpdateShareRequest,
   UpdateWorkflowRequest,
+  UpdateWorkflowTriggerRequest,
+  WorkflowAddress,
   UpdateTypeRequest,
 } from "./ext-api-client.js";
 import {
@@ -159,8 +161,20 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_update_workflow",
     description:
-      "Update an existing workflow's metadata and/or replace its complete ordered action chain. Call anydb_list_workflow_actions first and follow each action inputSchema.required list plus its contextual guidance. Omit changes.actions to preserve actions. To add, update, remove, or reorder actions, provide the desired final chain using registered action types and symbolic bindings, then execute a simulation to verify it. To revise a script, first read the stored source from anydb_get_workflow at the action_script entry's config.script, review it against the guide's Script Actions rules, and resend the full chain with the corrected config.script; the workflow.script shorthand accepted at creation is not accepted here. Preserve every other action config value and {{trigger.*}} or {{priorActionKey.*}} binding when resending, because an omitted one is dropped. The server revalidates script source and rejects an invalid body.",
+      "For trigger input changes use anydb_update_workflow_trigger; for permanent removal use anydb_delete_workflow. Update an existing workflow's metadata and/or replace its complete ordered action chain. Call anydb_list_workflow_actions first and follow each action inputSchema.required list plus its contextual guidance. Omit changes.actions to preserve actions. To add, update, remove, or reorder actions, provide the desired final chain using registered action types and symbolic bindings, then execute a simulation to verify it. To revise a script, first read the stored source from anydb_get_workflow at the action_script entry's config.script, review it against the guide's Script Actions rules, and resend the full chain with the corrected config.script; the workflow.script shorthand accepted at creation is not accepted here. Preserve every other action config value and {{trigger.*}} or {{priorActionKey.*}} binding when resending, because an omitted one is dropped. The server revalidates script source and rejects an invalid body.",
     inputSchema: updateWorkflowInputSchema as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_update_workflow_trigger",
+    description:
+      "Edit the input settings of an existing workflow trigger without replacing the workflow, trigger ID or action chain. Read anydb_get_workflow first and send its complete trigger.config with your changes; omitted properties are removed. Record triggers use templateName, optional legacy templateId, fieldNames, parentRecordId and filter; other triggers use the native config returned by get_workflow. This does not change trigger type or enable the workflow. Requires workspace update access.",
+    inputSchema: exposedInputSchema("updateWorkflowTriggerInput") as unknown as Tool["inputSchema"],
+  },
+  {
+    name: "anydb_delete_workflow",
+    description:
+      "Permanently delete a workflow by its ID in the specified workspace, including its trigger and actions. Read the workflow first and delete only when requested. To stop it without deleting, use anydb_update_workflow with changes.enabled=false. Requires workspace update access; protected workflows cannot be deleted.",
+    inputSchema: exposedInputSchema("deleteWorkflowInput") as unknown as Tool["inputSchema"],
   },
   {
     name: "anydb_execute_workflow",
@@ -230,7 +244,7 @@ export function isSolutionAuthoringTool(name: string): boolean {
 
 function normalizeStructuredArgument(
   args: Record<string, unknown>,
-  field: "type" | "changes" | "workflow" | "share",
+  field: "type" | "changes" | "workflow" | "share" | "config",
   toolName: string,
 ): Record<string, unknown> {
   const value = args[field];
@@ -294,6 +308,13 @@ export async function callSolutionAuthoringTool(
     result = await client.updateWorkflow(
       normalized as unknown as UpdateWorkflowRequest,
     );
+  } else if (name === "anydb_update_workflow_trigger") {
+    const normalized = normalizeStructuredArgument(args, "config", name);
+    result = await client.updateWorkflowTrigger(
+      normalized as unknown as UpdateWorkflowTriggerRequest,
+    );
+  } else if (name === "anydb_delete_workflow") {
+    result = await client.deleteWorkflow(args as unknown as WorkflowAddress);
   } else if (name === "anydb_execute_workflow") {
     if (!args.workflowId && !args.workflowName) {
       throw new Error(

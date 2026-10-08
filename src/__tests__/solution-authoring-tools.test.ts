@@ -1151,3 +1151,13 @@ describe("solution authoring tools", () => {
     ).rejects.toThrow(/anydb_update_share.changes must be an object/);
   });
 });
+
+it.each([['anydb_update_workflow_trigger', 'updateWorkflowTrigger'], ['anydb_delete_workflow', 'deleteWorkflow']])('exposes and routes %s', async (name, method) => {
+  const tool = SOLUTION_AUTHORING_TOOLS.find(candidate => candidate.name === name);
+  expect(tool).toBeDefined();
+  expect(tool!.inputSchema.required).toEqual(expect.arrayContaining(['teamid', 'adbid', 'workflowId']));
+  const call = jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue({success: true});
+  const args = {teamid: 't', adbid: 'd', workflowId: 'w', ...(name.includes('trigger') ? {config: {fieldNames: ['Date of Loss', 'Address']}} : {})};
+  await callSolutionAuthoringTool(name, args, {[method]: call} as unknown as ExtApiClient);
+  expect(call).toHaveBeenCalledWith(args);
+});
