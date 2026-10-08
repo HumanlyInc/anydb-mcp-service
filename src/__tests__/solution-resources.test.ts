@@ -920,3 +920,12 @@ describe("reactive property guidance (ISSUE - 448)", () => {
     }
   });
 });
+
+ it.each([
+   ["anydb_update_workflow_trigger", "updateWorkflowTriggerInput"],
+   ["anydb_delete_workflow", "deleteWorkflowInput"],
+ ])("resolves the schema resource for %s", (name, definition) => {
+   const schema = JSON.parse(readSolutionResource(SOLUTION_AUTHORING_SCHEMA_URI).text);
+   expect(schema["x-anydb-tool-input-schemas"][name]).toEqual({$ref: `#/$defs/${definition}`});
+   expect(schema.$defs[definition].required).toEqual(expect.arrayContaining(["teamid", "adbid", "workflowId"]));
+ });

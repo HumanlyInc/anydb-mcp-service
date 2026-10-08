@@ -39,6 +39,26 @@ describe("ExtApiClient", () => {
     return `http://127.0.0.1:${address.port}`;
   }
 
+  it("updates trigger config via PUT and deletes via workspace-scoped DELETE", async () => {
+    const received: Array<{method?: string; url?: string; body: string}> = [];
+    const baseURL = await listen((incoming, response) => {
+      let body = "";
+      incoming.on("data", chunk => {body += chunk;});
+      incoming.on("end", () => {
+        received.push({method: incoming.method, url: incoming.url, body});
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({status: "success", data: {success: true, workflowId: "workflow", ...(incoming.method === "DELETE" ? {deleted: true} : {})}}));
+      });
+    });
+    const client = new ExtApiClient({baseURL, apiKey: "test-key", userEmail: "user@example.test"});
+    const address = {teamid: "team", adbid: "database", workflowId: "workflow"};
+    const config = {templateName: "Contact", fieldNames: ["First Name", "Last Name"]};
+    expect(await client.updateWorkflowTrigger({...address, config})).toEqual({success: true, workflowId: "workflow"});
+    expect(await client.deleteWorkflow(address)).toEqual({success: true, workflowId: "workflow", deleted: true});
+    expect(received[0]).toEqual({method: "PUT", url: "/integrations/ext/workflows/workflow/trigger", body: JSON.stringify({teamid: "team", adbid: "database", config})});
+    expect(received[1]).toEqual({method: "DELETE", url: "/integrations/ext/workflows/workflow?teamid=team&adbid=database", body: ""});
+  });
+
   const request: CreateTypeRequest = {
     teamid: "69b42543b78e125defa011d2",
     adbid: "6a7a30bee59ebbded551602f",

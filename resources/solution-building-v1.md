@@ -1399,3 +1399,9 @@ For a multi-type example, an order solution uses three types:
 - `Order`: master type with `Order Number = SEQNUM("Order", 1000)`, an `attachments` field targeting `Order Item`, and locked `Total = IFERROR(SUM(C@CURRREC!N@Order Item!{{Total}}), 0)`.
 
 Create `Product`, then `Order Item`, then `Order`. Finally create a disabled record-update workflow scoped to `Order Item` if status automation is required.
+
+### Editing and removing existing workflows
+
+To change watched fields or other trigger settings, read `anydb_get_workflow`, then call `anydb_update_workflow_trigger` with `teamid`, `adbid`, `workflowId`, and the complete current `trigger.config` with your edits in `config`. Preserve every other property: this replaces the input settings, not a partial merge. The existing trigger type, ID, action chain and enabled state remain unchanged. No replacement workflow is needed.
+
+Use `anydb_delete_workflow` with `teamid`, `adbid`, and `workflowId` for a user-requested permanent deletion. It deletes the workflow and its trigger/actions; to merely stop it, use `anydb_update_workflow` with `changes.enabled: false`. Both operations enforce workspace update access and existing protected-workflow rules.

@@ -1492,6 +1492,51 @@
         }
       },
       "minProperties": 1
+    },
+    "updateWorkflowTriggerInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "teamid",
+        "adbid",
+        "workflowId",
+        "config"
+      ],
+      "properties": {
+        "teamid": {
+          "$ref": "#/$defs/objectId"
+        },
+        "adbid": {
+          "$ref": "#/$defs/objectId"
+        },
+        "workflowId": {
+          "$ref": "#/$defs/objectId"
+        },
+        "config": {
+          "type": "object",
+          "description": "Complete input configuration for the existing trigger. Read current trigger.config and preserve other properties."
+        }
+      }
+    },
+    "deleteWorkflowInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "teamid",
+        "adbid",
+        "workflowId"
+      ],
+      "properties": {
+        "teamid": {
+          "$ref": "#/$defs/objectId"
+        },
+        "adbid": {
+          "$ref": "#/$defs/objectId"
+        },
+        "workflowId": {
+          "$ref": "#/$defs/objectId"
+        }
+      }
     }
   },
   "x-anydb-tool-input-schemas": {
@@ -1528,6 +1573,8 @@
     "anydb_create_workflow": {
       "$ref": "#/$defs/createWorkflowInput"
     },
+    "anydb_update_workflow_trigger": { "$ref": "#/$defs/updateWorkflowTriggerInput" },
+    "anydb_delete_workflow": { "$ref": "#/$defs/deleteWorkflowInput" },
     "anydb_update_workflow": {
       "$ref": "#/$defs/updateWorkflowInput"
     },
