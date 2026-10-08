@@ -132,11 +132,10 @@ describe("view tools", () => {
     expect(filter.description).toContain("`like` is NOT available");
   });
 
-  it("promises update is a merge, because the layout cannot be resent", async () => {
+  it("promises omitted view settings are preserved on update", async () => {
     const tool = await toolNamed("anydb_update_view");
 
-    // Column widths, displayed columns and sort are set in the app and are
-    // not expressible here, so a caller has to know they survive.
+    // Callers must know that omitted settings survive partial updates.
     expect(tool.description).toMatch(/Only the keys you send are changed/i);
     expect(tool.description).toMatch(/column widths/i);
     expect(tool.inputSchema.required).toEqual([
@@ -146,6 +145,28 @@ describe("view tools", () => {
       "name",
       "changes",
     ]);
+  });
+
+  it("advertises calendar layout and date-field configuration for create and update", async () => {
+    for (const [name, parameter] of [["anydb_create_view", "view"], ["anydb_update_view", "changes"]]) {
+      const tool = await toolNamed(name);
+      const fields = tool.inputSchema.properties[parameter].properties;
+      expect(fields.layout.enum).toEqual(["list", "grid", "table", "calendar"]);
+      const calendar = fields.props.properties.CALENDAR_START_FIELD;
+      expect(calendar.type).toBe("string");
+      for (const value of ["meta.created", "meta.updated", "meta.followup", "content.{{Due Date}}", "content.B2", "timeline"]) {
+        expect(calendar.description).toContain(value);
+      }
+      expect(fields.props.description).toMatch(/replaces the whole props map/i);
+    }
+  });
+
+  it("teaches calendar creation and safe props updates in the authoring guide", () => {
+    const guide = readFileSync(resolve(process.cwd(), "resources/solution-building-v1.md"), "utf8");
+    expect(guide).toContain('"layout": "calendar"');
+    expect(guide).toContain('"CALENDAR_START_FIELD": "content.{{Due Date}}"');
+    expect(guide).toMatch(/replaces the whole props map/i);
+    expect(guide).toContain("meta.created");
   });
 
   it("warns that All cannot be deleted, and why", async () => {

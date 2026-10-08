@@ -519,15 +519,54 @@ type it belongs to with `templateName` rather than an id.
 
 - Call `anydb_list_views` for a type before creating one. Names are unique per
   type and a duplicate is rejected, not merged.
-- `anydb_create_view` takes the type and a `view` of `{name, filter, sort}`.
+- `anydb_create_view` takes the type and a `view` of `{name, filter, sort, layout, props}`.
   The name is the label the user will see and click.
 - `anydb_update_view` finds the View by its current `name` and changes only the
-  keys you send. Pass `changes.name` to rename it. Column widths, displayed
-  columns and sort order are set in the app and cannot be sent through this
-  API, so an update preserves them rather than resetting them.
+  keys you send. Pass `changes.name` to rename it. Omitted fields, including column widths,
+  displayed columns, sort, and layout settings, are preserved. Sending `props`
+  replaces the whole props map: read it with `anydb_list_views` and resend
+  existing properties with your edit applied. It is not a deep merge.
 - `anydb_delete_view` is permanent and takes that View's saved columns and sort
   with it. **The `All` View cannot be deleted** — it holds the default sort and
   column layout for the whole listing page.
+
+### Calendar views
+
+A calendar is the same listing View with `layout: "calendar"` and
+`props.CALENDAR_START_FIELD` set. Other supported layouts are `list`, `grid`,
+and `table`. Do not set `type: "calendar"`: `type` is the listing's record
+source, not its visual layout.
+
+For a cell date source, inspect `anydb_get_type_definition` first and choose
+an existing field with `date`, `datetime`, or `timeline` format. Use
+`content.{{Due Date}}` for a named field or `content.B2` for a grid position.
+The metadata alternatives are `meta.created`, `meta.updated`, and
+`meta.followup`. These are paths, not bare filter fields like `{{Due Date}}`.
+A timeline field supplies its date range; do not invent a separate end-field
+property. Records without a usable date cannot be placed on the calendar.
+
+For example, if `Task` has a date field named `Due Date`, call
+`anydb_create_view` with:
+
+```json
+{
+  "teamid": "<team id>",
+  "adbid": "<database id>",
+  "templateName": "Task",
+  "view": {
+    "name": "Task Calendar",
+    "layout": "calendar",
+    "props": { "CALENDAR_START_FIELD": "content.{{Due Date}}" }
+  }
+}
+```
+
+Filters and sorting may be supplied alongside the calendar settings. To change
+an existing View into a calendar, call `anydb_update_view` with its current
+name, `changes.layout: "calendar"`, and the complete `changes.props` map with
+`CALENDAR_START_FIELD` set. Supplying both layout and date source makes the
+calendar ready to use without asking the user to configure the date picker.
+Read the result with `anydb_list_views`, then verify the named tab in AnyDB.
 
 A filter row is `{field, op, type, value, fieldType}`, the same shape the app
 writes:

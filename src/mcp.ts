@@ -309,7 +309,7 @@ const TOOLS: Tool[] = [
   {
     name: "anydb_create_view",
     description:
-      "Create a View on a type's listing page, so a person opening that type in AnyDB sees it next to All. This is what someone means by \"a view showing only X\" - the named filter they can see and click at the top of the type page. View names are unique per type; creating a duplicate name is rejected rather than silently merged.",
+      "Create a View on a type's listing page, so a person opening that type in AnyDB sees it next to All. This is what someone means by \"a view showing only X\" - the named filter they can see and click at the top of the type page. For a calendar view, set view.layout to calendar and view.props.CALENDAR_START_FIELD to a date source. View names are unique per type; creating a duplicate name is rejected rather than silently merged.",
     inputSchema: {
       type: "object",
       properties: {
@@ -327,6 +327,22 @@ const TOOLS: Tool[] = [
               type: "string",
               description:
                 "View label, shown to the user. Unique within the type. \"All\" already exists and is the default View.",
+            },
+            layout: {
+              type: "string",
+              enum: ["list", "grid", "table", "calendar"],
+              description: "View layout. For a calendar, also set props.CALENDAR_START_FIELD to the date field used to place records.",
+            },
+            props: {
+              type: "object",
+              description: "Layout settings. On update, sending props replaces the whole props map: call anydb_list_views first and resend existing props with your changes applied. Omit props to preserve it.",
+              properties: {
+                CALENDAR_START_FIELD: {
+                  type: "string",
+                  description: "Calendar date source: meta.created, meta.updated, meta.followup, content.{{Due Date}} for a named cell, or content.B2 for a grid position. Inspect the type definition first; the cell must have date, datetime, or timeline format. This is a path, not a filter expression. Supply it with layout calendar to avoid the date-picker setup dialog.",
+                },
+              },
+              additionalProperties: true,
             },
             filter: {
               type: "array",
@@ -349,7 +365,7 @@ const TOOLS: Tool[] = [
   {
     name: "anydb_update_view",
     description:
-      "Change an existing View, found by its current name. Only the keys you send are changed - the View's column widths, displayed columns and sort are preserved, which matters because those are set in the app and cannot be sent through this API. Pass changes.name to rename it.",
+      "Change an existing View, found by its current name. Only the keys you send are changed - omitted column widths, displayed columns, sort and layout settings are preserved. Use changes.layout and changes.props.CALENDAR_START_FIELD to configure a calendar; sending props replaces the whole map, so read and retain existing props first. Pass changes.name to rename it.",
     inputSchema: {
       type: "object",
       properties: {
@@ -366,9 +382,25 @@ const TOOLS: Tool[] = [
         changes: {
           type: "object",
           description:
-            "Fields to change. Supply name to rename, filter to replace the filter rows, sort to replace the sort. Anything you omit is kept.",
+            "Fields to change. Supply name to rename, filter to replace the filter rows, sort to replace the sort, layout to select calendar/list/grid/table, or props to replace layout settings. Anything you omit is kept; props is replaced, not deep-merged.",
           properties: {
             name: { type: "string" },
+            layout: {
+              type: "string",
+              enum: ["list", "grid", "table", "calendar"],
+              description: "View layout. For a calendar, also set props.CALENDAR_START_FIELD to the date field used to place records.",
+            },
+            props: {
+              type: "object",
+              description: "Layout settings. On update, sending props replaces the whole props map: call anydb_list_views first and resend existing props with your changes applied. Omit props to preserve it.",
+              properties: {
+                CALENDAR_START_FIELD: {
+                  type: "string",
+                  description: "Calendar date source: meta.created, meta.updated, meta.followup, content.{{Due Date}} for a named cell, or content.B2 for a grid position. Inspect the type definition first; the cell must have date, datetime, or timeline format. This is a path, not a filter expression. Supply it with layout calendar to avoid the date-picker setup dialog.",
+                },
+              },
+              additionalProperties: true,
+            },
             filter: {
               type: "array",
               description: "Filter rows, same shape the app writes. Each is {field, op, type, value, fieldType}. `field` uses {{Field Key}} for a cell (e.g. \"{{Status}}\"). `op` is one of eq, neq, gt, lt, gte, lte, startswith, endswith, contains - note `like` is NOT available, because the listing page cannot run it. `type` is cell, meta or badge. `fieldType` is the field's format, e.g. \"select\". An `id` is generated for you if you omit it.",
