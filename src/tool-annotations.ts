@@ -63,6 +63,18 @@ const addsAndReachesOut = (title: string): ToolAnnotations => ({
   openWorldHint: true,
 });
 
+/**
+ * Sends email to people outside the workspace. ISSUE - 564: a sent email
+ * cannot be recalled, so it is destructive (hard to reverse) as well as
+ * open-world, even though nothing stored in AnyDB is replaced.
+ */
+const sendsEmail = (title: string): ToolAnnotations => ({
+  title,
+  readOnlyHint: false,
+  destructiveHint: true,
+  openWorldHint: true,
+});
+
 /** Adds a public link that anyone outside the workspace can open. */
 const publishes = (title: string): ToolAnnotations => ({
   title,
@@ -88,8 +100,8 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_agent_update_fields: replaces("Update scoped agent fields"),
   anydb_agent_set_cell_lock: replaces("Set scoped agent cell lock"),
   anydb_agent_send_email: replacesAndReachesOut("Send scoped agent email"),
-  anydb_agent_email_report: addsAndReachesOut("Email scoped report export"),
-  anydb_agent_email_document: addsAndReachesOut("Email scoped rendered document"),
+  anydb_agent_email_report: sendsEmail("Email scoped report export"),
+  anydb_agent_email_document: sendsEmail("Email scoped rendered document"),
   anydb_agent_create_record: { title: "Create scoped agent child record", readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   // Guides and identity
   anydb_get_setup_guide: reads("Get setup guide"),
@@ -183,7 +195,7 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_get_report_result: reads("Get report result"),
   anydb_export_report: reads("Export report"),
   // ISSUE - 501. Reads a snapshot and emails it to people outside the workspace.
-  anydb_email_report: addsAndReachesOut("Email report"),
+  anydb_email_report: sendsEmail("Email report"),
   anydb_delete_report: replaces("Delete report"),
 
   // Document generation

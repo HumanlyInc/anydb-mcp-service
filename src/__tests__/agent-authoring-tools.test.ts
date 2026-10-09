@@ -79,7 +79,7 @@ describe("custom agent authoring tools", () => {
 
     it("validate and test warn that they spend real AI tokens", async () => {
       for (const name of ["anydb_validate_agent", "anydb_test_agent"]) {
-        expect((await tool(name)).description).toMatch(/SPENDS REAL AI TOKENS/);
+        expect((await tool(name)).description).toMatch(/spends real AI tokens/i);
       }
       expect((await tool("anydb_test_agent")).description).toMatch(/nothing is sent/);
     });
@@ -109,14 +109,27 @@ describe("custom agent authoring tools", () => {
       expect(scope.additionalProperties).toBe(false);
       expect(scope.properties.emailRecipients).toMatchObject({ type: "array", maxItems: 25 });
       expect(scope.properties.artifacts.properties.reports.maxItems).toBe(10);
-      expect(t.description).toMatch(/runs as YOU/);
+      expect(t.description).toMatch(/runs as you/i);
       expect(t.description).toMatch(/Lifecycle:/);
+    });
+
+    // ISSUE - 564: OpenAI's scan held these four with "This tool's description appears missing, blank, or
+    // unclear", while list/get/delete agent, which say plainly what they do, passed. Each now opens with a
+    // sentence saying what an AnyDB agent is, and none shouts in capitals. The facts the other tests pin
+    // (spends AI tokens, the proof cannot be supplied, the test is optional) are kept, only reworded.
+    it("the authoring tools open with a plain sentence about AnyDB agents and do not shout", async () => {
+      for (const name of ["anydb_save_agent", "anydb_validate_agent", "anydb_test_agent", "anydb_publish_agent"]) {
+        const description: string = (await tool(name)).description;
+        const firstSentence = description.split(/\.\s/)[0];
+        expect([name, firstSentence]).toEqual([name, expect.stringMatching(/AnyDB agent/)]);
+        expect([name, description.match(/\b[A-Z]{4,}\b/g)]).toEqual([name, null]);
+      }
     });
 
     // ISSUE - 527: a passing validation is enough to publish; the test is optional.
     it("publish needs only a validation, and every place that describes the lifecycle says the test is optional", async () => {
       const publish = await tool("anydb_publish_agent");
-      expect(publish.description).toMatch(/Refused unless the SAME revision has a successful user-initiated validation\./);
+      expect(publish.description).toMatch(/Refused unless the same revision has a successful user-initiated validation\./i);
       expect(publish.description).not.toMatch(/and a successful trial/);
       expect(publish.description).toMatch(/anydb_test_agent is optional/i);
       const save = await tool("anydb_save_agent");
