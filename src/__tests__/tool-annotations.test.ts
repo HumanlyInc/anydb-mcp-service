@@ -134,9 +134,39 @@ describe("tool annotations", () => {
     });
   });
 
-  it("treats a script simulation as read-only, since its writes are suppressed", async () => {
+  // ISSUE - 564: OpenAI rejected plugin v2.0.0 because "one or more" tool's
+  // annotations did not match its behavior. A simulation suppresses writes and
+  // email, but it still executes caller-supplied code and issues a runToken
+  // that authorizes the real run, so it is not presented as read-only. Owner
+  // decision 2026-10-09; do not flip this back to readOnlyHint: true.
+  it("does not treat a script simulation as read-only", async () => {
     expect(await annotationsOf("anydb_simulate_script")).toMatchObject({
-      readOnlyHint: true,
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: false,
     });
+  });
+
+  // ISSUE - 564: these tools set up or change automation that later runs
+  // unattended, and a workflow's or agent's actions can send email and run
+  // scripts. That effect leaves the workspace, the same rule that makes
+  // anydb_execute_workflow open-world.
+  it("marks tools that set up or change unattended automation as open-world", async () => {
+    expect(await annotationsOf("anydb_create_workflow")).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: true,
+    });
+    for (const name of [
+      "anydb_update_workflow",
+      "anydb_update_workflow_trigger",
+      "anydb_publish_agent",
+    ]) {
+      expect(await annotationsOf(name)).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+      });
+    }
   });
 });

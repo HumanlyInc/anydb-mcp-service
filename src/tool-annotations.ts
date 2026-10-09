@@ -52,7 +52,10 @@ const replacesAndReachesOut = (title: string): ToolAnnotations => ({
   openWorldHint: true,
 });
 
-/** Adds something new, but the effect reaches people outside the workspace (email). */
+/**
+ * Adds something new, but the effect reaches people outside the workspace:
+ * email now, or automation that can send email later.
+ */
 const addsAndReachesOut = (title: string): ToolAnnotations => ({
   title,
   readOnlyHint: false,
@@ -76,7 +79,8 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_get_agent: reads("Get agent"),
   anydb_validate_agent: adds("Validate agent"),
   anydb_test_agent: adds("Test agent"),
-  anydb_publish_agent: replaces("Publish agent"),
+  // ISSUE - 564: with enable: true this starts the agent's schedule, and an agent can send email.
+  anydb_publish_agent: replacesAndReachesOut("Publish agent"),
   anydb_delete_agent: replaces("Delete agent"),
   anydb_list_agent_runs: reads("List agent runs"),
   anydb_get_agent_run: reads("Get agent run"),
@@ -219,18 +223,23 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_get_workflow_execution_history: reads("Get workflow run history"),
   anydb_list_workflow_triggers: reads("List workflow triggers"),
   anydb_list_workflow_actions: reads("List workflow actions"),
-  anydb_create_workflow: adds("Create workflow"),
+  // ISSUE - 564: a workflow runs unattended once enabled, and its actions can
+  // send email and run scripts, so setting one up or changing what it does or
+  // when it fires reaches outside the workspace.
+  anydb_create_workflow: addsAndReachesOut("Create workflow"),
   // Replaces the complete action chain.
-  anydb_update_workflow: replaces("Update workflow"),
-  anydb_update_workflow_trigger: replaces("Update workflow trigger"),
+  anydb_update_workflow: replacesAndReachesOut("Update workflow"),
+  anydb_update_workflow_trigger: replacesAndReachesOut("Update workflow trigger"),
   anydb_delete_workflow: replaces("Delete workflow"),
   // A workflow's actions can write records and send email.
   anydb_execute_workflow: replacesAndReachesOut("Run workflow"),
 
   // Scripts
   anydb_validate_script: reads("Validate script"),
-  // Reads are real; every write is suppressed and reported as intent.
-  anydb_simulate_script: reads("Simulate script"),
+  // Reads are real; every write and email is suppressed and reported as
+  // intent. ISSUE - 564: not read-only all the same, because it executes the
+  // caller's code and issues a runToken that authorizes the real run.
+  anydb_simulate_script: adds("Simulate script"),
   anydb_run_script: replacesAndReachesOut("Run script"),
 };
 
