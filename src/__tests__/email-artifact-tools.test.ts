@@ -95,7 +95,8 @@ describe("email on report export and document generation", () => {
       expect(t.inputSchema.properties.format.enum).toEqual(["csv", "xlsx"]);
       expect(t.inputSchema.properties.to).toMatchObject({ type: "array", minItems: 1, maxItems: 25 });
       expect(t.inputSchema.properties.note.maxLength).toBe(2000);
-      expect(t.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
+      // ISSUE - 564: a sent email cannot be recalled, so OpenAI held this tool while it said destructiveHint: false.
+      expect(t.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
     });
 
     it("anydb_email_report's description states every limit an LLM must respect", async () => {
@@ -327,7 +328,8 @@ describe("email on report export and document generation", () => {
         attachment: { type: "object" },
         note: { type: "string" },
       });
-      expect(t.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, openWorldHint: true });
+      // ISSUE - 564: sending cannot be undone, so the email tools are destructive as well as open-world.
+      expect(t.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
       expect(t.description).toMatch(/cannot attach anything else or write the message/);
       expect(t.description).toMatch(/simulated/);
       expect(t.description).toMatch(/nothing is sent/);

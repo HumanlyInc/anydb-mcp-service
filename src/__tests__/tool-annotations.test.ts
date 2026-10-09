@@ -169,4 +169,16 @@ describe("tool annotations", () => {
       });
     }
   });
+
+  // ISSUE - 564: OpenAI held both email tools with "marked destructiveHint: false, but its behavior appears to
+  // cause material loss or a hard-to-reverse change". A sent email cannot be recalled, the same reason
+  // anydb_agent_send_email is already destructive.
+  it("marks tools that send email destructive as well as open-world", async () => {
+    for (const name of ["anydb_email_report", "anydb_agent_email_report", "anydb_agent_email_document", "anydb_agent_send_email"]) {
+      expect([name, await annotationsOf(name)]).toEqual([
+        name,
+        expect.objectContaining({ readOnlyHint: false, destructiveHint: true, openWorldHint: true }),
+      ]);
+    }
+  });
 });
