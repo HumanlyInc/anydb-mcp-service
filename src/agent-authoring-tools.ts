@@ -98,6 +98,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
                   properties: {
                     reports: { type: "array", maxItems: 10, items: { type: "string" }, description: "Report ids, from anydb_list_reports." },
                     docgenTemplates: { type: "array", maxItems: 10, items: { type: "string" }, description: "Document template ids, from anydb_list_docgen_templates." },
+                    readReports: { type: "array", maxItems: 10, items: { type: "string" }, description: "Optional. Report ids, from anydb_list_reports. Leave out to let the agent run and read any report its owner can read; set, they are the only reports it may run and read. A simulation does not run a report; it reads the latest result. Use a report's own totals instead of asking the agent to count records." },
                   },
                 },
                 maxEmails: { type: "integer", minimum: 1, maximum: 100, description: "The most emails the agent may send in one run. The run stops before the next one. Omit for no cap beyond the run's tool-call limit." },
