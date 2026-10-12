@@ -112,6 +112,9 @@ describe("custom agent authoring tools", () => {
       expect(scope.additionalProperties).toBe(false);
       expect(scope.properties.emailRecipients).toMatchObject({ type: "array", maxItems: 25 });
       expect(scope.properties.artifacts.properties.reports.maxItems).toBe(10);
+      // ISSUE - 592: the reports an agent may run and read.
+      expect(scope.properties.artifacts.properties.readReports).toMatchObject({ type: "array", maxItems: 10 });
+      expect(scope.properties.artifacts.properties.readReports.description).toMatch(/run and read/i);
       // ISSUE - 588: caps for one run.
       expect(scope.properties.maxEmails).toMatchObject({ type: "integer", minimum: 1, maximum: 100 });
       expect(scope.properties.maxRecordChanges).toMatchObject({ type: "integer", minimum: 1, maximum: 100 });
