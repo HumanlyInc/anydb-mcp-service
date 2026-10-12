@@ -847,6 +847,12 @@ What still belongs in the prompt:
   follow-up email. An email cannot be taken back; without this a model that notices a mistake sends a second and a
   third copy. Ask it to check the text once before sending.
 - How to stop when something fails: "stop and send nothing" is the safe default.
+- A catch-all for anything that sorts or routes items into groups: an item that fits none of the stated groups (for
+  example an issue that is In Progress with nobody assigned) should go under "Other" by its name. Validation checks
+  the prompt, not your data, so a gap in the rules shows up only when the agent reads a record that falls into it.
+  Without a catch-all, `uncoveredCases` decides: `stop` ends the run with a question and notifies the owner,
+  `continue` lists the item under "Other" and says so. An agent that changes records stops by default; one that only
+  reads and emails continues. Run a test on real data before the first scheduled run of an agent that reads records.
 
 The browser lets a prompt mention a person, a record type, a field or a record (`@` and the + button); those are
 saved as `promptReferences`, and `anydb_save_agent` takes the same list. Each reference has a fresh UUID `key` that

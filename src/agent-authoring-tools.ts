@@ -105,6 +105,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
               required: ["fields", "emailRecipients"],
             },
             requiredTools: { type: "array", maxItems: 20, items: { type: "string" }, description: "Tools the agent must have; validation fails if one is unsupported." },
+            uncoveredCases: { type: "string", enum: ["stop", "continue"], description: "What the agent does with a case its instructions do not cover, such as a record that fits none of its groups. stop: it stops with a specific question and sends nothing, and the owner is told. continue: it shows that item under 'Other' (or in a note), by name, and says in its summary that the instructions did not cover it. When omitted, an agent that may change or create records stops, and one that only reads and emails continues. Deciding an amount, a threshold, a recipient or an identity always stops." },
             limits: {
               type: "object",
               additionalProperties: false,

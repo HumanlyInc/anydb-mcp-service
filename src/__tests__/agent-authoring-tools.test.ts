@@ -99,11 +99,14 @@ describe("custom agent authoring tools", () => {
       const config = t.inputSchema.properties.configuration;
       expect(config.additionalProperties).toBe(false);
       expect(Object.keys(config.properties).sort()).toEqual(
-        ["authoringTrigger", "displayName", "id", "limits", "mutationScope", "prompt", "promptReferences", "requiredTools", "version"].sort(),
+        ["authoringTrigger", "displayName", "id", "limits", "mutationScope", "prompt", "promptReferences", "requiredTools", "uncoveredCases", "version"].sort(),
       );
       for (const forbidden of ["executionUserId", "model", "mode", "teamid", "adbid", "trigger"]) {
         expect(config.properties).not.toHaveProperty(forbidden);
       }
+      // ISSUE - 582: what the agent does with a case its instructions do not cover is the author's choice.
+      expect(config.properties.uncoveredCases).toMatchObject({ type: "string", enum: ["stop", "continue"] });
+      expect(config.properties.uncoveredCases.description).toMatch(/does not cover|do not cover/i);
       expect(config.required).toEqual(["prompt"]);
       const scope = config.properties.mutationScope;
       expect(scope.additionalProperties).toBe(false);
