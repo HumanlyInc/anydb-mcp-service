@@ -33,7 +33,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
     name: "anydb_save_agent",
     description:
       "Save a draft of an AnyDB agent: an AI assistant in a workspace that runs on a trigger or schedule, reads data through AnyDB tools, and can only change or send what its saved scope allows. Omit configuration.id to create a draft; to update one, pass its id and the version from your last read (a stale version is refused with a conflict, so nothing is overwritten). Saving never runs the agent and never spends AI tokens. Requires workspace admin access and a Business or Enterprise plan. The agent runs as you (the person who saves it), with your access. " +
-      "promptReferences bind a person, record, type or field to the prompt by id, as an @mention does in the browser; send the draft's promptReferences back unchanged when you update it: a prompt that keeps its [[ref:]] markers without them is refused. mutationScope is the whole of what the agent may change or send: fields (writable cell positions), recordIds (records it may target), emailRecipients (who it may email) and artifacts {reports, docgenTemplates} (the only reports and document templates it may email). An agent with no mutationScope can only read. To email a plain-text summary it wrote itself, set emailRecipients; to email a report export set artifacts.reports too (see anydb_email_report for the rules). " +
+      "promptReferences bind a person, record, type or field to the prompt by id, as an @mention does in the browser; send the draft's promptReferences back unchanged when you update it: a prompt that keeps its [[ref:]] markers without them is refused. mutationScope is the whole of what the agent may change or send: fields (writable cell positions), recordIds (records it may target), emailRecipients (who it may email) and artifacts {reports, docgenTemplates} (the only reports and document templates it may email). An agent with no mutationScope can only read, so when you update a draft send the draft's mutationScope back unchanged: a save that leaves it out removes it, and the response then carries a mutation_scope_removed warning. To email a plain-text summary it wrote itself, set emailRecipients; to email a report export set artifacts.reports too (see anydb_email_report for the rules). " +
       lifecycle,
     inputSchema: {
       type: "object",
@@ -86,7 +86,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
             mutationScope: {
               type: "object",
               additionalProperties: false,
-              description: "What the agent may change or send. Omit for a read-only agent.",
+              description: "What the agent may change or send. Omit for a read-only agent. Omitting it on a save removes the saved scope.",
               properties: {
                 fields: { type: "array", maxItems: 100, items: { type: "string", pattern: "^[A-Z]+[1-9][0-9]*$" }, description: "Writable cell positions such as A1. [] = none." },
                 emailRecipients: recipients,

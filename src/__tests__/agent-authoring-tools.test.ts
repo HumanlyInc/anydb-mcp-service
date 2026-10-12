@@ -195,6 +195,14 @@ describe("custom agent authoring tools", () => {
       expect(refs.items.required).toEqual(["key", "kind"]);
       expect(refs.description).toContain("[[ref:");
     });
+    // ISSUE - 590: a save that leaves mutationScope out removes it; the description must say to send it back, and the schema must say what an omission means.
+    it("save_agent tells the author to send the saved scope back, because leaving it out removes it", async () => {
+      const t = await tool("anydb_save_agent");
+      expect(t.description).toMatch(/send the draft's mutationScope back unchanged/);
+      expect(t.description).toMatch(/mutation_scope_removed/);
+      const scope = t.inputSchema.properties.configuration.properties.mutationScope;
+      expect(scope.description).toMatch(/Omitting it on a save removes the saved scope/);
+    });
     it("save_agent no longer asks the author to spell out queries", async () => {
       const t = await tool("anydb_save_agent");
       const prompt = t.inputSchema.properties.configuration.properties.prompt.description;
