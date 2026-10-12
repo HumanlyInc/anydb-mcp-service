@@ -100,6 +100,8 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
                     docgenTemplates: { type: "array", maxItems: 10, items: { type: "string" }, description: "Document template ids, from anydb_list_docgen_templates." },
                   },
                 },
+                maxEmails: { type: "integer", minimum: 1, maximum: 100, description: "The most emails the agent may send in one run. The run stops before the next one. Omit for no cap beyond the run's tool-call limit." },
+                maxRecordChanges: { type: "integer", minimum: 1, maximum: 100, description: "The most record changes (field updates, cell locks, created records) the agent may make in one run. The run stops before the next one. Omit for no cap beyond the run's tool-call limit." },
                 createRecords: { type: "array", maxItems: 10, description: "Rules for the typed child records the agent may create (advanced; see the authoring guide).", items: { type: "object", additionalProperties: true } },
               },
               required: ["fields", "emailRecipients"],
