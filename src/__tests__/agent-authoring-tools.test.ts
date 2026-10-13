@@ -360,6 +360,13 @@ describe("custom agent authoring tools", () => {
       expect(scope.allowExternalFreeTextEmail.description).toMatch(/default off/i);
     });
 
+    it("the saved scope offers allowComments, off unless set (ISSUE - 592)", async () => {
+      const scope = (await tool("anydb_save_agent")).inputSchema.properties.configuration.properties.mutationScope.properties;
+      expect(scope.allowComments).toMatchObject({ type: "boolean" });
+      expect(scope.allowComments.description).toMatch(/default off/i);
+      expect(scope.allowComments.description).toMatch(/mention/i);
+    });
+
     // ISSUE - 516: delete takes the current version, sends it as a query, and says what it keeps.
     it("delete sends DELETE with the version, and its description says what goes and what stays", async () => {
       const result = await call("anydb_delete_agent", { ...ids, agentid, version: 3 });

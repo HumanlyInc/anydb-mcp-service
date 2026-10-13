@@ -102,6 +102,8 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_agent_send_email: replacesAndReachesOut("Send scoped agent email"),
   anydb_agent_email_report: sendsEmail("Email scoped report export"),
   anydb_agent_email_document: sendsEmail("Email scoped rendered document"),
+  // ISSUE - 592: a mention in the comment notifies a person, so it reaches outside the workspace like an email does.
+  anydb_agent_add_comment: replacesAndReachesOut("Post scoped agent comment"),
   anydb_agent_create_record: { title: "Create scoped agent child record", readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   // Guides and identity
   anydb_get_setup_guide: reads("Get setup guide"),

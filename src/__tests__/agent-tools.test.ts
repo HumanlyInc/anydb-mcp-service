@@ -22,9 +22,21 @@ it("carries capability only in authenticated HTTP header and returns structured 
  expect(JSON.stringify(logs.mock.calls)).not.toContain("synthetic-secret");
 });
 it("advertises narrow operations and rejects caller mode and identity injection",async()=>{
- const tools=await client.listTools();expect(tools.tools.filter(t=>t.name.startsWith("anydb_agent_")).map(t=>t.name)).toEqual(["anydb_agent_read_record","anydb_agent_update_fields","anydb_agent_set_cell_lock","anydb_agent_send_email","anydb_agent_create_record","anydb_agent_email_report","anydb_agent_email_document"]);
+ const tools=await client.listTools();expect(tools.tools.filter(t=>t.name.startsWith("anydb_agent_")).map(t=>t.name)).toEqual(["anydb_agent_read_record","anydb_agent_update_fields","anydb_agent_set_cell_lock","anydb_agent_send_email","anydb_agent_create_record","anydb_agent_email_report","anydb_agent_email_document","anydb_agent_add_comment"]);
  const result=await client.callTool({name:"anydb_agent_send_email",arguments:{teamid:"t",adbid:"d",runId:"run",operationId:"op",simulate:false,input:{adoid:"r",expectedRevision:"v",to:["recipient@example.invalid"],subject:"Hello",body:"World"}}});
  expect(result.isError).toBe(true);expect(seen).toEqual([]);
+});
+
+it("exposes add_comment through the operation route with a record id and text, no revision, and no identity injection",async()=>{
+ const args={teamid:"t",adbid:"d",runId:"run",operationId:"op",input:{adoid:"rec",text:"Checked by [Ada](user://u1)."}};
+ const result=await client.callTool({name:"anydb_agent_add_comment",arguments:args});expect(result.isError).toBeFalsy();
+ expect(seen[0].body).toEqual({...args,kind:"add_comment"});expect(seen[0].headers["x-anydb-agent-capability"]).toBe("synthetic-secret");
+ const tool=(await client.listTools()).tools.find(t=>t.name==="anydb_agent_add_comment")!;
+ expect(Object.keys((tool.inputSchema.properties as any).input.properties).sort()).toEqual(["adoid","text"]);
+ expect((tool.inputSchema.properties as any).input.required).toEqual(["adoid","text"]);
+ const withRevision=await client.callTool({name:"anydb_agent_add_comment",arguments:{...args,input:{...args.input,expectedRevision:"v"}}});expect(withRevision.isError).toBe(true);
+ const injected=await client.callTool({name:"anydb_agent_add_comment",arguments:{...args,executionUserId:"admin"}});expect(injected.isError).toBe(true);
+ expect(seen).toHaveLength(1);
 });
 
 it("advertises owning record name and type metadata for authoritative task checks",async()=>{
