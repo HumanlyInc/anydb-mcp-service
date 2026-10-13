@@ -852,7 +852,7 @@ const TOOLS: Tool[] = [
         pagesize: {
           type: "string",
           description:
-            "Optional page size to limit the number of records returned (numeric string, e.g., '50'). Useful for pagination with large result sets.",
+            "Optional page size (numeric string, e.g., '50'). Default 25, at most 100: a larger value is capped at 100, not rejected. The page size actually applied is returned as `pagesize` in the response; when it is below what you asked for, keep paging with lastmarker.",
         },
         lastmarker: {
           type: "string",
