@@ -19,7 +19,7 @@ const adbid = { ...id, description: "The workspace (database) ID (MongoDB Object
 const agentid = { type: "string", format: "uuid", description: "The agent id (a UUID), from anydb_list_agents or anydb_save_agent." } as const;
 
 const lifecycle =
-  "Lifecycle: anydb_save_agent (draft) -> anydb_validate_agent -> anydb_publish_agent, then run or enable it with the workflow tools using the agent's workflowId (anydb_execute_workflow, anydb_update_workflow). anydb_test_agent (a preview run that sends and changes nothing) is optional between validate and publish, and worth doing for an agent that emails or changes data. Editing any behaviour-changing setting creates a new draft revision that must be validated again.";
+  "Lifecycle: anydb_save_agent (draft) -> anydb_validate_agent -> anydb_publish_agent, then run or enable it with the workflow tools using the agent's workflowId (anydb_execute_workflow, anydb_update_workflow). To make an agent a capability that is run only when asked, give it trigger_manual, publish it, and call anydb_execute_workflow with workflowName set to the agent's name (or its workflowId) each time; read what it did with anydb_get_agent_run and the runId in the answer. A caller passes no inputs, so put everything the agent needs in its prompt. anydb_test_agent (a preview run that sends and changes nothing) is optional between validate and publish, and worth doing for an agent that emails or changes data. Editing any behaviour-changing setting creates a new draft revision that must be validated again.";
 
 const recipients = {
   type: "array",
