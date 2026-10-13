@@ -77,3 +77,27 @@ export const slimBulkCreateResult = (value: unknown, origin?: string): unknown =
     }),
   };
 };
+
+/** ISSUE - 629. A waited report run above this many characters loses its inline detail rows. */
+export const REPORT_RUN_INLINE_LIMIT = 40_000;
+
+/**
+ * ISSUE - 629. A waited anydb_run_report answers with the whole result, and
+ * groupDetailsPages (the first detail rows of every group) is most of it: 109k
+ * of 160k characters for a report of 549 records. Clients refuse a result that
+ * size, and a custom agent's run fails on it. When the answer is large the
+ * detail rows are left out and the answer says how to read them; small
+ * reports are returned unchanged.
+ */
+export const slimReportRunResult = (value: unknown): unknown => {
+  const payload = value as { result?: { groupDetailsPages?: unknown } } | null;
+  if (!payload?.result || payload.result.groupDetailsPages === undefined) return value;
+  if (JSON.stringify(value).length <= REPORT_RUN_INLINE_LIMIT) return value;
+  const { groupDetailsPages: _details, ...result } = payload.result;
+  return {
+    ...payload,
+    result,
+    detailsOmitted:
+      "The report is large, so its detail rows are not included. Read one group's rows with anydb_get_report_result using groupIndex, start and limit."
+  };
+};
