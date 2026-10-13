@@ -18,7 +18,7 @@ import { unknownArgumentsError } from "./tool-arguments.js";
 import { config } from "./config.js";
 import { ExtApiClient, FILE_TEMPLATE_ADOID } from "./ext-api-client.js";
 import { normalizeRecordContent } from "./record-update.js";
-import { slimBulkCreateResult, toolJson } from "./result-format.js";
+import { slimBulkCreateResult, slimReportRunResult, toolJson } from "./result-format.js";
 import {
   callSolutionAuthoringTool,
   isSolutionAuthoringTool,
@@ -1567,7 +1567,7 @@ const TOOLS: Tool[] = [
   {
     name: "anydb_run_report",
     description:
-      "Run a saved report - what a user's Run click in the Reports tab does. The report is computed by a background job: the answer carries jobId and status (queued | running | ready | failed). Pass waitSeconds (up to 60) to wait for the snapshot; when it finishes in time the answer also carries result, the same page anydb_get_report_result returns. Otherwise poll anydb_get_report_result until its manifest.status is ready. Running replaces the report's previous snapshot.",
+      "Run a saved report - what a user's Run click in the Reports tab does. The report is computed by a background job: the answer carries jobId and status (queued | running | ready | failed). Pass waitSeconds (up to 60) to wait for the snapshot; when it finishes in time the answer also carries result, the same page anydb_get_report_result returns (for a large report the detail rows are left out and detailsOmitted says how to read them). Otherwise poll anydb_get_report_result until its manifest.status is ready. Running replaces the report's previous snapshot.",
     inputSchema: {
       type: "object",
       properties: {
@@ -3046,7 +3046,7 @@ export function createMcpServer({
             waitSeconds: args?.waitSeconds as number | undefined,
           });
           return {
-            content: [{ type: "text", text: toolJson(result, extApiClient.getOriginClient()) }],
+            content: [{ type: "text", text: toolJson(slimReportRunResult(result), extApiClient.getOriginClient()) }],
           };
         }
 
