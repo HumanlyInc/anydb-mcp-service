@@ -198,7 +198,7 @@ const TOOLS: Tool[] = [
   {
     name: "get_record",
     description:
-      "Get a specific AnyDB record by its fully qualified address (teamid, adbid, adoid). A whole record is tens of KB (its dependency graph, permissions and every cell with its props); pass fields, and values: true, to read only the cells you need.",
+      "Get a specific AnyDB record by its fully qualified address (teamid, adbid, adoid). A whole record is tens of KB (its dependency graph, permissions and every cell with its props). ALWAYS pass fields and values: true to read only the cells you need; omit them only when you must see a cell's props or formulas.",
     inputSchema: {
       type: "object",
       properties: {
@@ -827,7 +827,7 @@ const TOOLS: Tool[] = [
   {
     name: "list_records",
     description:
-      "List ADOs (records) in a database. Use parentid with a normal record ID to list its children. You can also filter directly by template and use pagination for large result sets. Pass fields (e.g. [\"adoid\",\"name\"]) to get only those keys per record: a full record header is a few KB and a hundred of them exceed the response cap.",
+      "List ADOs (records) in a database. Use parentid with a normal record ID to list its children. You can also filter directly by template and use pagination for large result sets. Pass fields (e.g. [\"adoid\",\"name\"]) to get only those keys per record: a full record header is a few KB and a hundred of them exceed the response cap. ALWAYS pass fields; to read cell values of the listed records use search_records with fields and values: true.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1264,7 +1264,7 @@ const TOOLS: Tool[] = [
   {
     name: "search_records",
     description:
-      "Search for records in a database. The search string is a Lucene-style query: a bare keyword matches record text; field:value matches a cell by its key (Status:New); meta.templateName:Issue restricts to one type (quote a multi-word name: meta.templateName:\"Decision Needed\"); combine with AND, OR, NOT and parentheses, e.g. meta.templateName:Issue AND (Status:New OR Status:Open). Page with start (0, then 100, 200, ...) and limit (at most 100): a page with fewer hits than limit is the last, so keep paging until then. Optionally filter by parent record. Pass fields to keep only the header keys and cells you need per hit; a full hit carries every cell.",
+      "Search for records in a database. The search string is a Lucene-style query: a bare keyword matches record text; field:value matches a cell by its key (Status:New); meta.templateName:Issue restricts to one type (quote a multi-word name: meta.templateName:\"Decision Needed\"); combine with AND, OR, NOT and parentheses, e.g. meta.templateName:Issue AND (Status:New OR Status:Open). Page with start (0, then 100, 200, ...) and limit (at most 100): a page with fewer hits than limit is the last, so keep paging until then. Optionally filter by parent record. ALWAYS pass fields (with values: true) to keep only the header keys and cells you need per hit; a full hit carries every cell, about 14 KB each, and a page of 100 exceeds the result limit.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1312,7 +1312,7 @@ const TOOLS: Tool[] = [
   {
     name: "search_team_records",
     description:
-      "Search records across every accessible database in a team. This lists the team's databases and runs search_records against each one sequentially. Results are grouped by database, and failures in one database do not discard successful results from others.",
+      "Search records across every accessible database in a team. This lists the team's databases and runs search_records against each one sequentially. Results are grouped by database, and failures in one database do not discard successful results from others. ALWAYS pass fields (with values: true): a full hit carries every cell and the result is summed over every database.",
     inputSchema: {
       type: "object",
       properties: {
@@ -2024,7 +2024,7 @@ export function createMcpServer({
         resources: {},
         prompts: {},
       },
-      instructions: `For installation, credentials, client configuration, or connection troubleshooting, read ${ANYDB_SETUP_GUIDE_URI} or call anydb_get_setup_guide. Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read.`,
+      instructions: `For installation, credentials, client configuration, or connection troubleshooting, read ${ANYDB_SETUP_GUIDE_URI} or call anydb_get_setup_guide. Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read. Reading records: always pass fields (with values: true) to get_record, list_records, search_records and search_team_records, naming only the header keys and cells the task needs. A whole record is tens of KB and a page of them exceeds the result limit. If you do not know a type's cell keys, read the type with anydb_get_type_definition or one record with fields [\"name\"] first.`,
     },
   );
 
