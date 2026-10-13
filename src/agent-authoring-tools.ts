@@ -101,6 +101,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
                     readReports: { type: "array", maxItems: 10, items: { type: "string" }, description: "Optional. Report ids, from anydb_list_reports. Leave out to let the agent run and read any report its owner can read; set, they are the only reports it may run and read. A simulation does not run a report; it reads the latest result. Use a report's own totals instead of asking the agent to count records." },
                   },
                 },
+                allowExternalFreeTextEmail: { type: "boolean", description: "Optional, default off. When off, the agent's own free-text emails (anydb_agent_send_email) go only to people on the team, even if a saved recipient is outside it; report and document emails are not affected. Turn it on only when the user wants the agent to write to outside addresses, and expect publish to ask for those addresses to be confirmed." },
                 maxEmails: { type: "integer", minimum: 1, maximum: 100, description: "The most emails the agent may send in one run. The run stops before the next one. Omit for no cap beyond the run's tool-call limit." },
                 maxRecordChanges: { type: "integer", minimum: 1, maximum: 100, description: "The most record changes (field updates, cell locks, created records) the agent may make in one run. The run stops before the next one. Omit for no cap beyond the run's tool-call limit." },
                 createRecords: { type: "array", maxItems: 10, description: "Rules for the typed child records the agent may create (advanced; see the authoring guide).", items: { type: "object", additionalProperties: true } },
@@ -175,7 +176,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_publish_agent",
     description:
-      "Publish an AnyDB agent draft so it can run live. Refused unless the same revision has a successful user-initiated validation. A test run with anydb_test_agent is optional; one whose expected outcomes did not match still blocks publishing, and one that passed is kept with the publication. You cannot supply the proof, the server loads it. version must be the draft's current version (from anydb_get_agent). Publishing does not run the agent and does not start its schedule unless enable is true: without it a new workflow is left disabled and an existing one keeps its state, so nothing is emailed until you start it (enable: true here, or anydb_update_workflow with enabled true) or run it once with anydb_execute_workflow using its workflowId (from anydb_get_agent). Once running, a live run does what the saved scope allows, including emailing the saved recipients.",
+      "Publish an AnyDB agent draft so it can run live. Refused unless the same revision has a successful user-initiated validation. A test run with anydb_test_agent is optional; one whose expected outcomes did not match still blocks publishing, and one that passed is kept with the publication. You cannot supply the proof, the server loads it. version must be the draft's current version (from anydb_get_agent). Publishing does not run the agent and does not start its schedule unless enable is true: without it a new workflow is left disabled and an existing one keeps its state, so nothing is emailed until you start it (enable: true here, or anydb_update_workflow with enabled true) or run it once with anydb_execute_workflow using its workflowId (from anydb_get_agent). Once running, a live run does what the saved scope allows, including emailing the saved recipients. If any saved recipient is not on the team (anydb_get_agent lists them as externalRecipients), publishing is refused until you pass confirmExternalRecipients with exactly those addresses: show them to the user and get a yes first, never confirm on your own.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -183,6 +184,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
         teamid, adbid, agentid,
         version: { type: "integer", minimum: 1, description: "The draft version to publish." },
         enable: { type: "boolean", description: "true also starts the agent's schedule or trigger. Omit to leave it as it is (a new agent is created off)." },
+        confirmExternalRecipients: { type: "array", maxItems: 25, items: { type: "string" }, description: "The saved email recipients that are not on the team, copied from externalRecipients in anydb_get_agent. Required, with every such address, when there are any; leave out otherwise. Pass it only after the user has seen the addresses and agreed." },
       },
       required: ["teamid", "adbid", "agentid", "version"],
     },
@@ -322,7 +324,7 @@ export async function callAgentAuthoringTool(name: string, args: Record<string, 
       result = await client.testAgent({ ...scope, agentid: a.agentid, ...(a.fixture !== undefined ? { fixture: a.fixture } : {}) });
       break;
     case "anydb_publish_agent":
-      result = await client.publishAgent({ ...scope, agentid: a.agentid, version: a.version, ...(a.enable === undefined ? {} : { enable: a.enable }) });
+      result = await client.publishAgent({ ...scope, agentid: a.agentid, version: a.version, ...(a.enable === undefined ? {} : { enable: a.enable }), ...(Array.isArray(a.confirmExternalRecipients) ? { confirmExternalRecipients: a.confirmExternalRecipients } : {}) });
       break;
     case "anydb_delete_agent":
       result = await client.deleteAgent({ ...scope, agentid: a.agentid, version: a.version });

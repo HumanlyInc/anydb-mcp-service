@@ -88,7 +88,11 @@ describe("custom agent authoring tools", () => {
       const t = await tool("anydb_publish_agent");
       expect(t.description).toMatch(/You cannot supply the proof, the server loads it/);
       // ISSUE - 516: publishing starts nothing unless asked, and the tool says so.
-      expect(Object.keys(t.inputSchema.properties).sort()).toEqual(["adbid", "agentid", "enable", "teamid", "version"]);
+      expect(Object.keys(t.inputSchema.properties).sort()).toEqual(["adbid", "agentid", "confirmExternalRecipients", "enable", "teamid", "version"]);
+      // ISSUE - 612: outside recipients need a confirmation the model must get from the user.
+      expect(t.inputSchema.properties.confirmExternalRecipients).toMatchObject({ type: "array", items: { type: "string" } });
+      expect(t.description).toMatch(/externalRecipients/);
+      expect(t.description).toMatch(/never confirm on your own/i);
       expect(t.inputSchema.required).toEqual(["teamid", "adbid", "agentid", "version"]);
       expect(t.inputSchema.properties.enable).toMatchObject({ type: "boolean" });
       expect(t.description).toMatch(/does not start its schedule unless enable is true/i);
@@ -343,6 +347,17 @@ describe("custom agent authoring tools", () => {
       await call("anydb_publish_agent", { ...ids, agentid, version: 4, enable: true });
       expect(seen[0]!.body).toEqual({ ...ids, version: 4 }); // omitted: the server keeps the workflow's state
       expect(seen[1]!.body).toEqual({ ...ids, version: 4, enable: true });
+    });
+
+    it("publish forwards the confirmed outside recipients when they are given (ISSUE - 612)", async () => {
+      await call("anydb_publish_agent", { ...ids, agentid, version: 4, confirmExternalRecipients: ["client@outside.example"] });
+      expect(seen[0]!.body).toEqual({ ...ids, version: 4, confirmExternalRecipients: ["client@outside.example"] });
+    });
+
+    it("the saved scope offers allowExternalFreeTextEmail, off unless set (ISSUE - 612)", async () => {
+      const scope = (await tool("anydb_save_agent")).inputSchema.properties.configuration.properties.mutationScope.properties;
+      expect(scope.allowExternalFreeTextEmail).toMatchObject({ type: "boolean" });
+      expect(scope.allowExternalFreeTextEmail.description).toMatch(/default off/i);
     });
 
     // ISSUE - 516: delete takes the current version, sends it as a query, and says what it keeps.
