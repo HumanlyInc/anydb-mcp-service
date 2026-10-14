@@ -120,9 +120,18 @@ describe("Communications MCP tools", () => {
     expect((await toolNamed("anydb_get_conversation")).description).toMatch(/untrusted/i);
   });
 
+  // The server refuses a ticket priority outside this list and a pipeline change without a status; the
+  // model cannot discover either from the ticketConfig alone, so the description has to say so.
+  it("the update tool names the valid priorities and the pipeline rule", async () => {
+    const tool = await toolNamed("anydb_update_conversation");
+    for (const priority of ["Low", "Medium", "High", "Urgent"]) expect(tool.description).toContain(priority);
+    expect(tool.description).toMatch(/pipeline.{0,40}(needs|requires).{0,40}status/i);
+    for (const priority of ["Low", "Medium", "High", "Urgent"]) expect(tool.inputSchema.properties.ticket.properties.priority.description).toContain(priority);
+  });
+
   it("each tool calls its route with the server's parameter names", async () => {
     await call("anydb_list_comm_accounts", { teamid: T, channel: "EMAIL" });
-    await call("anydb_list_conversations", { teamid: T, accountId: "acc-1", status: "Open", unread: true, assignedToMe: true, ticketStatus: "new", priority: "High", pageSize: 10, cursor: "abc" });
+    await call("anydb_list_conversations", { teamid: T, accountId: "3f6c1a52-8d4e-4b7a-9c21-5e0a7d94b6f3", status: "Open", unread: true, assignedToMe: true, ticketStatus: "new", priority: "High", pageSize: 10, cursor: "abc" });
     await call("anydb_get_conversation", { teamid: T, adbid: A, conversationId: C, messageLimit: 20 });
     await call("anydb_send_conversation_reply", { teamid: T, adbid: A, conversationId: C, clientRequestId: "r1", body: "Hello", replyAll: true });
     await call("anydb_update_conversation", { teamid: T, adbid: A, conversationId: C, unread: false, ticket: { status: "closed" } });
@@ -137,7 +146,7 @@ describe("Communications MCP tools", () => {
     expect(list!.method).toBe("GET");
     expect(parse(list!.url!).pathname).toBe("/api/integrations/ext/comms/conversations");
     expect(Object.fromEntries(parse(list!.url!).searchParams)).toEqual({
-      teamid: T, accountid: "acc-1", status: "Open", unread: "true", assignedtome: "true", ticketstatus: "new", priority: "High", pagesize: "10", cursor: "abc",
+      teamid: T, accountid: "3f6c1a52-8d4e-4b7a-9c21-5e0a7d94b6f3", status: "Open", unread: "true", assignedtome: "true", ticketstatus: "new", priority: "High", pagesize: "10", cursor: "abc",
     });
     expect(get!.method).toBe("GET");
     expect(parse(get!.url!).pathname).toBe(`/api/integrations/ext/comms/conversations/${C}`);
@@ -148,7 +157,7 @@ describe("Communications MCP tools", () => {
   });
 
   it("unread false and assignedToMe false are sent as the strings the server accepts", async () => {
-    await call("anydb_list_conversations", { teamid: T, accountId: "acc-1", unread: false, assignedToMe: false });
+    await call("anydb_list_conversations", { teamid: T, accountId: "3f6c1a52-8d4e-4b7a-9c21-5e0a7d94b6f3", unread: false, assignedToMe: false });
     const params = Object.fromEntries(new URL(seen[0]!.url!, "http://x").searchParams);
     expect(params).toMatchObject({ unread: "false", assignedtome: "false" });
   });
@@ -223,9 +232,9 @@ describe("Communications MCP tools", () => {
   });
 
   it("every tool's arguments are redacted in the request log", async () => {
-    await call("anydb_list_conversations", { teamid: T, accountId: "secret-account-marker" });
+    await call("anydb_list_conversations", { teamid: T, accountId: "9b1e7c44-2a60-4d8f-8f35-71c2e4a0d5b8" });
     await call("anydb_get_conversation", { teamid: T, adbid: A, conversationId: C });
-    expect(JSON.stringify(logs.mock.calls)).not.toContain("secret-account-marker");
+    expect(JSON.stringify(logs.mock.calls)).not.toContain("9b1e7c44-2a60-4d8f-8f35-71c2e4a0d5b8");
   });
 
   describe("tool profiles", () => {

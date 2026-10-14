@@ -125,7 +125,7 @@ export const COMMS_TOOLS: Tool[] = [
   ),
   tool(
     "anydb_update_conversation",
-    "Triage a conversation: mark it read or unread, assign or unassign it (assignedTo null), set its status, or set ticket fields (pipeline, status, priority, assignedTeam group ids). For a ticket, set ticket.status and the conversation status follows; status on its own can only snooze a ticket. Valid ticket values are in ticketConfig from anydb_get_conversation. Changing anything but read state needs edit access.",
+    "Triage a conversation: mark it read or unread, assign or unassign it (assignedTo null), set its status, or set ticket fields (pipeline, status, priority, assignedTeam group ids). For a ticket, set ticket.status and the conversation status follows; status on its own can only snooze a ticket. Valid ticket values are in ticketConfig from anydb_get_conversation. ticket.priority must be one of Low, Medium, High or Urgent (or an empty string to clear it). Changing ticket.pipeline also requires ticket.status, set to a status of the new pipeline. Changing anything but read state needs edit access.",
     {
       teamid,
       adbid,
@@ -139,7 +139,7 @@ export const COMMS_TOOLS: Tool[] = [
         properties: {
           pipeline: { type: "string" },
           status: { type: "string", description: "A status key of the pipeline" },
-          priority: { type: "string" },
+          priority: { type: "string", description: "One of Low, Medium, High, Urgent, or an empty string to clear it" },
           assignedTeam: { type: "array", items: { type: "string" }, maxItems: 20, description: "Group ids (from anydb_list_team_groups). Replaces the current list." },
         },
       },
