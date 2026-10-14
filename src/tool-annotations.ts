@@ -1,3 +1,5 @@
+import { REVIEWED_WORKFLOW_ANNOTATIONS } from "./reviewed-workflow-tools.js";
+
 import type { Tool, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 
 /**
@@ -84,6 +86,7 @@ const publishes = (title: string): ToolAnnotations => ({
 });
 
 export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
+  ...REVIEWED_WORKFLOW_ANNOTATIONS,
   // ISSUE - 506: authoring custom workflow agents. Saving replaces a draft (a published revision is immutable);
   // validate and test spend AI tokens and write run records; publishing makes a revision runnable.
   anydb_save_agent: replaces("Save agent draft"),

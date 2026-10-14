@@ -1,0 +1,9 @@
+# Reviewed workflow interface
+
+The user approved ISSUE-564's operation-level redesign and requires no regression to existing MCP capabilities. Keep the existing default HTTP/stdio surface, credentials, descriptors and workflow/script routes working. Add typed workflow tools to it, and expose a separate `/reviewed` HTTP endpoint with the same authentication but a closed operation surface. Never select capabilities from User-Agent or model-supplied arguments.
+
+The reviewed endpoint cannot call generic workflow create/update/execute or JavaScript run/simulate, including direct calls to names absent from tools/list. Its finite workflow actions are create/update/move/copy/find records, formatted export, send email/notification/message and call a configured webhook. Each gets its own tool name, fixed schema and annotations; no generic selector or arbitrary config executor is exposed. Draft creation is disabled. Action changes preserve keys, order, output bindings and other configs. Enabling and execution recheck persisted actions inside the owning workflow service, including actions saved by another client. Unsafe legacy workflows fail clearly. Edits remain permission-enforced and retry-safe.
+
+Script public HTTP(S) fetch remains supported on the full interface, with public-address resolution/pinning and redirect checks. Simulation refuses fetch and AI provider calls before I/O. Existing authorized script data reads and suppressed writes remain covered. Find must always apply per-record ACL, even when old config contains skipAclCheck; that flag is removed from public schemas.
+
+The initial implementation request excluded publishing changes. On 2026-10-14 the user subsequently authorized commits, pushes and PR creation for both repositories. Production use, deployment and OpenAI submission remain separate actions. Record code verification separately from OpenAI acceptance.

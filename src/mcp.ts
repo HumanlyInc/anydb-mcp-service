@@ -3,6 +3,8 @@ import { AGENT_TOOLS, isAgentTool, callAgentTool } from "./agent-tools.js";
 import { AGENT_AUTHORING_TOOLS, callAgentAuthoringTool, isAgentAuthoringTool } from "./agent-authoring-tools.js";
 import { SHARED_FORM_TOOLS, isSharedFormTool, callSharedFormTool } from "./shared-form-tools.js";
 
+import { REVIEWED_WORKFLOW_TOOLS, reviewedTools, isReviewedWorkflowTool, callReviewedWorkflowTool, reviewedCatalog, REVIEWED_WORKFLOW_GUIDE, reviewedAuthoringGuide, reviewedResource, reviewedPromptText, type ToolProfile } from "./reviewed-workflow-tools.js";
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
@@ -1907,7 +1909,7 @@ const TOOLS: Tool[] = [
 ];
 
 // What tools/list returns: every tool with its safety annotations attached.
-const LISTED_TOOLS = annotateTools(TOOLS);
+const LISTED_TOOLS = annotateTools([...TOOLS, ...REVIEWED_WORKFLOW_TOOLS]);
 
 /** What list_teams returns by default. */
 export interface TeamSummary {
@@ -1971,8 +1973,10 @@ export function createMcpServer({
   baseURL,
   originClient,
   agentCapability,
+  toolProfile = "full",
 }: {
   /** Legacy API-key auth. Ignored when accessToken is present. */
+  toolProfile?: ToolProfile;
   agentCapability?: string;
   apiKey?: string;
   userEmail?: string;
@@ -1998,6 +2002,8 @@ export function createMcpServer({
    */
   originClient?: string;
 }) {
+  if (toolProfile !== "full" && toolProfile !== "reviewed") throw new Error("Unknown tool profile");
+  const listedTools = toolProfile === "reviewed" ? reviewedTools(LISTED_TOOLS) : LISTED_TOOLS;
   const extApiClient = new ExtApiClient({
     apiKey,
     userEmail,
@@ -2024,7 +2030,7 @@ export function createMcpServer({
         resources: {},
         prompts: {},
       },
-      instructions: `For installation, credentials, client configuration, or connection troubleshooting, read ${ANYDB_SETUP_GUIDE_URI} or call anydb_get_setup_guide. Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read. Reading records: always pass fields (with values: true) to get_record, list_records, search_records and search_team_records, naming only the header keys and cells the task needs. A whole record is tens of KB and a page of them exceeds the result limit. If you do not know a type's cell keys, read the type with anydb_get_type_definition or one record with fields [\"name\"] first.`,
+      instructions: toolProfile === "reviewed" ? REVIEWED_WORKFLOW_GUIDE : `For installation, credentials, client configuration, or connection troubleshooting, read ${ANYDB_SETUP_GUIDE_URI} or call anydb_get_setup_guide. Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read. Reading records: always pass fields (with values: true) to get_record, list_records, search_records and search_team_records, naming only the header keys and cells the task needs. A whole record is tens of KB and a page of them exceeds the result limit. If you do not know a type's cell keys, read the type with anydb_get_type_definition or one record with fields [\"name\"] first.`,
     },
   );
 
@@ -2048,20 +2054,23 @@ export function createMcpServer({
   }));
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => ({
-    contents: [readSolutionResource(request.params.uri)],
+    contents: [toolProfile === "reviewed" ? reviewedResource(request.params.uri) : readSolutionResource(request.params.uri)],
   }));
 
   server.setRequestHandler(ListPromptsRequestSchema, async () => ({
-    prompts: listSolutionPrompts(),
+    prompts: listSolutionPrompts().filter(prompt => toolProfile !== "reviewed" || prompt.name !== "author_anydb_workflow_script"),
   }));
 
-  server.setRequestHandler(GetPromptRequestSchema, async (request) =>
-    getSolutionPrompt(request.params.name, request.params.arguments),
-  );
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    if (toolProfile === "reviewed" && request.params.name === "author_anydb_workflow_script") throw new Error("Script authoring is unavailable in the reviewed interface");
+    const prompt = getSolutionPrompt(request.params.name, request.params.arguments);
+    if (toolProfile !== "reviewed") return prompt;
+    return { ...prompt, messages: prompt.messages.map(message => ({ ...message, content: { ...message.content, text: reviewedPromptText(message.content.text) } })) };
+  });
 
   // Handle list tools request
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: LISTED_TOOLS };
+    return { tools: listedTools };
   });
 
   // Handle tool execution
@@ -2080,9 +2089,11 @@ export function createMcpServer({
     console.error(`======================================\n`);
 
     try {
+      if (toolProfile === "reviewed" && !listedTools.some(tool => tool.name === name)) throw new Error(`${name} is not available in the reviewed interface`);
+
       // ISSUE - 369: a key the tool's schema does not have is refused, not dropped.
       const argumentsProblem = unknownArgumentsError(
-        LISTED_TOOLS.find((tool) => tool.name === name),
+        listedTools.find((tool) => tool.name === name),
         args as Record<string, unknown> | undefined,
       );
       if (argumentsProblem) {
@@ -2118,6 +2129,14 @@ export function createMcpServer({
           "AnyDB credentials are not configured. Call anydb_get_setup_guide, then either connect this client over OAuth or set ANYDB_DEFAULT_API_KEY and ANYDB_DEFAULT_USER_EMAIL in the MCP client environment and restart the client.",
         );
       }
+
+      if (toolProfile === "reviewed" && name === "anydb_update_workflow_trigger") {
+        const result = await extApiClient.updateWorkflowTrigger({ ...(args as unknown as import("./ext-api-client.js").UpdateWorkflowTriggerRequest), reviewedOnly: true });
+        return { content: [{ type: "text" as const, text: toolJson(result) }] };
+      }
+      if (isReviewedWorkflowTool(name)) return await callReviewedWorkflowTool(name, args, extApiClient);
+      if (toolProfile === "reviewed" && name === "anydb_list_workflow_actions") return { content: [{ type: "text" as const, text: toolJson(reviewedCatalog()) }] };
+      if (toolProfile === "reviewed" && name === "anydb_get_authoring_guide") return { content: [{ type: "text", text: reviewedAuthoringGuide(args?.topic) }] };
 
       if (isSolutionAuthoringTool(name)) {
         return await callSolutionAuthoringTool(name, args, extApiClient);

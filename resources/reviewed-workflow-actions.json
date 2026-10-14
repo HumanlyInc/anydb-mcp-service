@@ -1,0 +1,334 @@
+[
+  {
+    "type": "action_create",
+    "description": "Create a record in the database",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the record to create"
+        },
+        "parentid": {
+          "type": "string",
+          "description": "Specify if you want the record to be attached to a parent"
+        },
+        "typeid": {
+          "type": "string",
+          "description": "The type id of record to create"
+        },
+        "typename": {
+          "type": "string",
+          "description": "The type of record to create"
+        },
+        "cell_values": {
+          "type": "string",
+          "description": "A comma-separated list of values to set using labels or positions e.g. 'Sales Stage=Closed,Amount=10000' or 'A9=Closed,B12=10000'"
+        },
+        "followup": {
+          "type": "string",
+          "description": "Set a follow-up date for this record"
+        },
+        "user_assignees": {
+          "type": "string",
+          "description": "Assign this record to these users"
+        },
+        "group_assignees": {
+          "type": "string",
+          "description": "Assign this record to these groups"
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "Whether to lock the record upon creation"
+        },
+        "copyFrom": {
+          "type": "string",
+          "description": "Copy data from this record. When provided, The new record will copy cells with the same key from the source record. You can use transformMap to specify type mapping between source and target if needed. This will override 'Set Values' for any overlapping fields."
+        },
+        "transformMap": {
+          "type": "string",
+          "description": "This is used to map any transformation of types. For example if the source record has children of one type and the new record's children needs to be of a different type, the transformMap can be used to specify the mapping of types."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "action_update",
+    "description": "Update a record in the database",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "adoid": {
+          "type": "string",
+          "description": "Specify the record to update"
+        },
+        "cell_update": {
+          "type": "string",
+          "description": "A comma-separated list of values to update using labels or positions e.g. 'Sales Stage=Closed,Amount=10000' or 'A9=Closed,B12=10000'"
+        },
+        "followup": {
+          "type": "string",
+          "description": "Set a follow-up date for this record"
+        },
+        "user_assignees": {
+          "type": "string",
+          "description": "Assign this record to these users"
+        },
+        "group_assignees": {
+          "type": "string",
+          "description": "Assign this record to these groups"
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "Whether to lock the record upon update"
+        }
+      },
+      "required": [
+        "adoid",
+        "cell_update"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "action_move",
+    "description": "Move a record to another record",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "adoid": {
+          "type": "string",
+          "description": "The ID of the record to move"
+        },
+        "to_adoid": {
+          "type": "string",
+          "description": "The ID of the destination record to move this record to"
+        }
+      },
+      "required": [
+        "adoid",
+        "to_adoid"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "action_copy",
+    "description": "Copy a record",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "adoid": {
+          "type": "string",
+          "description": "The ID of the record to copy"
+        },
+        "to_adoid": {
+          "type": "string",
+          "description": "The ID of the destination record to copy this record to"
+        }
+      },
+      "required": [
+        "adoid",
+        "to_adoid"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "action_find",
+    "description": "Find records by template name, condition and/or search string",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Optional template name to filter matching records"
+        },
+        "condition": {
+          "type": "string",
+          "description": "Optional condition expression using AND/OR and operators (==, !=, <, <=, >, >=). Examples: someField < now && someOtherField != \"ENABLED\", A1 < now + 2m, field1 < now + 2months. For field references, A1/B2/... uses cell position (pos), other names use field key. For REF cells, ==/!= with a 24-char adoid also matches ref_value.adoid. Supported now offsets: now or now(), and now +/- N with units ms, msec, millisecond(s), s, sec, second(s), m, min, minute(s), h, hr, hour(s), d, day(s), w, week(s), mo, month(s)."
+        },
+        "querystring": {
+          "type": "string",
+          "description": "Optional search string to match records"
+        },
+        "includeSummaries": {
+          "type": "boolean",
+          "description": "Whether to load refDetails summaries for each match (default true)"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Optional page size for paginated find (when provided, returns one page and nextCursor)"
+        },
+        "cursor": {
+          "type": "string",
+          "description": "Optional pagination cursor returned by previous paginated find call"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "action_formatted_export",
+    "description": "Export ADO using formatted export template",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "formatted_export_adoid": {
+          "type": "string",
+          "description": "Formatted export adoid to use for export"
+        },
+        "adoid_to_export": {
+          "type": "string",
+          "description": "File adoid to export"
+        }
+      },
+      "required": [
+        "formatted_export_adoid",
+        "adoid_to_export"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "action_send_email",
+    "description": "Send an email to specified recipients",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "Recipient email address (comma-separated for multiple recipients)"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Email subject line"
+        },
+        "body": {
+          "type": "string",
+          "description": "Email body content"
+        },
+        "attachments": {
+          "type": "string",
+          "description": "Generated document (from preview) or ADO ID of file record"
+        }
+      },
+      "required": [
+        "to",
+        "subject",
+        "body"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "action_send_notification",
+    "description": "Send an in-app notification to AnyDB users resolved from recipient user IDs or emails",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "Recipient user IDs or email addresses (comma-separated for multiple recipients)"
+        },
+        "message": {
+          "type": "string",
+          "description": "Notification message body"
+        },
+        "hyperlink": {
+          "type": "string",
+          "description": "Optional hyperlink for the notification"
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Optional team ID for deep-link context (defaults to workflow team)"
+        },
+        "adbid": {
+          "type": "string",
+          "description": "Optional database ID for deep-link context (defaults to workflow database)"
+        },
+        "adoid": {
+          "type": "string",
+          "description": "Optional record ID for deep-link context (defaults to trigger context record when available)"
+        }
+      },
+      "required": [
+        "to",
+        "message"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "action_call_webhook",
+    "description": "Call a registered webhook with workflow data",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "webhookId": {
+          "type": "string",
+          "description": "ID of the registered webhook to call"
+        },
+        "payloadTemplate": {
+          "type": "object",
+          "description": "Template for payload data (supports {{context:...}} variables)"
+        },
+        "headers": {
+          "type": "object",
+          "description": "Optional custom HTTP headers"
+        }
+      },
+      "required": [
+        "webhookId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "type": "action_send_message",
+    "description": "Send an outbound message (e.g. WhatsApp) within an existing AnyDB Conversation",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "conversationadoid": {
+          "type": "string",
+          "description": "The Conversation record to reply within (its Communication Account is used to send)"
+        },
+        "to": {
+          "type": "string",
+          "description": "Recipient address - the wa_id from a known conversation, or a fresh E.164 number with a leading +"
+        },
+        "body": {
+          "type": "string",
+          "description": "Free-form message body, sent when the 24h customer-service window is open"
+        },
+        "templatename": {
+          "type": "string",
+          "description": "Approved template name, required outside the window - forwarded to the provider verbatim"
+        },
+        "templatelanguage": {
+          "type": "string",
+          "description": "Template language code (e.g. en_US) - defaults to en_US"
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Optional team ID - defaults to the workflow's team"
+        },
+        "adbid": {
+          "type": "string",
+          "description": "Optional database ID - defaults to the workflow's database"
+        }
+      },
+      "required": [
+        "conversationadoid",
+        "to"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

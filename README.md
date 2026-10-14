@@ -144,7 +144,7 @@ npm run start:http
 ```
 
 The endpoint is stateless: every request builds its own MCP server, so no
-session state is carried between requests. `POST /` is the only MCP method;
+session state is carried between requests. MCP accepts `POST /` and `POST /reviewed`;
 `GET` and `DELETE` return 405. `GET /health` reports liveness and version.
 
 | Variable | Default | Purpose |
@@ -511,3 +511,16 @@ environment to configure:
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+
+### Explicit workflow operations for directory review (ISSUE-564)
+
+The default HTTP endpoint (`/`) and stdio interface keep the complete existing MCP catalog, including general workflow authoring and scripting. New typed workflow-step tools are additive there.
+
+The HTTP endpoint `/reviewed` uses the same authenticated account and permission checks with a fixed operation catalog. It is selected by the server route, never by User-Agent, client identification, or model arguments. Hidden generic workflow and script calls are rejected even when called directly. Use this endpoint for a directory submission that requires individually exposed operations. OpenAI's [remote review guide](https://developers.openai.com/plugins/deploy/app-review) permits a path change through a new version, while its [submission guide](https://developers.openai.com/plugins/deploy/submission) currently directs existing URL changes to support. Confirm the supported transition with OpenAI before changing the published connection; retain the current version until its replacement is approved.
+
+Create a disabled draft with `anydb_create_workflow_draft`, add/update steps using `anydb_workflow_set_<operation>_step`, then preview and explicitly enable it. Supported operations are create/update/move/copy/find records, generate a document, send email/notification/message, and call a configured webhook. Steps have stable keys and symbolic bindings. Remove and reorder tools preserve other configurations. Reads and record/type tools remain available. The catalog only documents operations already exposed as tools.
+
+Enabling, trigger edits, and execution use server-enforced `reviewedOnly` checks on the stored workflow. Existing script, app, AI and custom-agent steps cannot run through this path, even if another client created them. Full clients retain those capabilities. This MCP version requires the corresponding ISSUE-564 server changes for the new workflow tools; older servers fail explicitly on their new requests while existing tools remain compatible.
+
+Script simulation no longer performs network fetches or AI-provider calls. The full real-run path retains public HTTP(S) fetch with destination and redirect checks; syntax-only validation remains available. See ISSUE-640 and ISSUE-641 for egress and per-record ACL corrections. Approval of the implementation or passing local tests does not establish directory acceptance; deploy and rescan separately.

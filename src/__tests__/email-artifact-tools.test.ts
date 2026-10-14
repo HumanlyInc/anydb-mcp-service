@@ -70,7 +70,9 @@ describe("email on report export and document generation", () => {
 
   describe("the contract that is advertised", () => {
     it("there is no general send-email tool, and no email tool takes a file, a path, a body or a sender", async () => {
-      const tools = (await client.listTools()).tools as any[];
+      // Step tools store workflow configuration and do not send during this call.
+      // Their deferred effects are covered by reviewed-workflows.test.ts.
+      const tools = ((await client.listTools()).tools as any[]).filter(t => !t.name.startsWith("anydb_workflow_set_"));
       const emailTools = tools.filter((t) => /e-?mail/i.test(t.name)).map((t) => t.name).sort();
       expect(emailTools).toEqual(
         ["anydb_agent_email_document", "anydb_agent_email_report", "anydb_agent_send_email", "anydb_email_report"].sort(),
