@@ -574,6 +574,7 @@ export interface TypeMigrationStatus {
 }
 
 export interface CreateWorkflowRequest {
+  reviewedOnly?: boolean;
   teamid: string;
   adbid: string;
   clientRequestId: string;
@@ -629,10 +630,12 @@ export interface WorkflowAddress {
   workflowId: string;
 }
 export interface UpdateWorkflowTriggerRequest extends WorkflowAddress {
+  reviewedOnly?: boolean;
   config: Record<string, unknown>;
 }
 
 export interface UpdateWorkflowRequest {
+  reviewedOnly?: boolean;
   teamid: string;
   adbid: string;
   workflowId: string;
@@ -666,6 +669,7 @@ export interface UpdateWorkflowResult {
 }
 
 export interface ExecuteWorkflowRequest {
+  reviewedOnly?: boolean;
   teamid: string;
   adbid: string;
   /** Exactly one of workflowId or workflowName. A button cell carries a name. */
@@ -1159,6 +1163,13 @@ export class ExtApiClient {
         params: { teamid, adbid },
       },
     );
+    return this.unwrap(response.data);
+  }
+
+  async mutateReviewedWorkflowStep(params: WorkflowAddress & { clientRequestId: string; actionType?: string; key?: string; keys?: string[]; config?: Record<string, unknown>; description?: string }, mode: "set" | "remove" | "reorder"): Promise<unknown> {
+    const { workflowId, ...body } = params;
+    const suffix = mode === "set" ? "" : `/${mode}`;
+    const response = await this.client.post<ExtApiResponse<unknown>>(`/integrations/ext/workflows/${encodeURIComponent(workflowId)}/reviewed-step${suffix}`, body);
     return this.unwrap(response.data);
   }
 

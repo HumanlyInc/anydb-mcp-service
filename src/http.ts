@@ -6,6 +6,7 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { config } from "./config.js";
 import { createMcpServer } from "./mcp.js";
+import type { ToolProfile } from "./reviewed-workflow-tools.js";
 import { requestLogger } from "./request-log.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
@@ -182,56 +183,64 @@ app.get("/.well-known/oauth-protected-resource/*", (_req, res) => {
   res.json(protectedResourceMetadata());
 });
 
-app.post("/", async (req, res) => {
-  const credentials = await authenticate(req, res);
-  if (!credentials) return;
+function mcpHandler(toolProfile: ToolProfile) {
+  return async (req: Request, res: Response) => {
+    const credentials = await authenticate(req, res);
+    if (!credentials) return;
 
-  const server = createMcpServer({
-    agentCapability: typeof req.headers["x-anydb-agent-capability"] === "string" ? req.headers["x-anydb-agent-capability"] : undefined,
-    apiKey: credentials.apiKey,
-    userEmail: credentials.userEmail,
-    accessToken: credentials.accessToken,
-    // Already verified in authenticate(); anydb_whoami reports from these
-    // claims rather than decoding the token a second time.
-    token: credentials.token,
-    // Stateless transport: this server may never see an initialize, so seed
-    // the identity from the HTTP request. oninitialized upgrades it to the
-    // MCP clientInfo on the request that does carry the handshake.
-    originClient:
-      (req.headers["x-anydb-origin-client"] as string | undefined) ||
-      (req.headers["user-agent"] as string | undefined),
-  });
+    const server = createMcpServer({
+      toolProfile,
+      agentCapability: typeof req.headers["x-anydb-agent-capability"] === "string" ? req.headers["x-anydb-agent-capability"] : undefined,
+      apiKey: credentials.apiKey,
+      userEmail: credentials.userEmail,
+      accessToken: credentials.accessToken,
+      // Already verified in authenticate(); anydb_whoami reports from these
+      // claims rather than decoding the token a second time.
+      token: credentials.token,
+      // Stateless transport: this server may never see an initialize, so seed
+      // the identity from the HTTP request. oninitialized upgrades it to the
+      // MCP clientInfo on the request that does carry the handshake.
+      originClient:
+        (req.headers["x-anydb-origin-client"] as string | undefined) ||
+        (req.headers["user-agent"] as string | undefined),
+    });
 
-  // Stateless: no session id is issued, and nothing is retained between
-  // requests.
-  const transport = new StreamableHTTPServerTransport();
+    // Stateless: no session id is issued, and nothing is retained between
+    // requests.
+    const transport = new StreamableHTTPServerTransport();
 
-  // Both are per-request and must be released when the response ends, or each
-  // request leaks a server, a transport, and their listeners.
-  res.on("close", () => {
-    void transport.close().catch(() => {});
-    void server.close().catch(() => {});
-  });
+    // Both are per-request and must be released when the response ends, or each
+    // request leaks a server, a transport, and their listeners.
+    res.on("close", () => {
+      void transport.close().catch(() => {});
+      void server.close().catch(() => {});
+    });
 
-  try {
-    await server.connect(transport);
-    await transport.handleRequest(req, res, req.body);
-  } catch (error) {
-    console.error("[MCP HTTP] Request failed:", error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: "2.0",
-        id: null,
-        error: { code: -32603, message: "Internal server error" },
-      });
+    try {
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch (error) {
+      console.error("[MCP HTTP] Request failed:", error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -32603, message: "Internal server error" },
+        });
+      }
     }
-  }
-});
+  };
+}
+
+// Close over the matched route profile. Express accepts casing/trailing-slash
+// variants, so inspecting req.path would accidentally expose the full surface.
+app.post("/", mcpHandler("full"));
+app.post("/reviewed", mcpHandler("reviewed"));
 
 // In stateless mode there is no standalone SSE stream to open and no session
 // to delete. Answering anything else here would hold a connection and a server
 // open for the life of the request.
-app.all("/", (_req, res) => {
+app.all(["/", "/reviewed"], (_req, res) => {
   res.set("Allow", "POST").status(405).json({
     jsonrpc: "2.0",
     id: null,
