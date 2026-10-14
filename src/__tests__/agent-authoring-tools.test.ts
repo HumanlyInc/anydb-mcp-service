@@ -321,6 +321,13 @@ describe("custom agent authoring tools", () => {
         reply = run({ header: { runId: "run-1", mode: "validate", agentid }, result: { ...run().result, mode: "validate", reasonCode: "clarification_required", validationFeedback } });
         expect((await read({})).validationFeedback).toEqual(validationFeedback);
       });
+      // ISSUE - 636: a prompt that needs a setting the agent does not have is a settings problem, not a prompt to rewrite.
+      it("keeps the settings a validation says the prompt needs, and the description says what they mean", async () => {
+        const settingsNeeded = [{ setting: "record_changes", label: "Allow scoped record changes", detail: "The prompt changes a field on a record." }];
+        reply = run({ header: { runId: "run-1", mode: "validate", agentid }, result: { ...run().result, mode: "validate", reasonCode: "unsupported_capability", settingsNeeded } });
+        expect((await read({})).settingsNeeded).toEqual(settingsNeeded);
+        expect((await tool("anydb_validate_agent")).description).toMatch(/settingsNeeded.*not a prompt problem.*anydb_save_agent/is);
+      });
       it("validate says it offers rewritten prompts and how to apply one", async () => {
         expect((await tool("anydb_validate_agent")).description).toMatch(/revisedPrompts.*recommended.*anydb_save_agent/is);
         expect(readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text).toMatch(/revisedPrompts/);
