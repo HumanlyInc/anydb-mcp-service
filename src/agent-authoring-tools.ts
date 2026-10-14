@@ -154,7 +154,7 @@ export const AGENT_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_validate_agent",
     description:
-      "Check an AnyDB agent draft before it can be published: an AI reviews the draft's prompt for clarity, scope and supported capabilities, and returns an assessment, suggestions and any blocking clarification questions. It spends real AI tokens from the team's credits and can take a couple of minutes. It does not run the task, change data or send anything. A blocking question means the validation did not pass: answer it by editing the prompt (anydb_save_agent) and validate again. The feedback may include revisedPrompts: up to three complete rewrites of the prompt that apply the review, exactly one marked recommended. Offer them to the user, recommended first; to apply one, save it as the prompt with anydb_save_agent (keep the draft's other settings and promptReferences) and validate again. The result applies only to the exact current revision. " +
+      "Check an AnyDB agent draft before it can be published: an AI reviews the draft's prompt for clarity, scope and supported capabilities, and returns an assessment, suggestions and any blocking clarification questions. It spends real AI tokens from the team's credits and can take a couple of minutes. It does not run the task, change data or send anything. A blocking question means the validation did not pass: answer it by editing the prompt (anydb_save_agent) and validate again. The feedback may include revisedPrompts: up to three complete rewrites of the prompt that apply the review, exactly one marked recommended. Offer them to the user, recommended first; to apply one, save it as the prompt with anydb_save_agent (keep the draft's other settings and promptReferences) and validate again. If the result has settingsNeeded, the prompt does something the agent's saved settings do not yet allow (record changes, creating records, comments, email): that is a setting, not a prompt problem, so do not rewrite the prompt for it; add the matching mutationScope entry with anydb_save_agent and validate again. Name them to the user by their label. The result applies only to the exact current revision. " +
       lifecycle,
     inputSchema: { type: "object", additionalProperties: false, properties: { teamid, adbid, agentid }, required: ["teamid", "adbid", "agentid"] },
   },
@@ -286,6 +286,7 @@ export function summariseAgentRun(run: any): unknown {
     summary: result.summary,
     ...(result.issues?.length ? { issues: result.issues } : {}),
     ...(result.validationFeedback ? { validationFeedback: result.validationFeedback } : {}),
+    ...(result.settingsNeeded?.length ? { settingsNeeded: result.settingsNeeded } : {}),
     partialEffects: run.partialEffects,
     startedAt: result.startedAt ?? run.header?.startedAt,
     completedAt: result.completedAt,
