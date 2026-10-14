@@ -144,6 +144,14 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   search_team_records: reads("Search records across a team"),
   anydb_semantic_search: reads("Search records by meaning"),
   anydb_get_inbox: reads("Get my inbox"),
+  // ISSUE - 650: Communications support-agent tools. A reply and a retry send a message to a customer
+  // outside the workspace, which cannot be recalled. Updating a conversation changes its record only.
+  anydb_list_comm_accounts: reads("List communication accounts"),
+  anydb_list_conversations: reads("List conversations"),
+  anydb_get_conversation: reads("Read conversation"),
+  anydb_send_conversation_reply: replacesAndReachesOut("Reply to conversation"),
+  anydb_update_conversation: replaces("Update conversation"),
+  anydb_retry_message: replacesAndReachesOut("Retry failed message"),
   create_record: adds("Create record"),
   bulk_create_records: adds("Create records in bulk"),
   copy_record: adds("Copy record"),

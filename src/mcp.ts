@@ -2,6 +2,7 @@
 import { AGENT_TOOLS, isAgentTool, callAgentTool } from "./agent-tools.js";
 import { AGENT_AUTHORING_TOOLS, callAgentAuthoringTool, isAgentAuthoringTool } from "./agent-authoring-tools.js";
 import { SHARED_FORM_TOOLS, isSharedFormTool, callSharedFormTool } from "./shared-form-tools.js";
+import { COMMS_TOOLS, isCommsTool, callCommsTool } from "./comms-tools.js";
 
 import { REVIEWED_WORKFLOW_TOOLS, reviewedTools, isReviewedWorkflowTool, callReviewedWorkflowTool, reviewedCatalog, REVIEWED_WORKFLOW_GUIDE, reviewedAuthoringGuide, reviewedResource, reviewedPromptText, type ToolProfile } from "./reviewed-workflow-tools.js";
 
@@ -153,6 +154,7 @@ const TOOLS: Tool[] = [
   ...SOLUTION_DISCOVERY_TOOLS,
   ...SEMANTIC_SEARCH_TOOLS,
   ...SHARED_FORM_TOOLS,
+  ...COMMS_TOOLS,
   ...AGENT_TOOLS,
   ...AGENT_AUTHORING_TOOLS,
   {
@@ -2078,7 +2080,8 @@ export function createMcpServer({
     const { name, arguments: args } = request.params;
 
     // Log incoming MCP request
-    const loggedArgs = isAgentTool(name) || isSharedFormTool(name)
+    // Message bodies and customer details (Communications tools) are redacted like shared items.
+    const loggedArgs = isAgentTool(name) || isSharedFormTool(name) || isCommsTool(name)
       ? "[REDACTED shared-item arguments]"
       : isSemanticSearchTool(name)
       ? { ...args, query: args?.query ? "[REDACTED]" : undefined }
@@ -2150,6 +2153,9 @@ export function createMcpServer({
       if (isAgentAuthoringTool(name)) return await callAgentAuthoringTool(name, args as Record<string, any> | undefined, extApiClient);
       if (isSharedFormTool(name)) {
         return await callSharedFormTool(name, args, extApiClient);
+      }
+      if (isCommsTool(name)) {
+        return await callCommsTool(name, args, extApiClient);
       }
 
       if (isSemanticSearchTool(name)) {
@@ -3249,7 +3255,8 @@ export function createMcpServer({
       console.error(`Tool: ${name}`);
       // Shared-item failures can echo private URLs, field values, and rejected
       // inputs from the API. Keep the detailed error in the caller response only.
-      console.error(isSharedFormTool(name)
+      // Communications failures can echo a message body or customer detail the same way.
+      console.error(isSharedFormTool(name) || isCommsTool(name)
         ? "Error: Shared-item request failed; details returned to caller."
         : `Error: ${errorMessage}`);
       console.error(`====================================\n`);

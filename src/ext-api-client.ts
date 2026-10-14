@@ -1555,6 +1555,120 @@ export class ExtApiClient {
     return this.unwrap(response.data);
   }
 
+  // Communications support-agent routes (ISSUE - 650). Query keys are the lowercase names the
+  // server validates; axios sends booleans as "true"/"false" and drops undefined values.
+  async listCommAccounts(params: { teamid: string; channel?: string }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/comms/accounts",
+      { params },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async listConversations(params: {
+    teamid: string;
+    accountId: string;
+    status?: string;
+    unread?: boolean;
+    assignedToMe?: boolean;
+    ticketStatus?: string;
+    priority?: string;
+    pageSize?: number;
+    cursor?: string;
+  }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      "/integrations/ext/comms/conversations",
+      {
+        params: {
+          teamid: params.teamid,
+          accountid: params.accountId,
+          status: params.status,
+          unread: params.unread,
+          assignedtome: params.assignedToMe,
+          ticketstatus: params.ticketStatus,
+          priority: params.priority,
+          pagesize: params.pageSize,
+          cursor: params.cursor,
+        },
+      },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async getConversation(params: {
+    teamid: string;
+    adbid: string;
+    conversationId: string;
+    messageLimit?: number;
+  }): Promise<unknown> {
+    const response = await this.client.get<ExtApiResponse<unknown>>(
+      `/integrations/ext/comms/conversations/${encodeURIComponent(params.conversationId)}`,
+      {
+        params: {
+          teamid: params.teamid,
+          adbid: params.adbid,
+          messagelimit: params.messageLimit,
+        },
+      },
+    );
+    return this.unwrap(response.data);
+  }
+
+  async sendConversationReply(params: {
+    teamid: string;
+    adbid: string;
+    conversationId: string;
+    clientRequestId: string;
+    body?: string;
+    replyAll?: boolean;
+    inReplyToMessageId?: string;
+    includeQuote?: boolean;
+    templateName?: string;
+    templateLanguage?: string;
+    templateComponents?: unknown[];
+  }): Promise<unknown> {
+    const { conversationId, ...body } = params;
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/comms/conversations/${encodeURIComponent(conversationId)}/reply`,
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async updateConversation(params: {
+    teamid: string;
+    adbid: string;
+    conversationId: string;
+    unread?: boolean;
+    assignedTo?: string | null;
+    status?: string;
+    ticket?: {
+      pipeline?: string;
+      status?: string;
+      priority?: string;
+      assignedTeam?: string[];
+    };
+  }): Promise<unknown> {
+    const { conversationId, ...body } = params;
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/comms/conversations/${encodeURIComponent(conversationId)}/update`,
+      body,
+    );
+    return this.unwrap(response.data);
+  }
+
+  async retryMessage(params: {
+    teamid: string;
+    adbid: string;
+    messageId: string;
+  }): Promise<unknown> {
+    const response = await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/comms/messages/${encodeURIComponent(params.messageId)}/retry`,
+      { teamid: params.teamid, adbid: params.adbid },
+    );
+    return this.unwrap(response.data);
+  }
+
   async listReports(params: {
     teamid: string;
     adbid: string;
