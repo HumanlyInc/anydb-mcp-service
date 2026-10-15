@@ -107,7 +107,7 @@ export const COMMS_TOOLS: Tool[] = [
   ),
   tool(
     "anydb_send_conversation_reply",
-    "Reply on the conversation's own channel. This sends a message to someone outside the team and cannot be recalled. Email: body is plain text only (no HTML), sent as a reply (or reply-all) to the message being answered; recipients and subject are worked out by AnyDB. WhatsApp: goes to the customer who last wrote; free text is limited to about 4096 characters, and outside the 24-hour window send a template instead of body. Needs edit access to the conversation. Supply a unique clientRequestId per intended message and reuse it when retrying the same send, so it is never sent twice. The send happens in the background: this returns when the message is queued, so read the conversation afterwards to see whether it was Sent or Failed.",
+    "Reply on the conversation's own channel. This sends a message to someone outside the team and cannot be recalled. Email: body is plain text only (no HTML), sent as a reply (or reply-all) to the message being answered; recipients and subject are worked out by AnyDB. WhatsApp: goes to the customer who last wrote; free text is limited to about 4096 characters, and outside the 24-hour window send a template instead of body. Needs edit access to the conversation. Supply a unique clientRequestId per intended message and reuse it when retrying the same send, so it is never sent twice. The send happens in the background: this returns when the message is queued, so read the conversation afterwards to see whether it was Sent or Failed. Send only when the user has asked for this message to be sent.",
     {
       teamid,
       adbid,
@@ -125,7 +125,7 @@ export const COMMS_TOOLS: Tool[] = [
   ),
   tool(
     "anydb_update_conversation",
-    "Triage a conversation: mark it read or unread, assign or unassign it (assignedTo null), set its status, or set ticket fields (pipeline, status, priority, assignedTeam group ids). For a ticket, set ticket.status and the conversation status follows; status on its own can only snooze a ticket. Valid ticket values are in ticketConfig from anydb_get_conversation. ticket.priority must be one of Low, Medium, High or Urgent (or an empty string to clear it). Changing ticket.pipeline also requires ticket.status, set to a status of the new pipeline. Changing anything but read state needs edit access.",
+    "Triage a conversation: mark it read or unread, assign or unassign it (assignedTo null), set its status, or set ticket fields (pipeline, status, priority, assignedTeam group ids). For a ticket, set ticket.status and the conversation status follows; status on its own can only snooze a ticket. Valid ticket values are in ticketConfig from anydb_get_conversation. ticket.priority must be one of Low, Medium, High or Urgent (or an empty string to clear it). Changing ticket.pipeline also requires ticket.status, set to a status of the new pipeline. Changing anything but read state needs edit access. A record update can start workflows set up on the workspace, which may send messages.",
     {
       teamid,
       adbid,
@@ -148,7 +148,7 @@ export const COMMS_TOOLS: Tool[] = [
   ),
   tool(
     "anydb_retry_message",
-    "Send a Failed email again. Email only: a failed WhatsApp message cannot be retried here. This sends a message to someone outside the team. Needs edit access to the conversation.",
+    "Send a Failed email again. Email only: a failed WhatsApp message cannot be retried here. This sends a message to someone outside the team. Needs edit access to the conversation. Retry only when the user has asked to send this message again.",
     { teamid, adbid, messageId: { type: "string", description: "The failed message's ID, from anydb_get_conversation" } },
     ["teamid", "adbid", "messageId"],
   ),

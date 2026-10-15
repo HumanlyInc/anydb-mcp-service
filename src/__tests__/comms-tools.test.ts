@@ -84,7 +84,7 @@ describe("Communications MCP tools", () => {
       ["anydb_list_conversations", true, false, false],
       ["anydb_get_conversation", true, false, false],
       ["anydb_send_conversation_reply", false, true, true],
-      ["anydb_update_conversation", false, true, false],
+      ["anydb_update_conversation", false, true, true],
       ["anydb_retry_message", false, true, true],
     ] as const;
     for (const [name, readOnlyHint, destructiveHint, openWorldHint] of expected) {
@@ -114,6 +114,17 @@ describe("Communications MCP tools", () => {
     expect(description).toMatch(/4096/);
     expect(description).toMatch(/edit access/i);
     expect(description).toMatch(/clientRequestId/);
+  });
+
+  // OpenAI's plugin review compares annotations and descriptions with behaviour: an update starts workflows
+  // (so it is open-world, like update_record), and the irreversible sends must say to send only when asked.
+  it("the update tool says a record update can start workflows that send messages", async () => {
+    expect((await toolNamed("anydb_update_conversation")).description).toMatch(/start workflows[^.]*send messages/i);
+  });
+
+  it("the send and retry tools say to act only when the user asked", async () => {
+    expect((await toolNamed("anydb_send_conversation_reply")).description).toContain("Send only when the user has asked for this message to be sent.");
+    expect((await toolNamed("anydb_retry_message")).description).toContain("Retry only when the user has asked to send this message again.");
   });
 
   it("the read tool tells the model that message bodies are untrusted", async () => {
