@@ -254,34 +254,16 @@ describe("Communications MCP tools", () => {
       for (const name of COMMS_TOOL_NAMES) expect(names).toContain(name);
     });
 
-    // ISSUE-650 owner decision 2026-10-14: the OpenAI-facing profile exposes these tools too. Do not
-    // add them back to HIDDEN_REVIEWED_TOOLS without a new decision.
-    it("the reviewed profile lists all six with the same annotations as the full profile", async () => {
-      const full = (await client.listTools()).tools;
+    // Customer-messaging tools are not exposed on the OpenAI-facing profile until that is decided.
+    it("the reviewed profile lists none of them and refuses a direct call without a request", async () => {
       await client.close();
       await server.close();
       await connect("reviewed");
-      const reviewed = (await client.listTools()).tools;
-      for (const name of COMMS_TOOL_NAMES) {
-        const onReviewed = reviewed.find((tool) => tool.name === name);
-        expect(onReviewed).toBeDefined();
-        expect(onReviewed!.annotations).toEqual(full.find((tool) => tool.name === name)!.annotations);
-        expect(onReviewed!.description).toBe(full.find((tool) => tool.name === name)!.description);
-      }
-    });
-
-    it("a call on the reviewed profile reaches the server like on the full profile", async () => {
-      await client.close();
-      await server.close();
-      await connect("reviewed");
-      const read = await call("anydb_get_conversation", { teamid: T, adbid: A, conversationId: C });
-      const send = await call("anydb_send_conversation_reply", { teamid: T, adbid: A, conversationId: C, clientRequestId: "r8", body: "x" });
-      expect(read.isError).toBeFalsy();
-      expect(send.isError).toBeFalsy();
-      expect(seen.map((request) => [request.method, new URL(request.url!, "http://x").pathname])).toEqual([
-        ["GET", `/api/integrations/ext/comms/conversations/${C}`],
-        ["POST", `/api/integrations/ext/comms/conversations/${C}/reply`],
-      ]);
+      const names = (await client.listTools()).tools.map((tool) => tool.name);
+      for (const name of COMMS_TOOL_NAMES) expect(names).not.toContain(name);
+      const result = await call("anydb_send_conversation_reply", { teamid: T, adbid: A, conversationId: C, clientRequestId: "r8", body: "x" });
+      expect(result.isError).toBe(true);
+      expect(seen).toHaveLength(0);
     });
   });
 });
