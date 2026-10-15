@@ -41,7 +41,9 @@ export const REVIEWED_WORKFLOW_TOOLS: Tool[] = [
   tool("anydb_run_reviewed_workflow", "Run supported workflow", "Run a workflow containing only supported explicit steps, as the connected user. May modify records, generate files or send messages. The server validates the stored action chain and permissions before execution.", schema({ ...workflowAddress, adoid: objectId }, Object.keys(workflowAddress)), write),
 ];
 export const REVIEWED_WORKFLOW_ANNOTATIONS = Object.fromEntries(REVIEWED_WORKFLOW_TOOLS.map(t => [t.name, t.annotations!]));
-export const HIDDEN_REVIEWED_TOOLS = new Set(["anydb_create_workflow", "anydb_update_workflow", "anydb_execute_workflow", "anydb_run_script", "anydb_simulate_script", "anydb_publish_agent", "anydb_test_agent"]);
+// ISSUE - 650: the last six names are the Communications tools. They message customers outside the workspace and
+// are not exposed on the reviewed (OpenAI-facing) profile until that is decided; dropping them is the whole change.
+export const HIDDEN_REVIEWED_TOOLS = new Set(["anydb_create_workflow", "anydb_update_workflow", "anydb_execute_workflow", "anydb_run_script", "anydb_simulate_script", "anydb_publish_agent", "anydb_test_agent", "anydb_list_comm_accounts", "anydb_list_conversations", "anydb_get_conversation", "anydb_send_conversation_reply", "anydb_update_conversation", "anydb_retry_message"]);
 export const isReviewedWorkflowTool = (name: string) => REVIEWED_WORKFLOW_TOOLS.some(t => t.name === name);
 
 export function reviewedTools(tools: Tool[]): Tool[] {
