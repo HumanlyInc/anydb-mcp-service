@@ -2005,7 +2005,10 @@ export function createMcpServer({
   originClient?: string;
 }) {
   if (toolProfile !== "full" && toolProfile !== "reviewed") throw new Error("Unknown tool profile");
-  const listedTools = toolProfile === "reviewed" ? reviewedTools(LISTED_TOOLS) : LISTED_TOOLS;
+  // ISSUE - 670: the anydb_agent_* tools only run with the workflow-agent run
+  // capability header, so a connection without it is not offered them.
+  const listedTools = (toolProfile === "reviewed" ? reviewedTools(LISTED_TOOLS) : LISTED_TOOLS)
+    .filter((tool) => agentCapability || !isAgentTool(tool.name));
   const extApiClient = new ExtApiClient({
     apiKey,
     userEmail,

@@ -18,7 +18,7 @@ import { TOOL_ANNOTATIONS } from "../tool-annotations.js";
  */
 describe("tool annotations", () => {
   async function listTools() {
-    const server = createMcpServer({ baseURL: "http://127.0.0.1:1/api" });
+    const server = createMcpServer({ baseURL: "http://127.0.0.1:1/api", agentCapability: "annotations-test" });
     const client = new Client({ name: "annotations-test", version: "0.0.0" });
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
