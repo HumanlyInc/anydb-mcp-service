@@ -135,6 +135,14 @@ export const TOOL_ANNOTATIONS: Record<string, ToolAnnotations> = {
   anydb_list_team_groups: reads("List team groups"),
   anydb_get_permissions: reads("Get record permissions"),
   anydb_check_permissions: reads("Check record permissions"),
+  anydb_list_roles: reads("List roles"),
+  anydb_get_access: reads("Get access grants"),
+  anydb_who_can_access: reads("Who can access"),
+  // Changes who can reach data, inside the workspace only.
+  anydb_set_access: replaces("Set access"),
+  anydb_remove_access: replaces("Remove access"),
+  anydb_create_group: adds("Create group"),
+  anydb_change_group_members: replaces("Change group members"),
   anydb_create_workspace: adds("Create workspace"),
 
   // Records

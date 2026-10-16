@@ -1287,6 +1287,42 @@ export class ExtApiClient {
    * `userid` is optional and defaults, server-side, to the authenticated
    * caller — which is the common case ("may I?").
    */
+  // ISSUE - 673: permission authoring. Every rule is the server's.
+  async listRoles(params: { teamid: string }): Promise<unknown> {
+    return this.unwrap((await this.client.get<ExtApiResponse<unknown>>("/integrations/ext/roles", { params })).data);
+  }
+
+  async getAccess(params: { teamid: string; adbid?: string; adoid?: string }): Promise<unknown> {
+    return this.unwrap((await this.client.get<ExtApiResponse<unknown>>("/integrations/ext/access", { params })).data);
+  }
+
+  async whoCanAccess(params: { teamid: string; adbid?: string; adoid?: string; permission: string; level: string }): Promise<unknown> {
+    return this.unwrap((await this.client.get<ExtApiResponse<unknown>>("/integrations/ext/access/who", { params })).data);
+  }
+
+  async setAccess(body: {
+    teamid: string; adbid?: string; adoid?: string; userid?: string; groupid?: string;
+    roleids: string[]; inherit_down?: boolean; override?: boolean;
+  }): Promise<unknown> {
+    return this.unwrap((await this.client.post<ExtApiResponse<unknown>>("/integrations/ext/access/set", body)).data);
+  }
+
+  async removeAccess(body: {
+    teamid: string; adbid?: string; adoid?: string; userid?: string; groupid?: string; roleid?: string;
+  }): Promise<unknown> {
+    return this.unwrap((await this.client.post<ExtApiResponse<unknown>>("/integrations/ext/access/remove", body)).data);
+  }
+
+  async createTeamGroup(body: { teamid: string; name: string }): Promise<unknown> {
+    return this.unwrap((await this.client.post<ExtApiResponse<unknown>>("/integrations/ext/team-groups", body)).data);
+  }
+
+  async changeTeamGroupMembers(groupid: string, body: { teamid: string; add?: string[]; remove?: string[] }): Promise<unknown> {
+    return this.unwrap((await this.client.post<ExtApiResponse<unknown>>(
+      `/integrations/ext/team-groups/${encodeURIComponent(groupid)}/members`, body,
+    )).data);
+  }
+
   async getEffectivePermissions(params: {
     teamid: string;
     adbid?: string;

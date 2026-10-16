@@ -10,6 +10,8 @@
  * Measured 2026-10-15 (JSON of the listed tools, annotations and output schemas
  * included): full 248,723 chars before the agent-run tools were gated, 220,568
  * after; reviewed 220,650 before, 192,495 after.
+ * ISSUE - 673 added the seven permission-authoring tools: full 227,987,
+ * reviewed 199,914.
  */
 import { describe, expect, it } from "@jest/globals";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -17,7 +19,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { createMcpServer } from "../mcp.js";
 
-const BUDGET = { full: 225_000, reviewed: 197_000 } as const;
+const BUDGET = { full: 231_000, reviewed: 203_000 } as const;
 
 async function listedSize(toolProfile: "full" | "reviewed"): Promise<number> {
   const server: any = createMcpServer({ apiKey: "key", userEmail: "someone@example.com", toolProfile } as any);

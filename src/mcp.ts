@@ -4,6 +4,7 @@ import { guideHint } from "./guide-topics.js";
 import { AGENT_AUTHORING_TOOLS, callAgentAuthoringTool, isAgentAuthoringTool } from "./agent-authoring-tools.js";
 import { SHARED_FORM_TOOLS, isSharedFormTool, callSharedFormTool } from "./shared-form-tools.js";
 import { COMMS_TOOLS, isCommsTool, callCommsTool } from "./comms-tools.js";
+import { ACCESS_TOOLS, isAccessTool, callAccessTool } from "./access-tools.js";
 
 import { REVIEWED_WORKFLOW_TOOLS, reviewedTools, isReviewedWorkflowTool, callReviewedWorkflowTool, reviewedCatalog, REVIEWED_WORKFLOW_GUIDE, REVIEWED_INSTRUCTIONS, reviewedAuthoringGuide, reviewedResource, reviewedPromptText, type ToolProfile } from "./reviewed-workflow-tools.js";
 
@@ -156,6 +157,7 @@ const TOOLS: Tool[] = [
   ...SEMANTIC_SEARCH_TOOLS,
   ...SHARED_FORM_TOOLS,
   ...COMMS_TOOLS,
+  ...ACCESS_TOOLS,
   ...AGENT_TOOLS,
   ...AGENT_AUTHORING_TOOLS,
   {
@@ -2158,6 +2160,9 @@ export function createMcpServer({
       if (isAgentAuthoringTool(name)) return await callAgentAuthoringTool(name, args as Record<string, any> | undefined, extApiClient);
       if (isSharedFormTool(name)) {
         return await callSharedFormTool(name, args, extApiClient);
+      }
+      if (isAccessTool(name)) {
+        return await callAccessTool(name, args, extApiClient);
       }
       if (isCommsTool(name)) {
         return await callCommsTool(name, args, extApiClient);
