@@ -1,0 +1,2764 @@
+[
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/:webhookId",
+    "params": {
+      "webhookId": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/:webhookId",
+    "params": {
+      "webhookId": {
+        "in": "param",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": true
+      },
+      "description": {
+        "in": "body",
+        "optional": true
+      },
+      "url": {
+        "in": "body",
+        "optional": true
+      },
+      "timeout": {
+        "in": "body",
+        "optional": true
+      },
+      "customHeaders": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/agent/operation",
+    "params": null
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/agent/read-record",
+    "params": null
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/agents/:agentid/publish",
+    "params": {
+      "agentid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "version": {
+        "in": "body",
+        "optional": false
+      },
+      "enable": {
+        "in": "body",
+        "optional": true
+      },
+      "confirmExternalRecipients": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/agents/:agentid/test",
+    "params": {
+      "agentid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "fixture": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/agents/:agentid/validate",
+    "params": {
+      "agentid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/agents/:agentid",
+    "params": {
+      "agentid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "version": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/agents/:agentid",
+    "params": {
+      "agentid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/agents/runs/:runid",
+    "params": {
+      "runid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "page": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/agents/runs",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "agentid": {
+        "in": "query",
+        "optional": true
+      },
+      "limit": {
+        "in": "query",
+        "optional": true
+      },
+      "cursor": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/agents",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "limit": {
+        "in": "query",
+        "optional": true
+      },
+      "cursor": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/agents",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "configuration": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/bulkcreaterecords",
+    "params": {
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "records": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/bulkupdaterecords",
+    "params": {
+      "records": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/checkauth",
+    "params": null
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/comments/:commentid",
+    "params": {
+      "commentid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "adoid": {
+        "in": "body",
+        "optional": false
+      },
+      "resolved": {
+        "in": "body",
+        "optional": true
+      },
+      "cellPosition": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/comments",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "adoid": {
+        "in": "body",
+        "optional": false
+      },
+      "text": {
+        "in": "body",
+        "optional": false
+      },
+      "cellPosition": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/comms/accounts",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "channel": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/comms/conversations/:adoid/reply",
+    "params": {
+      "adoid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "body": {
+        "in": "body",
+        "optional": true
+      },
+      "replyAll": {
+        "in": "body",
+        "optional": true
+      },
+      "inReplyToMessageId": {
+        "in": "body",
+        "optional": true
+      },
+      "includeQuote": {
+        "in": "body",
+        "optional": true
+      },
+      "templateName": {
+        "in": "body",
+        "optional": true
+      },
+      "templateLanguage": {
+        "in": "body",
+        "optional": true
+      },
+      "templateComponents": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/comms/conversations/:adoid/update",
+    "params": {
+      "adoid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "unread": {
+        "in": "body",
+        "optional": true
+      },
+      "assignedTo": {
+        "in": "body",
+        "optional": true
+      },
+      "status": {
+        "in": "body",
+        "optional": true
+      },
+      "ticket": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/comms/conversations/:adoid",
+    "params": {
+      "adoid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "messagelimit": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/comms/conversations",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "accountid": {
+        "in": "query",
+        "optional": false
+      },
+      "status": {
+        "in": "query",
+        "optional": true
+      },
+      "unread": {
+        "in": "query",
+        "optional": true
+      },
+      "assignedtome": {
+        "in": "query",
+        "optional": true
+      },
+      "ticketstatus": {
+        "in": "query",
+        "optional": true
+      },
+      "priority": {
+        "in": "query",
+        "optional": true
+      },
+      "pagesize": {
+        "in": "query",
+        "optional": true
+      },
+      "cursor": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/comms/messages/:adoid/retry",
+    "params": {
+      "adoid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/completeupload",
+    "params": {
+      "filesize": {
+        "in": "body",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "adoid": {
+        "in": "body",
+        "optional": true
+      },
+      "cellpos": {
+        "in": "body",
+        "optional": true
+      },
+      "import_content": {
+        "in": "body",
+        "optional": true
+      },
+      "import_attachto": {
+        "in": "body",
+        "optional": true
+      },
+      "import_templateid": {
+        "in": "body",
+        "optional": true
+      },
+      "import_filename": {
+        "in": "body",
+        "optional": true
+      },
+      "import_image": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/copyrecord",
+    "params": {
+      "adoid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "dstadbid": {
+        "in": "body",
+        "optional": true
+      },
+      "attachto": {
+        "in": "body",
+        "optional": true
+      },
+      "attachmentsmode": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/createrecord",
+    "params": {
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": false
+      },
+      "attach": {
+        "in": "body",
+        "optional": true
+      },
+      "template": {
+        "in": "body",
+        "optional": true
+      },
+      "templatename": {
+        "in": "body",
+        "optional": true
+      },
+      "content": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/docgentemplates/generate",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "docgenId": {
+        "in": "body",
+        "optional": false
+      },
+      "adoid": {
+        "in": "body",
+        "optional": false
+      },
+      "attachTo": {
+        "in": "body",
+        "optional": true
+      },
+      "asPdf": {
+        "in": "body",
+        "optional": true
+      },
+      "email": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/docgentemplates",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "docgenId": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/docgentemplates",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "templateName": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/docgentemplates",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "templateName": {
+        "in": "body",
+        "optional": false
+      },
+      "fileRecordId": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/docgentemplates",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "docgenId": {
+        "in": "body",
+        "optional": false
+      },
+      "templateName": {
+        "in": "body",
+        "optional": false
+      },
+      "fileRecordId": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/download",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "adoid": {
+        "in": "query",
+        "optional": false
+      },
+      "cellpos": {
+        "in": "query",
+        "optional": false
+      },
+      "redirect": {
+        "in": "query",
+        "optional": true
+      },
+      "preview": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/getuploadurl",
+    "params": {
+      "filename": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "adoid": {
+        "in": "query",
+        "optional": false
+      },
+      "filesize": {
+        "in": "query",
+        "optional": false
+      },
+      "cellpos": {
+        "in": "query",
+        "optional": true
+      },
+      "import_content": {
+        "in": "query",
+        "optional": true
+      },
+      "import_media": {
+        "in": "query",
+        "optional": true
+      },
+      "replace_file": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/inboundwebhooks/:hookId/deliveries/:deliveryKey/replay",
+    "params": {
+      "hookId": {
+        "in": "param",
+        "optional": false
+      },
+      "deliveryKey": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/inboundwebhooks/:hookId/deliveries/:deliveryKey",
+    "params": {
+      "hookId": {
+        "in": "param",
+        "optional": false
+      },
+      "deliveryKey": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/inboundwebhooks/:hookId/deliveries",
+    "params": {
+      "hookId": {
+        "in": "param",
+        "optional": false
+      },
+      "limit": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/inboundwebhooks/:hookId/rotate-secret",
+    "params": {
+      "hookId": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/inboundwebhooks/:hookId/status",
+    "params": {
+      "hookId": {
+        "in": "param",
+        "optional": false
+      },
+      "status": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/inboundwebhooks/:hookId",
+    "params": {
+      "hookId": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/inboundwebhooks/:hookId",
+    "params": {
+      "hookId": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/inboundwebhooks/:hookId",
+    "params": {
+      "hookId": {
+        "in": "param",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": true
+      },
+      "description": {
+        "in": "body",
+        "optional": true
+      },
+      "fieldMap": {
+        "in": "body",
+        "optional": true
+      },
+      "recordName": {
+        "in": "body",
+        "optional": true
+      },
+      "templateName": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/inboundwebhooks",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "parentId": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/inboundwebhooks",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "parentId": {
+        "in": "body",
+        "optional": false
+      },
+      "templateName": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": false
+      },
+      "adapter": {
+        "in": "body",
+        "optional": false
+      },
+      "description": {
+        "in": "body",
+        "optional": true
+      },
+      "fieldMap": {
+        "in": "body",
+        "optional": true
+      },
+      "recordName": {
+        "in": "body",
+        "optional": true
+      },
+      "startActive": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/inbox",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/listdbsforteam",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/list",
+    "params": {
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "groupby": {
+        "in": "query",
+        "optional": true
+      },
+      "templateid": {
+        "in": "query",
+        "optional": true
+      },
+      "templatename": {
+        "in": "query",
+        "optional": true
+      },
+      "parentid": {
+        "in": "query",
+        "optional": true
+      },
+      "pagesize": {
+        "in": "query",
+        "optional": true
+      },
+      "lastmarker": {
+        "in": "query",
+        "optional": true
+      },
+      "sort": {
+        "in": "query",
+        "optional": true
+      },
+      "filter": {
+        "in": "query",
+        "optional": true
+      },
+      "previewcells": {
+        "in": "query",
+        "optional": true
+      },
+      "fields": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/listingtabs",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "templateName": {
+        "in": "query",
+        "optional": false
+      },
+      "name": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/listingtabs",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "templateName": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/listingtabs",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "templateName": {
+        "in": "body",
+        "optional": false
+      },
+      "tab": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/listingtabs",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "templateName": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": false
+      },
+      "changes": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/listteams",
+    "params": null
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/permissions/check",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": true
+      },
+      "adoid": {
+        "in": "body",
+        "optional": true
+      },
+      "userid": {
+        "in": "body",
+        "optional": true
+      },
+      "checks": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/permissions",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": true
+      },
+      "adoid": {
+        "in": "query",
+        "optional": true
+      },
+      "userid": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/record/revert",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "adoid": {
+        "in": "body",
+        "optional": false
+      },
+      "ts": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/record/versiondelta",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "adoid": {
+        "in": "query",
+        "optional": false
+      },
+      "ts": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/record/version",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "adoid": {
+        "in": "query",
+        "optional": false
+      },
+      "ts": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/record/versions",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "adoid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/record",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "adoid": {
+        "in": "query",
+        "optional": false
+      },
+      "fields": {
+        "in": "query",
+        "optional": true
+      },
+      "values": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/register",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "url": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": false
+      },
+      "description": {
+        "in": "body",
+        "optional": true
+      },
+      "timeout": {
+        "in": "body",
+        "optional": true
+      },
+      "maxRetries": {
+        "in": "body",
+        "optional": true
+      },
+      "backoffMs": {
+        "in": "body",
+        "optional": true
+      },
+      "customHeaders": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/remove",
+    "params": {
+      "adoid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "removefromids": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/reports/:reportid/email",
+    "params": {
+      "reportid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "format": {
+        "in": "body",
+        "optional": false
+      },
+      "generationId": {
+        "in": "body",
+        "optional": true
+      },
+      "refresh": {
+        "in": "body",
+        "optional": true
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "to": {
+        "in": "body",
+        "optional": false
+      },
+      "note": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/reports/:reportid/export",
+    "params": {
+      "reportid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "format": {
+        "in": "query",
+        "optional": false
+      },
+      "generationid": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/reports/:reportid/result",
+    "params": {
+      "reportid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "generationid": {
+        "in": "query",
+        "optional": true
+      },
+      "groupindex": {
+        "in": "query",
+        "optional": true
+      },
+      "start": {
+        "in": "query",
+        "optional": true
+      },
+      "limit": {
+        "in": "query",
+        "optional": true
+      },
+      "skipDetails": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/reports/:reportid/run",
+    "params": {
+      "reportid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "waitSeconds": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/reports/:reportid",
+    "params": {
+      "reportid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/reports/:reportid",
+    "params": {
+      "reportid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/reports/:reportid",
+    "params": {
+      "reportid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": true
+      },
+      "definition": {
+        "in": "body",
+        "optional": true
+      },
+      "validateOnly": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/reports",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/reports",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": false
+      },
+      "definition": {
+        "in": "body",
+        "optional": false
+      },
+      "validateOnly": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/script/run",
+    "params": {
+      "script": {
+        "in": "body",
+        "optional": false
+      },
+      "runToken": {
+        "in": "body",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "refIds": {
+        "in": "body",
+        "optional": true
+      },
+      "timeoutMs": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/script/simulate",
+    "params": {
+      "script": {
+        "in": "body",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "refIds": {
+        "in": "body",
+        "optional": true
+      },
+      "timeoutMs": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/script/validate",
+    "params": {
+      "script": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/search",
+    "params": {
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "parentid": {
+        "in": "query",
+        "optional": true
+      },
+      "search": {
+        "in": "query",
+        "optional": false
+      },
+      "start": {
+        "in": "query",
+        "optional": true
+      },
+      "limit": {
+        "in": "query",
+        "optional": true
+      },
+      "fields": {
+        "in": "query",
+        "optional": true
+      },
+      "values": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/semantic-search",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "query": {
+        "in": "body",
+        "optional": false
+      },
+      "limit": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/share/:shareid",
+    "params": {
+      "shareid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "sharetype": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/shared-forms/:shareId/submissions/:submissionId/submit",
+    "params": {
+      "shareId": {
+        "in": "param",
+        "optional": false
+      },
+      "submissionId": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/shared-forms/:shareId/submissions/:submissionId",
+    "params": {
+      "shareId": {
+        "in": "param",
+        "optional": false
+      },
+      "submissionId": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PATCH",
+    "path": "/integrations/ext/shared-forms/:shareId/submissions/:submissionId",
+    "params": {
+      "shareId": {
+        "in": "param",
+        "optional": false
+      },
+      "submissionId": {
+        "in": "param",
+        "optional": false
+      },
+      "fields": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/shared-forms/:shareId/submissions",
+    "params": {
+      "shareId": {
+        "in": "param",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/shared-forms/:shareId",
+    "params": {
+      "shareId": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/shared-forms/resolve",
+    "params": null
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/shared-forms",
+    "params": null
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/shared-records/:shareId",
+    "params": {
+      "shareId": {
+        "in": "param",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/shared-records/resolve",
+    "params": null
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/shared-records",
+    "params": null
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/share",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "adoid": {
+        "in": "body",
+        "optional": false
+      },
+      "role": {
+        "in": "body",
+        "optional": false
+      },
+      "withattachments": {
+        "in": "body",
+        "optional": false
+      },
+      "shared_userids": {
+        "in": "body",
+        "optional": true
+      },
+      "shared_emails": {
+        "in": "body",
+        "optional": true
+      },
+      "shared_groupids": {
+        "in": "body",
+        "optional": true
+      },
+      "name": {
+        "in": "body",
+        "optional": true
+      },
+      "share_expiry_enable": {
+        "in": "body",
+        "optional": true
+      },
+      "share_expiry_date": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/shares/:shareid",
+    "params": {
+      "shareid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "kind": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/shares/:shareid",
+    "params": {
+      "shareid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "kind": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PATCH",
+    "path": "/integrations/ext/shares/:shareid",
+    "params": {
+      "shareid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "kind": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "changes": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/shares",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/shares",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "validateOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "share": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/subscribe",
+    "params": {
+      "webhookId": {
+        "in": "body",
+        "optional": false
+      },
+      "event": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/team-groups",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/templates/:templatename/definition",
+    "params": {
+      "templatename": {
+        "in": "param",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "source": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/templates/:templatename",
+    "params": {
+      "templatename": {
+        "in": "param",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/templates/:templatename",
+    "params": {
+      "templatename": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "expectedRevision": {
+        "in": "body",
+        "optional": false
+      },
+      "validateOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "changes": {
+        "in": "body",
+        "optional": false
+      },
+      "confirmDataLoss": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/templates/by-id/:templateid/definition",
+    "params": {
+      "templateid": {
+        "in": "param",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/templates/discover",
+    "params": {
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "search": {
+        "in": "query",
+        "optional": false
+      },
+      "source": {
+        "in": "query",
+        "optional": true
+      },
+      "limit": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/templates",
+    "params": {
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/templates",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "validateOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "mode": {
+        "in": "body",
+        "optional": false
+      },
+      "type": {
+        "in": "body",
+        "optional": true
+      },
+      "builtInTemplateName": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/type-migrations/:jobid/retry",
+    "params": {
+      "jobid": {
+        "in": "param",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "confirmStalled": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/type-migrations/:jobid",
+    "params": {
+      "jobid": {
+        "in": "param",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/unsubscribe",
+    "params": {
+      "webhookId": {
+        "in": "body",
+        "optional": false
+      },
+      "event": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/updaterecord",
+    "params": {
+      "meta": {
+        "in": "body",
+        "optional": true
+      },
+      "content": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/views/:viewid",
+    "params": {
+      "viewid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/views/:viewid",
+    "params": {
+      "viewid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/views/:viewid",
+    "params": {
+      "viewid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "validateOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "changes": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/views",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/views",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "validateOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "view": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/workflow-actions",
+    "params": {
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/workflow-triggers",
+    "params": {
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/workflows/:workflowid/execute",
+    "params": {
+      "workflowid": {
+        "in": "param",
+        "optional": false
+      },
+      "reviewedOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "adoid": {
+        "in": "body",
+        "optional": true
+      },
+      "simulate": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/workflows/:workflowid/execution-history",
+    "params": {
+      "workflowid": {
+        "in": "param",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/workflows/:workflowid/reviewed-step/remove",
+    "params": {
+      "workflowid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "key": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/workflows/:workflowid/reviewed-step/reorder",
+    "params": {
+      "workflowid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "keys": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/workflows/:workflowid/reviewed-step",
+    "params": {
+      "workflowid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "actionType": {
+        "in": "body",
+        "optional": false
+      },
+      "key": {
+        "in": "body",
+        "optional": false
+      },
+      "config": {
+        "in": "body",
+        "optional": false
+      },
+      "description": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/workflows/:workflowid/trigger",
+    "params": {
+      "workflowid": {
+        "in": "param",
+        "optional": false
+      },
+      "reviewedOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "config": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/integrations/ext/workflows/:workflowid",
+    "params": {
+      "workflowid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/workflows/:workflowid",
+    "params": {
+      "workflowid": {
+        "in": "param",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "historylimit": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/integrations/ext/workflows/:workflowid",
+    "params": {
+      "workflowid": {
+        "in": "param",
+        "optional": false
+      },
+      "reviewedOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "changes": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/workflows/execute-by-name",
+    "params": {
+      "name": {
+        "in": "body",
+        "optional": false
+      },
+      "reviewedOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "adoid": {
+        "in": "body",
+        "optional": true
+      },
+      "simulate": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/workflows",
+    "params": {
+      "adbid": {
+        "in": "query",
+        "optional": false
+      },
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/workflows",
+    "params": {
+      "reviewedOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      },
+      "validateOnly": {
+        "in": "body",
+        "optional": true
+      },
+      "workflow": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/workspaces",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
+        "optional": false
+      },
+      "clientRequestId": {
+        "in": "body",
+        "optional": false
+      }
+    }
+  }
+]
