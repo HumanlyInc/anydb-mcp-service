@@ -1114,4 +1114,18 @@ describe("ExtApiClient", () => {
       await expect(api.publishAgent({ teamid: "t", adbid: "a", agentid: "11111111-1111-4111-8111-111111111111", version: 1 })).rejects.toThrow(/timeout/i);
     });
   });
+
+  // ISSUE - 674. A deployment without a route used to answer 200 with the web
+  // app's index.html; unwrap then threw only "AnyDB request failed".
+  it("names method, URL, status and content type when a 2xx body is not the JSON envelope", async () => {
+    const baseURL = await listen((_incoming, response) => {
+      response.setHeader("Content-Type", "text/html; charset=utf-8");
+      response.end("<!doctype html><html></html>");
+    });
+    const client = new ExtApiClient({ baseURL, apiKey: "k", userEmail: "u@example.test" });
+    const failure = client.listTemplates("team", "db");
+    await expect(failure).rejects.toThrow(
+      `GET ${baseURL}/integrations/ext/templates answered 200 with text/html; charset=utf-8, not the AnyDB JSON envelope`,
+    );
+  });
 });

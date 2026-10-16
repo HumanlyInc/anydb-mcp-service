@@ -823,7 +823,24 @@ export class ExtApiClient {
       return request;
     });
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // ISSUE - 674: a JSON call whose 2xx body did not parse is not an
+        // AnyDB answer (e.g. a proxy's or the web app's HTML page). Say so
+        // here, where the status and URL are known, instead of letting unwrap
+        // report a bare "AnyDB request failed".
+        const responseType = response.config.responseType;
+        if (typeof response.data === "string" && response.data !== "" && (!responseType || responseType === "json")) {
+          const method = response.config.method?.toUpperCase() || "REQUEST";
+          const baseURL = response.config.baseURL?.replace(/\/$/, "");
+          const route = response.config.url || "";
+          const url = baseURL ? `${baseURL}/${route.replace(/^\//, "")}` : route;
+          const contentType = String(response.headers?.["content-type"] || "no content type");
+          return Promise.reject(
+            new Error(`${method} ${url} answered ${response.status} with ${contentType}, not the AnyDB JSON envelope`),
+          );
+        }
+        return response;
+      },
       (error: unknown) => Promise.reject(this.toRequestError(error)),
     );
 
