@@ -53,3 +53,13 @@ it("exposes narrow child creation through the operation route with stable scope 
  expect(seen[0].body).toEqual({...args,kind:"create_record"});expect(seen[0].headers["x-anydb-agent-capability"]).toBe("synthetic-secret");
  const rejected=await client.callTool({name:"anydb_agent_create_record",arguments:{...args,executionUserId:"admin"}});expect(rejected.isError).toBe(true);expect(seen).toHaveLength(1);
 });
+it("does not list the run-capability tools to a connection without the capability (ISSUE - 670)",async()=>{
+ // They cannot run without the capability header, so listing them to an ordinary
+ // client only costs it tokens and offers calls that always fail.
+ const plain=createMcpServer({apiKey:"synthetic-key",userEmail:"user@example.invalid",baseURL:"http://127.0.0.1:1/api"} as any);
+ const c=new Client({name:"plain",version:"1"});const [ct,st]=InMemoryTransport.createLinkedPair();await Promise.all([plain.connect(st),c.connect(ct)]);
+ const names=(await c.listTools()).tools.map(t=>t.name);
+ expect(names.filter(n=>n.startsWith("anydb_agent_"))).toEqual([]);
+ expect(names).toContain("get_record");
+ await c.close();await plain.close();
+});

@@ -152,7 +152,7 @@ beforeAll(async () => {
     return { data: { status: "success", data, ...data }, status: 200, statusText: "OK", headers: {}, config };
   };
 
-  const server: any = createMcpServer({ apiKey: "key", userEmail: "someone@example.com", toolProfile: "full" } as any);
+  const server: any = createMcpServer({ apiKey: "key", userEmail: "someone@example.com", toolProfile: "full", agentCapability: "drift-test" } as any);
   const [a, b] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "drift-test", version: "1" });
   await Promise.all([server.connect(a), client.connect(b)]);

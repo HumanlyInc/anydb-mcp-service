@@ -14,6 +14,7 @@ import { describe, expect, it } from "@jest/globals";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
+import { AGENT_TOOLS } from "../agent-tools.js";
 import { createMcpServer } from "../mcp.js";
 
 const TOOL_NAME = /\b(anydb_[a-z0-9_]+|(?:get|list|create|update|delete|search|bulk|copy|move|upload|download|prepare|complete)_[a-z_]+)\b/g;
@@ -56,7 +57,9 @@ async function badReferences(toolProfile: "full" | "reviewed"): Promise<string[]
   await Promise.all([server.connect(a), client.connect(b)]);
 
   const { tools } = await client.listTools();
-  const names = new Set(tools.map((t) => t.name));
+  // The anydb_agent_* tools are listed only on a workflow-agent connection, but an
+  // agent's configuration names them, so a reference to one is to a real tool.
+  const names = new Set([...tools.map((t) => t.name), ...AGENT_TOOLS.map((t) => t.name)]);
   const texts: Array<[string, string]> = [["instructions", client.getInstructions() ?? ""]];
   for (const t of tools) texts.push([t.name, JSON.stringify({ d: t.description, s: t.inputSchema })]);
   for (const r of (await client.listResources()).resources) {
