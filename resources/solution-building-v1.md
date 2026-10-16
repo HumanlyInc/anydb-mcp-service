@@ -207,7 +207,7 @@ Important format rules:
   }
   ```
 
-  Reference it as `{{Discount Percentage}}`; the label reads "Discount %". The same works on `update_type` for an existing field: set `description` and add the prop instead of renaming the key, so nothing that already references the key changes.
+  Reference it as `{{Discount Percentage}}`; the label reads "Discount %". The same works on `anydb_update_type` for an existing field: set `description` and add the prop instead of renaming the key, so nothing that already references the key changes.
 - A `heading` field requires `headingLabel`. The `key` remains the stable field identifier, while `headingLabel` is the displayed text stored in the heading cell's `HEADING_LABEL` prop rather than its `value`. Do not put heading text in a default value or raw props. Example:
 
   ```json
@@ -243,7 +243,7 @@ Important format rules:
   References below.
 - `lookup` mirrors a field through a `ref`; provide `lookup.fromField`, `lookup.targetField`, and an optional `lookup.mode` of `snapshot` or `live`. The default is `snapshot`.
 - `attachments` embeds child records and requires the child `targetType`. Give it enough space, normally full width and 6-7 rows high.
-- `select` and `multi-select` require stable `options`, unless the field carries a `formula` that supplies them (a select whose options come from a formula — for example a line's `Currency` following its parent — needs no static list, and an add-only `update_type` on such a type is accepted).
+- `select` and `multi-select` require stable `options`, unless the field carries a `formula` that supplies them (a select whose options come from a formula — for example a line's `Currency` following its parent — needs no static list, and an add-only `anydb_update_type` on such a type is accepted).
 - To add values to an existing select's list, use `changes.appendOptions` on `anydb_update_type` (`[{ key, options }]`): the new options go on the end and the existing ones stay, so it is never destructive. It is refused unless it is strictly an append (an existing option, a repeat, an empty list, a non-select or formula-driven field). `updateFields` with `options` replaces the whole list instead.
 - A field's `props` on `updateFields` replaces that field's whole property map: a property you do not resend is removed. To add or change one property and keep the rest, send `propsMerge` instead (`[{ key, propsMerge: { CELL_LOCKED_ACCESS: { expr: "NOTINGROUP(\"Approvers\")" } } }]`): the named properties are set (an existing one is overwritten), nothing is removed, and the same names are allowed and refused as in `props`. That is how to apply one rule to many fields in a single call. Send one of `props` or `propsMerge` per field, not both. Neither touches a select's options, which belong to `options`.
 - Computed fields use `formula` and should normally be `locked`. A field's
@@ -957,11 +957,33 @@ history is kept); `anydb_delete_inbound_webhook` also deletes every stored
 submission, so use it only when asked. An endpoint that reaches its daily limit
 reports `suspended` until it is set to a status again.
 
+## Reading and Analysis
+
+Answer a question with the least data that answers it. A whole record is tens of KB and a page of
+them exceeds the result limit, so every read names what it needs.
+
+- **One record:** `get_record` with `fields` and `values: true`, naming only the header keys and
+  cells the task needs. Omit `fields` only to see a cell's props or formula.
+- **Records of one type, or under one parent:** `list_records` with `fields` (header keys only: a
+  listing carries no cells) and a cell `filter`. Page with `lastmarker`; a page holds at most 100.
+- **Records by text or cell value:** `search_records` (one workspace) or `search_team_records`
+  (every workspace), with a Lucene-style query and `fields` naming cell keys plus `values: true`.
+  Page with `start` and `limit` (at most 100); a short page is the last.
+- **Records by meaning rather than wording:** `anydb_semantic_search`.
+- **Counts, totals and groupings over a type:** a report. Create it once with `anydb_create_report`,
+  then `anydb_run_report` and `anydb_get_report_result`, one group at a time. Do not fetch every
+  record to count it.
+- **Joins across types, filters a listing cannot express, or work over more than a few pages:** a
+  script. Run `anydb_simulate_script` first (reads are real, writes are not), then
+  `anydb_run_script`, and return only the answer through `output.set(...)`, never the raw records.
+  A run is capped at 5 minutes.
+- **A record you just wrote:** read it back by id with `get_record`. Search lags writes.
+
 ## Comments
 
 Use `anydb_add_comment` to leave a comment, and `anydb_resolve_comment` to
 close one out. **Do not write into a record's `comments` through
-`anydb_update_record`.** That path looks like it works and gives up every
+`update_record`.** That path looks like it works and gives up every
 guarantee a comment is supposed to carry: the author becomes whatever the
 payload says, the id and timestamp become the caller's invention, and the
 mention notification never fires.
@@ -978,7 +1000,7 @@ from whoever is authenticated.
 Resolving preserves the comment text; only the status changes. Pass
 `resolved: false` to reopen one.
 
-Note that `anydb_update_record` still replaces a `comments` map wholesale if you
+Note that `update_record` still replaces a `comments` map wholesale if you
 send one, so a partial write silently drops every comment already there. The
 comment tools exist so you never need to send one.
 
@@ -1008,7 +1030,7 @@ Two details that are easy to get wrong:
   `complete_file_upload`. Passing the parent to step 3 fails or completes the
   wrong record.
 - A file becomes its own child record attached to the parent. It is not written
-  into a cell of the parent record, so do not try to `anydb_update_record` a
+  into a cell of the parent record, so do not try to `update_record` a
   parent cell with file content.
 
 Do not reach for `upload_file` by default. It runs this same flow server-side
@@ -1067,7 +1089,7 @@ clear a field's formula on the type, the migration moves records to the new
 revision and reports success, but every existing record keeps the old `expr` and
 the value it computed - including an `err`. So "migration completed" does not
 mean the fix is live on old records. Check a representative record with
-`anydb_get_record`; to fix existing records, write the cell on each one (for
+`get_record`; to fix existing records, write the cell on each one (for
 example `bulk_update_records` with the cell's `expr` set to the new formula, or
 to `""` with the value you want). New records use the type's formula.
 
@@ -1216,8 +1238,8 @@ Only use a positional reference when raw `DYNREF` is unavoidable: its first argu
 ### When Formulas Evaluate
 
 Formulas evaluate on the server, not in the client. Writing a record runs them
-and the response carries the result: `anydb_update_record` and
-`anydb_create_record` return the record after evaluation, so computed cells,
+and the response carries the result: `update_record` and
+`create_record` return the record after evaluation, so computed cells,
 property expressions, and the record name in that response are already current.
 
 Do not follow a write with a read to see computed values, and do not compute

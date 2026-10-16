@@ -24,16 +24,6 @@ const NOT_TOOLS = new Set(["update_available"]);
 
 /** Known bad references, `<profile> <name> <- <where>`, each with the issue that removes it. */
 const KNOWN: Record<string, string> = {
-  "full get_workflow <- anydb_update_workflow_trigger": "ISSUE - 670",
-  "full update_type <- anydb://guides/solution-building/v1": "ISSUE - 671",
-  "full anydb_update_record <- anydb://guides/solution-building/v1": "ISSUE - 671",
-  "full anydb_get_record <- anydb://guides/solution-building/v1": "ISSUE - 671",
-  "full anydb_create_record <- anydb://guides/solution-building/v1": "ISSUE - 671",
-  "reviewed get_workflow <- anydb_update_workflow_trigger": "ISSUE - 670",
-  "reviewed update_type <- anydb://guides/solution-building/v1": "ISSUE - 671",
-  "reviewed anydb_update_record <- anydb://guides/solution-building/v1": "ISSUE - 671",
-  "reviewed anydb_get_record <- anydb://guides/solution-building/v1": "ISSUE - 671",
-  "reviewed anydb_create_record <- anydb://guides/solution-building/v1": "ISSUE - 671",
   // /reviewed descriptions still point at tools that profile hides.
   "reviewed anydb_update_workflow <- anydb_delete_workflow": "ISSUE - 670",
   "reviewed anydb_update_workflow <- anydb_save_agent": "ISSUE - 670",

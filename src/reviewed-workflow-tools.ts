@@ -104,10 +104,30 @@ function sanitizeWorkflowReferences(text: string): string {
   return text;
 }
 
+// ISSUE - 671: this profile has no script tools, so its copy of the reading topic
+// sends analysis to reports and projected paging instead.
+const REVIEWED_READING_GUIDE = `## Reading and Analysis
+
+Answer a question with the least data that answers it. A whole record is tens of KB and a page of them exceeds the result limit, so every read names what it needs.
+
+- **One record:** \`get_record\` with \`fields\` and \`values: true\`, naming only the header keys and cells the task needs.
+- **Records of one type, or under one parent:** \`list_records\` with \`fields\` (header keys only) and a cell \`filter\`. Page with \`lastmarker\`; a page holds at most 100.
+- **Records by text or cell value:** \`search_records\` or \`search_team_records\` with \`fields\` naming cell keys plus \`values: true\`. Page with \`start\` and \`limit\` (at most 100).
+- **Records by meaning rather than wording:** \`anydb_semantic_search\`.
+- **Counts, totals, groupings, and analysis over many records:** a report. Create it once with \`anydb_create_report\`, then \`anydb_run_report\` and \`anydb_get_report_result\`, one group at a time. Where no report fits, page a projected search and keep only what the answer needs, rather than holding whole records.
+- **A record you just wrote:** read it back by id with \`get_record\`. Search lags writes.
+`;
+
 export function reviewedBuildingGuide(): string {
   const guide = readSolutionResource(SOLUTION_BUILDING_GUIDE_URI).text;
-  return guide.split(/\n(?=## )/).map(section => section.startsWith("## Workflows\n") ? "## Workflows\n\n" + REVIEWED_WORKFLOW_GUIDE : sanitizeWorkflowReferences(section)).join("\n");
+  return guide.split(/\n(?=## )/).map(section =>
+    section.startsWith("## Workflows\n") ? "## Workflows\n\n" + REVIEWED_WORKFLOW_GUIDE
+    : section.startsWith("## Reading and Analysis\n") ? REVIEWED_READING_GUIDE
+    : sanitizeWorkflowReferences(section)).join("\n");
 }
+
+/** The /reviewed server instructions: the workflow rules plus how to read. */
+export const REVIEWED_INSTRUCTIONS = `${REVIEWED_WORKFLOW_GUIDE} Reading records: always pass fields (with values: true) to get_record, list_records, search_records and search_team_records, naming only the header keys and cells the task needs; a whole record is tens of KB. For counts and analysis over many records use a report (anydb_run_report). Before authoring a type or solution, call anydb_get_authoring_guide: with no topic it returns the general contract and a topic index; then fetch the topics the task needs, such as "reading-and-analysis" or "cells,formulas".`;
 
 export function reviewedAuthoringGuide(topic: unknown): string {
   return authoringGuideText(reviewedBuildingGuide(), topic);

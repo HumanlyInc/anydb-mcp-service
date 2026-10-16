@@ -167,7 +167,7 @@ export const SOLUTION_AUTHORING_TOOLS: Tool[] = [
   {
     name: "anydb_update_workflow_trigger",
     description:
-      "Edit the input settings of an existing workflow trigger without replacing the workflow, trigger ID or action chain. Read anydb_get_workflow first and send its complete trigger.config with your changes; omitted properties are removed. Record triggers use templateName, optional legacy templateId, fieldNames, parentRecordId and filter; other triggers use the native config returned by get_workflow. This does not change trigger type or enable the workflow. Requires workspace update access.",
+      "Edit the input settings of an existing workflow trigger without replacing the workflow, trigger ID or action chain. Read anydb_get_workflow first and send its complete trigger.config with your changes; omitted properties are removed. Record triggers use templateName, optional legacy templateId, fieldNames, parentRecordId and filter; other triggers use the native config returned by anydb_get_workflow. This does not change trigger type or enable the workflow. Requires workspace update access.",
     inputSchema: exposedInputSchema("updateWorkflowTriggerInput") as unknown as Tool["inputSchema"],
   },
   {

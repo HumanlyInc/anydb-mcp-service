@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { AGENT_TOOLS, isAgentTool, callAgentTool } from "./agent-tools.js";
+import { guideHint } from "./guide-topics.js";
 import { AGENT_AUTHORING_TOOLS, callAgentAuthoringTool, isAgentAuthoringTool } from "./agent-authoring-tools.js";
 import { SHARED_FORM_TOOLS, isSharedFormTool, callSharedFormTool } from "./shared-form-tools.js";
 import { COMMS_TOOLS, isCommsTool, callCommsTool } from "./comms-tools.js";
 
-import { REVIEWED_WORKFLOW_TOOLS, reviewedTools, isReviewedWorkflowTool, callReviewedWorkflowTool, reviewedCatalog, REVIEWED_WORKFLOW_GUIDE, reviewedAuthoringGuide, reviewedResource, reviewedPromptText, type ToolProfile } from "./reviewed-workflow-tools.js";
+import { REVIEWED_WORKFLOW_TOOLS, reviewedTools, isReviewedWorkflowTool, callReviewedWorkflowTool, reviewedCatalog, REVIEWED_WORKFLOW_GUIDE, REVIEWED_INSTRUCTIONS, reviewedAuthoringGuide, reviewedResource, reviewedPromptText, type ToolProfile } from "./reviewed-workflow-tools.js";
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
@@ -2035,7 +2036,8 @@ export function createMcpServer({
         resources: {},
         prompts: {},
       },
-      instructions: toolProfile === "reviewed" ? REVIEWED_WORKFLOW_GUIDE : `For installation, credentials, client configuration, or connection troubleshooting, read ${ANYDB_SETUP_GUIDE_URI} or call anydb_get_setup_guide. Before authoring an AnyDB type or solution, read ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant guidance has been read. Reading records: always pass fields (with values: true) to get_record, list_records, search_records and search_team_records, naming only the header keys and cells the task needs. A whole record is tens of KB and a page of them exceeds the result limit. If you do not know a type's cell keys, read the type with anydb_get_type_definition or one record with fields [\"name\"] first.`,
+      instructions: toolProfile === "reviewed" ? REVIEWED_INSTRUCTIONS : `For installation, credentials, client configuration, or connection troubleshooting, call anydb_get_setup_guide (also ${ANYDB_SETUP_GUIDE_URI}). Before authoring an AnyDB type or solution, call anydb_get_authoring_guide: with no topic it returns the general contract and a topic index; then fetch only the topics the task needs, for example "cells,formulas" before defining a type and "workflows" before a workflow. The whole guide and its JSON schema remain available as ${SOLUTION_BUILDING_GUIDE_URI} and anydb://schemas/solution-authoring/v1. A task may require one standalone type or a coordinated multi-type solution. Match the requested scope and never invent related types or workflows merely to broaden a standalone-type task. Design the requested artifacts first, discover and reuse compatible workspace or built-in types, create dependencies in order when present, and create workflows last only when automation is required. Do not mutate types or workflows until the relevant topics have been read. Reading records: always pass fields (with values: true) to get_record, list_records, search_records and search_team_records, naming only the header keys and cells the task needs. A whole record is tens of KB and a page of them exceeds the result limit. If you do not know a type's cell keys, read the type with anydb_get_type_definition or one record with fields [\"name\"] first. For counts, joins or filters over many records, use a report (anydb_run_report) or a script (anydb_simulate_script, then anydb_run_script) that returns only the answer; topic "reading-and-analysis".`,
+
     },
   );
 
@@ -3267,7 +3269,7 @@ export function createMcpServer({
         content: [
           {
             type: "text",
-            text: `Error: ${errorMessage}`,
+            text: `Error: ${errorMessage}${guideHint(name)}`,
           },
         ],
         isError: true,
