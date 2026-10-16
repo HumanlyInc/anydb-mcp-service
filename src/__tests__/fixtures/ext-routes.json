@@ -41,6 +41,118 @@
   },
   {
     "method": "POST",
+    "path": "/integrations/ext/access/remove",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": true
+      },
+      "adoid": {
+        "in": "body",
+        "optional": true
+      },
+      "userid": {
+        "in": "body",
+        "optional": true
+      },
+      "groupid": {
+        "in": "body",
+        "optional": true
+      },
+      "roleid": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/access/set",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "adbid": {
+        "in": "body",
+        "optional": true
+      },
+      "adoid": {
+        "in": "body",
+        "optional": true
+      },
+      "userid": {
+        "in": "body",
+        "optional": true
+      },
+      "groupid": {
+        "in": "body",
+        "optional": true
+      },
+      "roleids": {
+        "in": "body",
+        "optional": false
+      },
+      "inherit_down": {
+        "in": "body",
+        "optional": true
+      },
+      "override": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/access/who",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": true
+      },
+      "adoid": {
+        "in": "query",
+        "optional": true
+      },
+      "permission": {
+        "in": "query",
+        "optional": false
+      },
+      "level": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/integrations/ext/access",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      },
+      "adbid": {
+        "in": "query",
+        "optional": true
+      },
+      "adoid": {
+        "in": "query",
+        "optional": true
+      }
+    }
+  },
+  {
+    "method": "POST",
     "path": "/integrations/ext/agent/operation",
     "params": null
   },
@@ -1620,6 +1732,16 @@
     }
   },
   {
+    "method": "GET",
+    "path": "/integrations/ext/roles",
+    "params": {
+      "teamid": {
+        "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
     "method": "POST",
     "path": "/integrations/ext/script/run",
     "params": {
@@ -2046,11 +2168,47 @@
     }
   },
   {
+    "method": "POST",
+    "path": "/integrations/ext/team-groups/:groupid/members",
+    "params": {
+      "groupid": {
+        "in": "param",
+        "optional": false
+      },
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "add": {
+        "in": "body",
+        "optional": true
+      },
+      "remove": {
+        "in": "body",
+        "optional": true
+      }
+    }
+  },
+  {
     "method": "GET",
     "path": "/integrations/ext/team-groups",
     "params": {
       "teamid": {
         "in": "query",
+        "optional": false
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/integrations/ext/team-groups",
+    "params": {
+      "teamid": {
+        "in": "body",
+        "optional": false
+      },
+      "name": {
+        "in": "body",
         "optional": false
       }
     }

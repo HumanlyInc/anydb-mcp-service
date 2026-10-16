@@ -103,3 +103,37 @@ Both are read-only and change nothing.
 | Can Sam delete it? | `can.delete` |
 | Why can Sam see it? | `roleIds`, plus `permissions.OBJECT_SELF.PERM_READ.reason` |
 | Can I add records to this database? | `can.addChildren` on the database |
+
+## Building a permission structure
+
+Access is a **role** held by a **user or a group** on a **team, workspace or
+record**. Build it from the outside in, then check it.
+
+1. **Pick roles.** `anydb_list_roles` returns each built-in role with its
+   `roleId` and what it allows on each level. There are no custom roles yet.
+   The common ones: Read Only, Read and Write, Workspace Member, Team Member.
+2. **Prefer groups.** Create a group per audience (`anydb_create_group`), add
+   people (`anydb_change_group_members`), and grant the group, not each person.
+   Membership changes then move access with them.
+3. **Grant at the highest level that is true for everything underneath.**
+   `anydb_set_access` with `inherit_down: true` (the default) applies the role
+   to the resource and everything below it. Grant narrower access on a child
+   only where it must differ; `override: true` replaces what the child
+   inherited instead of adding to it.
+4. **Check the result**, never assume it: `anydb_get_access` lists the roles
+   held directly on the resource, `anydb_who_can_access` lists everyone who can
+   do one thing there (inherited access included), and
+   `anydb_get_permissions` / `anydb_check_permissions` answer for one user.
+
+Rules the server enforces, so plan around them:
+
+- `anydb_set_access` **replaces** the user's or group's roles on that resource;
+  send every role they should keep.
+- A role on a **team** needs team membership; a role on a **workspace** needs
+  membership or guest status. A **record** can be given to anyone, as sharing
+  does. A refusal for someone outside the team is the rule, not a fault.
+- Only someone allowed to change the resource's access can grant or remove it.
+- The Write Only role currently includes team and workspace admin, so it is not
+  granted on a team or workspace through the API.
+- For people outside the team, share the record (`anydb_create_share`) rather
+  than granting a workspace role.

@@ -70,6 +70,8 @@ const ARGS: Record<string, Array<Record<string, unknown>>> = {
   ],
   anydb_get_shared_record: [{ shareId: OID }, { shareUrl: "https://app.anydb.com/s/x" }],
   anydb_get_shared_form: [{ shareId: OID }, { shareUrl: "https://app.anydb.com/f/x" }],
+  anydb_set_access: [{ teamid: OID, adbid: OID, adoid: OID, groupid: OID, roleids: ["x"], inherit_down: true, override: false }],
+  anydb_remove_access: [{ teamid: OID, adbid: OID, adoid: OID, userid: OID, roleid: "x" }],
   anydb_update_conversation: [{
     teamid: OID, adbid: OID, conversationId: OID, unread: true, assignedTo: OID, status: "Open",
     ticket: { pipeline: "x", status: "x", priority: "x", assignedTeam: [OID] },
