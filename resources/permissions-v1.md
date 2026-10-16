@@ -133,7 +133,7 @@ Rules the server enforces, so plan around them:
   membership or guest status. A **record** can be given to anyone, as sharing
   does. A refusal for someone outside the team is the rule, not a fault.
 - Only someone allowed to change the resource's access can grant or remove it.
-- The Write Only role currently includes team and workspace admin, so it is not
-  granted on a team or workspace through the API.
+- Write Only lets the holder add and change content without reading it. It
+  grants no admin, so it cannot be used to manage access or settings.
 - For people outside the team, share the record (`anydb_create_share`) rather
   than granting a workspace role.

@@ -84,7 +84,7 @@ export const ACCESS_TOOLS: Tool[] = [
   {
     name: "anydb_set_access",
     description:
-      "REPLACE a user's or a group's roles on a team, workspace or record with roleids (from anydb_list_roles): any role they held there before is removed first, as in the Access dialog. inherit_down (default true) also applies the roles to everything underneath; override (default false) replaces inherited access instead of adding to it. The person or group gets this access immediately. A team or workspace role is only for someone in the team (a workspace role also accepts a team guest); a record accepts anyone, as sharing does. Write Only cannot be granted on a team or workspace here (it currently includes admin). Refused unless you may change the resource's access. Check the result with anydb_get_access or anydb_check_permissions.",
+      "REPLACE a user's or a group's roles on a team, workspace or record with roleids (from anydb_list_roles): any role they held there before is removed first, as in the Access dialog. inherit_down (default true) also applies the roles to everything underneath; override (default false) replaces inherited access instead of adding to it. The person or group gets this access immediately. A team or workspace role is only for someone in the team (a workspace role also accepts a team guest); a record accepts anyone, as sharing does. Refused unless you may change the resource's access. Check the result with anydb_get_access or anydb_check_permissions.",
     inputSchema: {
       type: "object",
       properties: {
