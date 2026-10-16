@@ -106,7 +106,15 @@ not do damage:
   rich text that must be HTML, unknown keys being a no-op.
 - The projection rule on read tools.
 
-Target: full profile at or under 25k tokens of tools/list with the same 135 tools. A test pins the
+Target, corrected after measuring (ISSUE - 670): the whole tools/list answer
+(annotations and output schemas included) was 248,723 chars on the full profile.
+It splits into 72k top-level descriptions, 65k property descriptions, 60k schema
+structure and 28k annotations, output schemas and titles. What remains of the
+prose is mostly the silent-failure rules this section says must stay, pinned by
+270 assertions, so a 25k-token target is not reachable without losing
+effectiveness. The first cut instead gates the eight workflow-agent run tools to
+connections that carry the run capability (-11%); further trims wait for the
+Dev1 task set to show they cost nothing. A test pins the
 measured total so it cannot creep back unnoticed (a size budget, not wording).
 
 Annotations do not change unless the review in section 4 finds one wrong.
